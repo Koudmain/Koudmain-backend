@@ -10,15 +10,20 @@ export class UsersService {
     return this.userModel.findAll();
   }
 
-  findOne(id: number) {
+  findOneById(id: number) {
     return this.userModel.findByPk(id);
+  }
+
+  async findOne(username: string): Promise<User | null> {
+    return this.userModel.findOne({ where: { username } });
   }
 
   createFake() {
     return this.userModel.create({
       id: Math.floor(Math.random() * 100000),
+      username: 'jhon',
       email: `fake_${Date.now()}@test.com`,
-      password: 'fakepassword',
+      password: 'changeme',
       userType: 'worker',
       updatedAt: new Date(),
     });
