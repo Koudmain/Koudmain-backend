@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS "user" (
 	"id" integer NOT NULL,
+	"username" varchar(255) NOT NULL UNIQUE,
 	"email" varchar(255) NOT NULL UNIQUE,
 	"password" varchar(255) NOT NULL,
 	"user_type" varchar(50) NOT NULL,

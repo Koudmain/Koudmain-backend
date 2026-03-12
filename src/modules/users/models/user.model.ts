@@ -6,6 +6,9 @@ export class User extends Model {
   declare id: number;
 
   @Column({ type: DataType.STRING, unique: true })
+  declare username: string;
+
+  @Column({ type: DataType.STRING, unique: true })
   declare email: string;
 
   @Column(DataType.STRING)
