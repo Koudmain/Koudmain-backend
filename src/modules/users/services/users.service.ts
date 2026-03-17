@@ -15,8 +15,8 @@ export class UsersService {
     return this.userModel.findByPk(id);
   }
 
-  async findOne(username: string): Promise<User | null> {
-    return this.userModel.findOne({ where: { username } });
+  async findOne(email: string): Promise<User | null> {
+    return this.userModel.findOne({ where: { email } });
   }
 
   async createFake() {
@@ -27,7 +27,8 @@ export class UsersService {
       last_name: `doe_${Date.now()}`,
       email: `fake_${Date.now()}@test.com`,
       password: hashedPassword,
-      userType: 'worker',
+      is_worker_active: false,
+      is_employer_active: false,
     });
   }
 

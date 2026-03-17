@@ -49,7 +49,8 @@ export class AuthService {
       last_name,
       email,
       password: hashedPassword,
-      userType: 'worker',
+      is_worker_active: false,
+      is_employer_active: false,
     });
 
     const payload = { sub: newUser.id, first_name: newUser.first_name, last_name: newUser.last_name };

@@ -1,3 +1,4 @@
+import { BOOLEAN } from 'sequelize';
 import { Column, Model, Table, DataType } from 'sequelize-typescript';
 
 @Table({ tableName: 'user', timestamps: false })
@@ -17,9 +18,12 @@ export class User extends Model {
   @Column(DataType.STRING)
   declare password: string;
 
-  @Column({ field: 'user_type', type: DataType.STRING })
-  declare userType: string;
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
+  declare is_worker_active: boolean;
 
-  @Column({ field: 'updated_at', type: DataType.DATE })
-  declare updatedAt: Date;
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
+  declare is_employer_active: boolean;
+
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
 }
