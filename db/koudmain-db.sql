@@ -12,6 +12,8 @@ CREATE TABLE "address" (
 
 CREATE TABLE "user" (
   "id" serial PRIMARY KEY,
+  "first_name" varchar(255),
+  "last_name" varchar(255),
   "email" varchar UNIQUE,
   "password" varchar,
   "is_worker_active" boolean DEFAULT false,

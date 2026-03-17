@@ -17,10 +17,10 @@ export class AuthService {
   ) {}
 
   async signIn(
-    username: string,
+    email: string,
     pass: string,
   ): Promise<{ access_token: string }> {
-    const user = await this.usersService.findOne(username);
+    const user = await this.usersService.findOne(email);
     if (!user) {
       throw new UnauthorizedException();
     }
@@ -30,28 +30,29 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    const payload = { sub: user.id, username: user.username };
+    const payload = { sub: user.id, email: user.email };
     return {
       access_token: await this.jwtService.signAsync(payload),
     };
   }
 
-  async register(username: string, email: string, password: string) {
-    const existingUser = await this.usersService.findOne(username);
+  async register(first_name: string, last_name: string, email: string, password: string) {
+    const existingUser = await this.usersService.findOne(email);
     if (existingUser) {
-      throw new ConflictException('Username already exists');
+      throw new ConflictException('Email already exists');
     }
 
     const hashedPassword = await hash(password, 10);
 
     const newUser = await this.usersService.create({
-      username,
+      first_name,
+      last_name,
       email,
       password: hashedPassword,
       userType: 'worker',
     });
 
-    const payload = { sub: newUser.id, username: newUser.username };
+    const payload = { sub: newUser.id, first_name: newUser.first_name, last_name: newUser.last_name };
     return {
       access_token: await this.jwtService.signAsync(payload),
     };

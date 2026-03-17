@@ -23,7 +23,8 @@ export class UsersService {
     const hashedPassword = await hash('changeme', 10);
 
     return this.create({
-      username: 'john',
+      first_name: 'john',
+      last_name: `doe_${Date.now()}`,
       email: `fake_${Date.now()}@test.com`,
       password: hashedPassword,
       userType: 'worker',
