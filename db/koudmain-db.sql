@@ -1,121 +1,347 @@
-CREATE TABLE IF NOT EXISTS "user" (
-	"id" integer NOT NULL,
-	"username" varchar(255) NOT NULL UNIQUE,
-	"email" varchar(255) NOT NULL UNIQUE,
-	"password" varchar(255) NOT NULL,
-	"user_type" varchar(50) NOT NULL,
-	"updated_at" timestamp with time zone NOT NULL,
-	PRIMARY KEY ("id")
+CREATE TABLE "address" (
+  "id" serial PRIMARY KEY,
+  "street_number" varchar(10),
+  "street_name" varchar(255),
+  "zip_code" varchar(10),
+  "city" varchar(100),
+  "country" varchar(100) DEFAULT 'France',
+  "latitude" numeric(9,6),
+  "longitude" numeric(9,6),
+  "full_address" text
 );
 
-CREATE TABLE IF NOT EXISTS "skill" (
-	"id" integer NOT NULL,
-	"name" varchar(255) NOT NULL UNIQUE,
-	PRIMARY KEY ("id")
+CREATE TABLE "user" (
+  "id" serial PRIMARY KEY,
+  "first_name" varchar(255),
+  "last_name" varchar(255),
+  "email" varchar UNIQUE,
+  "password" varchar,
+  "is_worker_active" boolean DEFAULT false,
+  "is_employer_active" boolean DEFAULT false,
+  "created_at" timestamp
 );
 
-CREATE TABLE IF NOT EXISTS "worker_profile" (
-	"id" integer NOT NULL,
-	"user_id" bigint NOT NULL UNIQUE,
-	"name" varchar(255) NOT NULL,
-	"bio" varchar(255) NOT NULL,
-	"profile_picture_url" varchar(255) NOT NULL,
-	"identity_document_url" varchar(255) NOT NULL,
-	"bank_details_id" varchar(255) NOT NULL,
-	PRIMARY KEY ("id")
+CREATE TABLE "worker_profile" (
+  "id" serial PRIMARY KEY,
+  "user_id" integer,
+  "address_id" integer,
+  "first_name" varchar,
+  "last_name" varchar,
+  "max_distance_km" integer DEFAULT 20,
+  "skills_description" text,
+  "identity_verified" boolean DEFAULT false,
+  "iban" varchar,
+  "average_rating" numeric
 );
 
-CREATE TABLE IF NOT EXISTS "company" (
-	"id" integer NOT NULL,
-	"owner_id" bigint NOT NULL UNIQUE,
-	"name" varchar(255) NOT NULL,
-	"bio" varchar(255) NOT NULL,
-	"adress" varchar(255) NOT NULL,
-	"profile_picture_url" varchar(255) NOT NULL,
-	"kbis_document_url" varchar(255) NOT NULL,
-	"created_at" timestamp with time zone NOT NULL DEFAULT 'now',
-	"updated_at" timestamp with time zone NOT NULL,
-	PRIMARY KEY ("id")
+CREATE TABLE "wallet" (
+  "id" serial PRIMARY KEY,
+  "worker_id" integer,
+  "balance" numeric(10,2) DEFAULT 0,
+  "updated_at" timestamp
 );
 
-CREATE TABLE IF NOT EXISTS "worker_skill" (
-	"worker_profile_id" integer NOT NULL,
-	"skill_id" bigint NOT NULL,
-	PRIMARY KEY ("worker_profile_id", "skill_id")
+CREATE TABLE "wallet_transaction" (
+  "id" serial PRIMARY KEY,
+  "wallet_id" integer,
+  "amount" numeric(10,2),
+  "type" varchar,
+  "status" varchar,
+  "reference_id" integer,
+  "created_at" timestamp DEFAULT (now())
 );
 
-CREATE TABLE IF NOT EXISTS "publication" (
-	"id" integer NOT NULL,
-	"company_id" bigint NOT NULL,
-	"title" varchar(255) NOT NULL,
-	"description" varchar(255) NOT NULL,
-	"earning_money" numeric(102) NOT NULL,
-	"starting_date" timestamp with time zone NOT NULL,
-	"ending_date" timestamp with time zone NOT NULL,
-	"views" bigint NOT NULL DEFAULT '0',
-	"clicks" bigint NOT NULL DEFAULT '0',
-	"created_at" timestamp with time zone NOT NULL DEFAULT 'now',
-	"updated_at" timestamp with time zone NOT NULL,
-	"list_skill" bigint NOT NULL,
-	PRIMARY KEY ("id")
+CREATE TABLE "company" (
+  "id" serial PRIMARY KEY,
+  "name" varchar(255),
+  "address_id" integer,
+  "siret_number" varchar(20) UNIQUE,
+  "kbis_document_url" varchar(255),
+  "is_premium" boolean DEFAULT false,
+  "created_at" timestamp DEFAULT (now())
 );
 
-CREATE TABLE IF NOT EXISTS "application" (
-	"id" integer NOT NULL,
-	"publication_id" bigint NOT NULL,
-	"worker_user_id" bigint NOT NULL,
-	"status" varchar(50) NOT NULL,
-	"created_at" timestamp with time zone NOT NULL,
-	PRIMARY KEY ("id")
+CREATE TABLE "company_member" (
+  "id" serial PRIMARY KEY,
+  "company_id" integer,
+  "user_id" integer,
+  "role" varchar(50)
 );
 
-CREATE TABLE IF NOT EXISTS "mission" (
-	"id" integer NOT NULL,
-	"publication_id" bigint UNIQUE,
-	"worker_user_id" bigint NOT NULL,
-	"employer_user_id" bigint NOT NULL,
-	"status" varchar(50) NOT NULL,
-	"created_at" timestamp with time zone NOT NULL DEFAULT 'now',
-	"updated_at" timestamp with time zone NOT NULL,
-	PRIMARY KEY ("id")
+CREATE TABLE "skill" (
+  "id" serial PRIMARY KEY,
+  "name" varchar(255) UNIQUE
 );
 
-CREATE TABLE IF NOT EXISTS "rating" (
-	"id" integer NOT NULL,
-	"mission_id" bigint NOT NULL,
-	"rater_user_id" bigint NOT NULL,
-	"rated_user_id" bigint NOT NULL,
-	"rate" bigint NOT NULL,
-	"comment" varchar(255) NOT NULL,
-	"created_at" timestamp with time zone NOT NULL DEFAULT 'now',
-	PRIMARY KEY ("id")
+CREATE TABLE "worker_skill" (
+  "worker_id" integer,
+  "skill_id" integer,
+  PRIMARY KEY ("worker_id", "skill_id")
 );
 
-CREATE TABLE IF NOT EXISTS "rating_field" (
-	"id" serial NOT NULL UNIQUE,
-	"name" varchar(255) NOT NULL,
-	"rate" bigint NOT NULL,
-	PRIMARY KEY ("id")
+CREATE TABLE "publication" (
+  "id" serial PRIMARY KEY,
+  "company_id" integer,
+  "created_by_user_id" integer,
+  "address_id" integer,
+  "title" varchar(255),
+  "description" text,
+  "hourly_rate" numeric(10,2),
+  "starting_date" timestamp,
+  "ending_date" timestamp,
+  "status" varchar(50),
+  "created_at" timestamp DEFAULT (now())
 );
 
+CREATE TABLE "publication_skill" (
+  "publication_id" integer,
+  "skill_id" integer,
+  PRIMARY KEY ("publication_id", "skill_id")
+);
 
+CREATE TABLE "application" (
+  "id" serial PRIMARY KEY,
+  "publication_id" integer,
+  "worker_id" integer,
+  "status" varchar(50),
+  "created_at" timestamp DEFAULT (now())
+);
 
-ALTER TABLE "worker_profile" ADD CONSTRAINT "worker_profile_fk1" FOREIGN KEY ("user_id") REFERENCES "user"("id");
-ALTER TABLE "company" ADD CONSTRAINT "company_fk1" FOREIGN KEY ("owner_id") REFERENCES "user"("id");
-ALTER TABLE "worker_skill" ADD CONSTRAINT "worker_skill_fk0" FOREIGN KEY ("worker_profile_id") REFERENCES "worker_profile"("id");
+CREATE TABLE "mission" (
+  "id" serial PRIMARY KEY,
+  "publication_id" integer,
+  "worker_id" integer,
+  "company_id" integer,
+  "final_price" numeric(10,2),
+  "payment_status" varchar(50),
+  "contract_signed_at" timestamp,
+  "status" varchar(50)
+);
 
-ALTER TABLE "worker_skill" ADD CONSTRAINT "worker_skill_fk1" FOREIGN KEY ("skill_id") REFERENCES "skill"("id");
-ALTER TABLE "publication" ADD CONSTRAINT "publication_fk1" FOREIGN KEY ("company_id") REFERENCES "company"("id");
+CREATE TABLE "review" (
+  "id" serial PRIMARY KEY,
+  "mission_id" integer,
+  "reviewer_id" integer,
+  "rated_id" integer,
+  "rating" integer,
+  "comment" text,
+  "type" varchar(20),
+  "created_at" timestamp DEFAULT (now())
+);
 
-ALTER TABLE "publication" ADD CONSTRAINT "publication_fk11" FOREIGN KEY ("list_skill") REFERENCES "skill"("id");
-ALTER TABLE "application" ADD CONSTRAINT "application_fk1" FOREIGN KEY ("publication_id") REFERENCES "publication"("id");
+CREATE TABLE "conversation" (
+  "id" serial PRIMARY KEY,
+  "publication_id" integer,
+  "worker_id" integer,
+  "company_id" integer,
+  "updated_at" timestamp,
+  "status" varchar DEFAULT 'active'
+);
 
-ALTER TABLE "application" ADD CONSTRAINT "application_fk2" FOREIGN KEY ("worker_user_id") REFERENCES "user"("id");
-ALTER TABLE "mission" ADD CONSTRAINT "mission_fk1" FOREIGN KEY ("publication_id") REFERENCES "publication"("id");
-ALTER TABLE "rating" ADD CONSTRAINT "rating_fk1" FOREIGN KEY ("mission_id") REFERENCES "mission"("id");
+CREATE TABLE "message" (
+  "id" serial PRIMARY KEY,
+  "conversation_id" integer,
+  "sender_id" integer,
+  "content_text" text,
+  "file_url" varchar,
+  "message_type" varchar,
+  "created_at" timestamp DEFAULT (now())
+);
 
-ALTER TABLE "rating" ADD CONSTRAINT "rating_fk2" FOREIGN KEY ("rater_user_id") REFERENCES "user"("id");
+CREATE TABLE "message_status" (
+  "id" serial PRIMARY KEY,
+  "message_id" integer,
+  "user_id" integer,
+  "read_at" timestamp,
+  "is_hidden" boolean DEFAULT false
+);
 
-ALTER TABLE "rating" ADD CONSTRAINT "rating_fk3" FOREIGN KEY ("rated_user_id") REFERENCES "user"("id");
+CREATE TABLE "document" (
+  "id" serial PRIMARY KEY,
+  "file_path" varchar,
+  "mime_type" varchar,
+  "size_bytes" integer,
+  "created_at" timestamp
+);
 
-ALTER TABLE "rating" ADD CONSTRAINT "rating_fk4" FOREIGN KEY ("rate") REFERENCES "rating_field"("id");
+CREATE TABLE "worker_document" (
+  "id" serial PRIMARY KEY,
+  "worker_id" integer,
+  "document_id" integer,
+  "type" varchar,
+  "verified" boolean DEFAULT false
+);
+
+CREATE TABLE "company_document" (
+  "id" serial PRIMARY KEY,
+  "company_id" integer,
+  "document_id" integer,
+  "type" varchar,
+  "verified" boolean DEFAULT false
+);
+
+CREATE TABLE "contract" (
+  "id" serial PRIMARY KEY,
+  "mission_id" integer,
+  "file_path" varchar,
+  "signed_at" timestamp,
+  "worker_signature_id" varchar,
+  "employer_signature_id" varchar,
+  "status" varchar
+);
+
+CREATE TABLE "invoice" (
+  "id" serial PRIMARY KEY,
+  "mission_id" integer,
+  "invoice_number" varchar UNIQUE,
+  "amount_ht" numeric(10,2),
+  "amount_ttc" numeric(10,2),
+  "fee_amount" numeric(10,2),
+  "file_path" varchar,
+  "status" varchar,
+  "created_at" timestamp
+);
+
+CREATE UNIQUE INDEX ON "company_member" ("company_id", "user_id");
+
+CREATE UNIQUE INDEX ON "message_status" ("message_id", "user_id");
+
+COMMENT ON COLUMN "address"."latitude" IS 'Essentiel pour le matching';
+
+COMMENT ON COLUMN "address"."longitude" IS 'Essentiel pour le matching';
+
+COMMENT ON COLUMN "user"."is_worker_active" IS 'Accès à l''App Worker';
+
+COMMENT ON COLUMN "user"."is_employer_active" IS 'Accès à l''App Enterprise';
+
+COMMENT ON COLUMN "worker_profile"."max_distance_km" IS 'Rayon de recherche';
+
+COMMENT ON COLUMN "wallet"."balance" IS 'Solde disponible pour virement';
+
+COMMENT ON COLUMN "wallet_transaction"."amount" IS 'Positif pour un gain, négatif pour un virement sortant';
+
+COMMENT ON COLUMN "wallet_transaction"."type" IS 'MISSION_PAYMENT, WITHDRAWAL, REFUND';
+
+COMMENT ON COLUMN "wallet_transaction"."status" IS 'PENDING, COMPLETED, FAILED';
+
+COMMENT ON COLUMN "wallet_transaction"."reference_id" IS 'ID de la mission ou de l''invoice liée';
+
+COMMENT ON COLUMN "company"."is_premium" IS 'Abonnement visibilité';
+
+COMMENT ON COLUMN "company_member"."role" IS 'Owner, Manager, Staff';
+
+COMMENT ON COLUMN "publication"."address_id" IS 'Par défaut celle de la company, mais peut varier';
+
+COMMENT ON COLUMN "publication"."hourly_rate" IS 'Base pour le calcul des frais';
+
+COMMENT ON COLUMN "publication"."status" IS 'Open, Closed, Urgent';
+
+COMMENT ON COLUMN "application"."status" IS 'Pending, Accepted, Rejected';
+
+COMMENT ON COLUMN "mission"."final_price" IS 'Prix total après commission';
+
+COMMENT ON COLUMN "mission"."payment_status" IS 'Pending, Paid, Disputed';
+
+COMMENT ON COLUMN "mission"."contract_signed_at" IS 'Signature électronique';
+
+COMMENT ON COLUMN "mission"."status" IS 'Planned, In_Progress, Completed, Cancelled';
+
+COMMENT ON COLUMN "review"."rating" IS '1 à 5';
+
+COMMENT ON COLUMN "review"."type" IS 'Worker_to_Company or Company_to_Worker';
+
+COMMENT ON COLUMN "conversation"."updated_at" IS 'Date du dernier message pour le tri';
+
+COMMENT ON COLUMN "message"."sender_id" IS 'L''humain réel qui envoie';
+
+COMMENT ON COLUMN "message"."file_url" IS 'Lien S3 pour Audio ou Image';
+
+COMMENT ON COLUMN "message"."message_type" IS 'TEXT, IMAGE, AUDIO';
+
+COMMENT ON COLUMN "message_status"."read_at" IS 'Si null, message non lu';
+
+COMMENT ON COLUMN "message_status"."is_hidden" IS 'Suppression individuelle';
+
+COMMENT ON COLUMN "document"."file_path" IS 'Chemin sur le serveur S3';
+
+COMMENT ON COLUMN "document"."mime_type" IS 'pdf, png...';
+
+COMMENT ON COLUMN "worker_document"."type" IS 'IDENTITY, RIB, DIPLOMA';
+
+COMMENT ON COLUMN "company_document"."type" IS 'KBIS, COMPANY_RIB';
+
+COMMENT ON COLUMN "contract"."status" IS 'PENDING, SIGNED, EXPIRED';
+
+COMMENT ON COLUMN "invoice"."fee_amount" IS 'Ta commission';
+
+COMMENT ON COLUMN "invoice"."status" IS 'UNPAID, PAID, CANCELLED';
+
+ALTER TABLE "worker_profile" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "worker_profile" ADD FOREIGN KEY ("address_id") REFERENCES "address" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "wallet" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "wallet_transaction" ADD FOREIGN KEY ("wallet_id") REFERENCES "wallet" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "company" ADD FOREIGN KEY ("address_id") REFERENCES "address" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "company_member" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "company_member" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "worker_skill" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "worker_skill" ADD FOREIGN KEY ("skill_id") REFERENCES "skill" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "publication" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "publication" ADD FOREIGN KEY ("created_by_user_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "publication" ADD FOREIGN KEY ("address_id") REFERENCES "address" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "publication_skill" ADD FOREIGN KEY ("publication_id") REFERENCES "publication" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "publication_skill" ADD FOREIGN KEY ("skill_id") REFERENCES "skill" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "application" ADD FOREIGN KEY ("publication_id") REFERENCES "publication" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "application" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "mission" ADD FOREIGN KEY ("publication_id") REFERENCES "publication" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "mission" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "mission" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "review" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "review" ADD FOREIGN KEY ("reviewer_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "review" ADD FOREIGN KEY ("rated_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "conversation" ADD FOREIGN KEY ("publication_id") REFERENCES "publication" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "conversation" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "conversation" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "message" ADD FOREIGN KEY ("conversation_id") REFERENCES "conversation" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "message" ADD FOREIGN KEY ("sender_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "message_status" ADD FOREIGN KEY ("message_id") REFERENCES "message" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "message_status" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "worker_document" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "worker_document" ADD FOREIGN KEY ("document_id") REFERENCES "document" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "company_document" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "company_document" ADD FOREIGN KEY ("document_id") REFERENCES "document" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "contract" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "invoice" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
