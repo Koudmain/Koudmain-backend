@@ -3,10 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { OffersModule } from './modules/offers/offers.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DriveModule } from './modules/drive/drive.module';
+import { PublicationModule } from './modules/publication/publication.module';
 
 @Module({
   imports: [
@@ -20,11 +20,11 @@ import { DriveModule } from './modules/drive/drive.module';
       database: process.env.DB_NAME,
       autoLoadModels: true,
       synchronize: false,
-    }),
-    OffersModule,
+    }),    
     UsersModule,
     AuthModule,
     DriveModule,
+    PublicationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
