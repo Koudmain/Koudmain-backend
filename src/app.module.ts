@@ -5,7 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { OffersModule } from './modules/offers/offers.module';
 import { UsersModule } from './modules/users/users.module';
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { DriveModule } from './modules/drive/drive.module';
 
 @Module({
