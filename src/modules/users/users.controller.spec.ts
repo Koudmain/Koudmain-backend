@@ -9,7 +9,7 @@ const mockUserService = {
 describe('UsersController', () => {
   let controller: UsersController;
   let service: UsersService;
-  
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],

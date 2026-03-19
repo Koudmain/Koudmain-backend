@@ -16,7 +16,7 @@ module.exports = {
         [
             'jest-junit',
             {
-                outputDirectory: 'junit',
+                outputDirectory: 'test-reports/junit',
                 outputName: 'test-results.xml',
             },
         ],
@@ -27,8 +27,8 @@ module.exports = {
                 warnAfterMs: 500,
                 logLevel: 'warn',
                 maxItems: 5,
-                jsonReportPath: 'performance-report.json',
-                csvReportPath: 'performance-report.csv',
+                jsonReportPath: 'test-reports/performance-report.json',
+                csvReportPath: 'test-reports/performance-report.csv',
             },
         ],
     ],

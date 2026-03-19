@@ -10,7 +10,7 @@ const mockPublicationService = {
 describe('PublicationController', () => {
   let controller: PublicationController;
   let service: PublicationService;
-  
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicationController],
