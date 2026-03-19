@@ -15,8 +15,14 @@ export class UsersService {
     return this.userModel.findByPk(id);
   }
 
-  async findOne(email: string): Promise<User | null> {
+  async findOneByEmail(email: string): Promise<User | null> {
     return this.userModel.findOne({ where: { email } });
+  }
+
+  async findOneByIdPublic(id: number): Promise<User | null> {
+    return this.userModel.findByPk(id, {
+      attributes: { exclude: ['password'] }
+    });
   }
 
   async createFake() {
@@ -42,5 +48,12 @@ export class UsersService {
       id: nextId,
       updatedAt: user.updatedAt ?? new Date(),
     });
+  }
+
+  async updateProfilePicture(id: number, url: string) {
+    return this.userModel.update(
+      { profile_picture_url: url },
+      { where: { id } }
+    );
   }
 }

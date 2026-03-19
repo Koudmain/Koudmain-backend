@@ -1,4 +1,3 @@
-
 import {
   ConflictException,
   Injectable,
@@ -20,7 +19,7 @@ export class AuthService {
     email: string,
     pass: string,
   ): Promise<{ access_token: string }> {
-    const user = await this.usersService.findOne(email);
+    const user = await this.usersService.findOneByEmail(email);
     if (!user) {
       throw new UnauthorizedException();
     }
@@ -37,7 +36,7 @@ export class AuthService {
   }
 
   async register(first_name: string, last_name: string, email: string, password: string) {
-    const existingUser = await this.usersService.findOne(email);
+    const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
