@@ -40,8 +40,7 @@ export class UsersService {
 
   async create(user: Partial<User>) {
     const nextId =
-      user.id ??
-      (((await this.userModel.max('id')) as number | null) ?? 0) + 1;
+      user.id ?? (((await this.userModel.max('id')) as number | null) ?? 0) + 1;
 
     return this.userModel.create({
       ...user,
