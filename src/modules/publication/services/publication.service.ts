@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { PostPublicationDto, Publication } from '../models/publication.model';
-import { start } from 'repl';
+import { Publication } from '../models/publication.model';
 
 @Injectable()
 export class PublicationService {

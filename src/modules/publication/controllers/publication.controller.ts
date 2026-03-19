@@ -7,7 +7,7 @@ import {
   Post,
   Request,
 } from '@nestjs/common';
-import { Public } from '@/decorators/public.decorator';
+import { Public } from '../../../decorators/public.decorator';
 import { PublicationService } from '../services/publication.service';
 
 @Controller('publication')
