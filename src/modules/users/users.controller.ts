@@ -3,6 +3,7 @@ import {
   Patch,
   Get,
   Post,
+  Body,
   UseInterceptors,
   UploadedFile,
   Request,
@@ -13,6 +14,7 @@ import { UsersService } from './services/users.service';
 import { Public } from '../../decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DriveService } from '../drive/drive.service';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
@@ -48,6 +50,30 @@ export class UsersController {
   @Get('me')
   async getMe(@Request() req: RequestWithUser) {
     const userId = req.user.sub;
+
+    return this.usersService.findOneByIdPublic(userId);
+  }
+
+  @Patch('me')
+  @UseInterceptors(FileInterceptor('image'))
+  async updateMe(
+    @Request() req: any,
+    @Body() updateUserDto: UpdateUserDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    const userId = req.user.sub;
+    const user = await this.usersService.findOneByIdPublic(userId);
+    const updates: any = { ...updateUserDto };
+
+    if (file) {
+      if (user && user.profile_picture_url) {
+        await this.driveService.deleteFile(user.profile_picture_url);
+      }
+      const newImageUrl = await this.driveService.uploadImage(file);
+      updates.profile_picture_url = newImageUrl;
+    }
+
+    await this.usersService.update(userId, updates);
 
     return this.usersService.findOneByIdPublic(userId);
   }
