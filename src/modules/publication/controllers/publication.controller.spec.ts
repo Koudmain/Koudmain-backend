@@ -5,6 +5,8 @@ import { PostPublicationDto, PostPublicationResponseDto } from '../models/public
 
 const mockPublicationService = {
   create: jest.fn(),
+  getAll: jest.fn(),
+  getById: jest.fn(),
 }
 
 describe('PublicationController', () => {
@@ -67,6 +69,37 @@ describe('PublicationController', () => {
       expect(result.message).toBe('Publication created successfully');
       expect(result.id).toBe(1);
       expect(result.createdAt).toBeInstanceOf(Date);
+    })
+  })
+
+  describe('getAll', () => {
+    it('should call PublicationService.getAll and return the result', async () => {
+      // Arrange
+      const expectedResult = [{ id: 1, title: 'Test Publication' }];
+      mockPublicationService.getAll.mockResolvedValue(expectedResult);
+
+      // Act
+      const result = await controller.get();
+
+      // Assert
+      expect(mockPublicationService.getAll).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(expectedResult);
+    })
+  })
+
+  describe('getById', () => {
+    it('should call PublicationService.getById with correct id and return the result', async () => {
+      // Arrange
+      const expectedResult = { id: 1, title: 'Test Publication' };
+      mockPublicationService.getById.mockResolvedValue(expectedResult);
+
+      // Act
+      const result = await controller.getById(1);
+
+      // Assert
+      expect(mockPublicationService.getById).toHaveBeenCalledTimes(1);
+      expect(mockPublicationService.getById).toHaveBeenCalledWith(1);
+      expect(result).toEqual(expectedResult);
     })
   })
 });

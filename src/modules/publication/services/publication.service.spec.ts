@@ -9,6 +9,8 @@ describe('PublicationService', () => {
   const mockPublicationModel = {
     create: jest.fn(),
     max: jest.fn(),
+    findAll: jest.fn(),
+    findByPk: jest.fn(),
   }
 
   const mockSequelize = {
@@ -73,5 +75,31 @@ describe('PublicationService', () => {
     expect(result.createdAt).toEqual(customDate);
     expect(result.starting_date).toEqual(customDate);
     expect(result.ending_date).toEqual(customDate);
+  });
+
+  it('should get all publications', async () => {
+    // Arrange
+    const expectedResult = [{ id: 1, title: 'Test Publication' }];
+    mockPublicationModel.findAll.mockResolvedValue(expectedResult);
+
+    // Act
+    const result = await service.getAll();
+
+    // Assert
+    expect(mockPublicationModel.findAll).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(expectedResult);
+  });
+
+  it('should get a publication by its ID', async () => {
+    // Arrange
+    const expectedResult = { id: 1, title: 'Test Publication' };
+    mockPublicationModel.findByPk.mockResolvedValue(expectedResult);
+
+    // Act
+    const result = await service.getById(1);
+
+    // Assert
+    expect(mockPublicationModel.findByPk).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(expectedResult);
   });
 });

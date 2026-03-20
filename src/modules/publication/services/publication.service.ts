@@ -19,4 +19,12 @@ export class PublicationService {
             ending_date: publication.ending_date ?? new Date(),
         });
     }
+
+    async getAll() {
+        return this.publicationModel.findAll();
+    }
+
+    async getById(id: number) {
+        return this.publicationModel.findByPk(id);
+    }
 }

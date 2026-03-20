@@ -4,6 +4,8 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Get,
+  Param,
 } from '@nestjs/common';
 import { PublicationService } from '../services/publication.service';
 import { PostPublicationResponseDto, Publication } from '../models/publication.model';
@@ -24,5 +26,17 @@ export class PublicationController {
     }
 
     return res;
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('get')
+  async get() {
+      return this.publicationService.getAll();
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get(':id')
+  async getById(@Param('id') id: number) {
+      return this.publicationService.getById(id);
   }
 }
