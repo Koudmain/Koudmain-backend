@@ -39,11 +39,8 @@ describe('AppController (e2e)', () => {
     sequelize = app.get<Sequelize>(getConnectionToken());
   });
 
-  beforeEach(async () => {
-    await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
-  });
-
   afterAll(async () => {
+    await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
     await app.close();
   });
 
@@ -82,4 +79,31 @@ describe('AppController (e2e)', () => {
       expect(first_pub.id).toBe(1);
     }
   })
+
+  it('should edit the title of the first publication previously added by the test', async () => {
+    const response = await request(app.getHttpServer())
+      .put('/publication/update/1')
+      .send({ title: "Updated Title" });
+
+    expect(response.status).toBe(200);
+
+    const dbCheck = await sequelize.query(
+      `SELECT * FROM "publication" WHERE id = 1;`
+    );
+    expect(dbCheck[0].length).toBe(1);
+    expect((dbCheck[0][0] as any).title).toBe('Updated Title');
+  })
+
+  it('should delete the first publication previously added by the test', async () => {
+    const response = await request(app.getHttpServer())
+      .delete('/publication/delete/1')
+      .send({});
+
+    expect(response.status).toBe(200);
+
+    const dbCheck = await sequelize.query(
+      `SELECT * FROM "publication" WHERE id = 1;`
+    );
+    expect(dbCheck[0].length).toBe(0);
+  });
 });

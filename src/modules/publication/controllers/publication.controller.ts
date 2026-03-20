@@ -48,8 +48,8 @@ export class PublicationController {
   async update(@Param('id') id: number, @Body() updateDto: Record<string, any>) {
       const pub_id : Publication | null =  await this.publicationService.update(id, updateDto);
 
-      if (pub_id === null) {
-        throw new BadRequestException("Erreur lors de la modification de la publication");
+      if (!pub_id) {
+        throw new BadRequestException('Publication non trouvée');
       }
 
       let res = {
