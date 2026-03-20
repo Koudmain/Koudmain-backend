@@ -21,7 +21,7 @@ export class PublicationController {
     const publication: Publication = await this.publicationService.create(createDto);
 
     let res: PostPublicationResponseDto = {
-      message: 'Publication created successfully',
+      message: 'Publication créé avec succès',
       id: publication.id,
       createdAt: publication.createdAt,
     };
@@ -47,7 +47,7 @@ export class PublicationController {
       const pub_id =  this.publicationService.update(id, updateDto);
 
       let res = {
-        message: "Publication successfully edited",
+        message: "Publication éditée avec succès",
         id : pub_id
       };
 

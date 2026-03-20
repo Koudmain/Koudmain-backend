@@ -52,7 +52,7 @@ describe('PublicationController', () => {
       };
 
       const expectedServiceResult : PostPublicationResponseDto = {
-        message: 'Publication created successfully',
+        message: 'Publication créé avec succès',
         id: 1,
         createdAt: new Date(),
       };
@@ -67,7 +67,7 @@ describe('PublicationController', () => {
       expect(mockPublicationService.create).toHaveBeenCalledWith(createDto);
 
       expect(result).toEqual(expectedServiceResult);
-      expect(result.message).toBe('Publication created successfully');
+      expect(result.message).toBe('Publication créé avec succès');
       expect(result.id).toBe(1);
       expect(result.createdAt).toBeInstanceOf(Date);
     })
