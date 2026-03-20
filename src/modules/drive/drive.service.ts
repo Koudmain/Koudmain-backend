@@ -52,7 +52,7 @@ export class DriveService {
 
       return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
     } catch (error) {
-      console.error('Drive Upload Error:', error);
+      console.error('Erreur lors du chargement du Drive', error);
       throw new InternalServerErrorException("Échec du traitement ou de l'envoi de l'image");
     }
   }
