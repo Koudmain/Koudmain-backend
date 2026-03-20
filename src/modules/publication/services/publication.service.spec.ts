@@ -11,6 +11,7 @@ describe('PublicationService', () => {
     max: jest.fn(),
     findAll: jest.fn(),
     findByPk: jest.fn(),
+    update: jest.fn(),
   }
 
   const mockSequelize = {
@@ -100,6 +101,23 @@ describe('PublicationService', () => {
 
     // Assert
     expect(mockPublicationModel.findByPk).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(expectedResult);
+  });
+
+  it('should update a publication and return the updated publication', async () => {
+    // Arrange
+    const updatedData: Partial<Publication> = { title: 'Updated Title' };
+    const expectedResult = { id: 1, title: 'Updated Title' };
+
+    mockPublicationModel.update.mockResolvedValue([1]);
+    mockPublicationModel.findByPk.mockResolvedValue(expectedResult);
+
+    // Act
+    const result = await service.update(1, updatedData);
+
+    // Assert
+    expect(mockPublicationModel.update).toHaveBeenCalledWith(updatedData, { where: { id: 1 } });
+    expect(mockPublicationModel.findByPk).toHaveBeenCalledWith(1);
     expect(result).toEqual(expectedResult);
   });
 });

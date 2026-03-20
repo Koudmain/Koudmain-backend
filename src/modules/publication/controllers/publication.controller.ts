@@ -6,6 +6,7 @@ import {
   Post,
   Get,
   Param,
+  Put,
 } from '@nestjs/common';
 import { PublicationService } from '../services/publication.service';
 import { PostPublicationResponseDto, Publication } from '../models/publication.model';
@@ -23,7 +24,7 @@ export class PublicationController {
       message: 'Publication created successfully',
       id: publication.id,
       createdAt: publication.createdAt,
-    }
+    };
 
     return res;
   }
@@ -38,5 +39,18 @@ export class PublicationController {
   @Get(':id')
   async getById(@Param('id') id: number) {
       return this.publicationService.getById(id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Put('/update/:id')
+  async update(@Param('id') id: number, @Body() updateDto: Record<string, any>) {
+      const pub_id =  this.publicationService.update(id, updateDto);
+
+      let res = {
+        message: "Publication successfully edited",
+        id : pub_id
+      };
+
+      return res;
   }
 }

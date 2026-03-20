@@ -7,6 +7,7 @@ const mockPublicationService = {
   create: jest.fn(),
   getAll: jest.fn(),
   getById: jest.fn(),
+  update: jest.fn(),
 }
 
 describe('PublicationController', () => {
@@ -99,6 +100,23 @@ describe('PublicationController', () => {
       // Assert
       expect(mockPublicationService.getById).toHaveBeenCalledTimes(1);
       expect(mockPublicationService.getById).toHaveBeenCalledWith(1);
+      expect(result).toEqual(expectedResult);
+    })
+  })
+
+  describe('update', () => {
+    it('should call PublicationService.update with correct id and updateDto and return the result', async () => {
+      // Arrange
+      const updateDto = { title: 'Updated Title' };
+      const expectedResult = { id: 1, title: 'Updated Title' };
+      mockPublicationService.update.mockResolvedValue(expectedResult);
+
+      // Act
+      const result = await controller.update(1, updateDto);
+
+      // Assert
+      expect(mockPublicationService.update).toHaveBeenCalledTimes(1);
+      expect(mockPublicationService.update).toHaveBeenCalledWith(1, updateDto);
       expect(result).toEqual(expectedResult);
     })
   })

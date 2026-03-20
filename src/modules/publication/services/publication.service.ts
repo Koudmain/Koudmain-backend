@@ -27,4 +27,9 @@ export class PublicationService {
     async getById(id: number) {
         return this.publicationModel.findByPk(id);
     }
+
+    async update(id: number, publication: Partial<Publication>) {
+        await this.publicationModel.update(publication, { where: { id } });
+        return this.getById(id);
+    }
 }

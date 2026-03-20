@@ -6,6 +6,8 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { getConnectionToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { PublicationModule } from '../src/modules/publication/publication.module';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { first } from 'rxjs';
 
 require('dotenv').config();
 
@@ -64,4 +66,20 @@ describe('AppController (e2e)', () => {
     expect(dbCheck[0].length).toBe(1);
     expect((dbCheck[0][0] as any).description).toBe('This shouldn\'t be mocked!');
   });
+
+  it('should get all publication previously added by the test', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/publication/get')
+      .send({})
+
+    expect(response.status).toBe(200);
+
+    expect(response.body).toBeInstanceOf(Array);
+
+    let first_pub: Publication = response.body[0] ? response.body[0] : undefined;
+
+    if (first_pub) {
+      expect(first_pub.id).toBe(1);
+    }
+  })
 });
