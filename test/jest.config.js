@@ -12,4 +12,5 @@ module.exports = {
         '/node_modules./',
         '<rootDir>/(coverage|dist|lib|tmp)./',
     ],
+    setupFilesAfterEnv: ['dotenv/config'],
 };

@@ -1,32 +1,31 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
+import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { getConnectionToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
-// Import your actual module (e.g., PublicationModule)
 import { PublicationModule } from '../src/modules/publication/publication.module';
-import { Publication } from '../src/modules/publication/models/publication.model';
+
+require('dotenv').config();
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
   let sequelize: Sequelize;
-  let apiRequest: request.SuperTest<request.Test>;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
         SequelizeModule.forRoot({
           dialect: 'postgres',
-          host: 'localhost',
-          port: 5432,
-          username: 'postgres',
-          password: 'Hyc12@3$#U$9&Ol2',
-          database: 'koudmain',
-          models: [Publication],
+          host: process.env.DB_TEST_HOST,
+          port: parseInt(process.env.DB_TEST_PORT ?? '5432', 10),
+          username: process.env.DB_TEST_USER,
+          password: process.env.DB_TEST_PASSWORD,
+          database: process.env.DB_TEST_NAME,
           autoLoadModels: true,
-          synchronize: true,
-          logging: false,
+          synchronize: false,
         }),
         PublicationModule,
       ],

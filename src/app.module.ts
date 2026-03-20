@@ -20,7 +20,7 @@ import { PublicationModule } from './modules/publication/publication.module';
       database: process.env.DB_NAME,
       autoLoadModels: true,
       synchronize: false,
-    }),    
+    }),
     UsersModule,
     AuthModule,
     DriveModule,
