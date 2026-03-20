@@ -32,4 +32,13 @@ export class PublicationService {
         await this.publicationModel.update(publication, { where: { id } });
         return this.getById(id);
     }
+
+    async delete(publication_id: number) {
+        await this.publicationModel.destroy({
+            where: {
+                id: publication_id,
+            },
+        });
+        return publication_id;
+    }
 }

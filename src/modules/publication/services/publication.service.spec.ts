@@ -12,6 +12,7 @@ describe('PublicationService', () => {
     findAll: jest.fn(),
     findByPk: jest.fn(),
     update: jest.fn(),
+    destroy: jest.fn(),
   }
 
   const mockSequelize = {
@@ -118,6 +119,20 @@ describe('PublicationService', () => {
     // Assert
     expect(mockPublicationModel.update).toHaveBeenCalledWith(updatedData, { where: { id: 1 } });
     expect(mockPublicationModel.findByPk).toHaveBeenCalledWith(1);
+    expect(result).toEqual(expectedResult);
+  });
+
+  it('should delete a publication by its ID', async () => {
+    // Arrange
+    const expectedResult = 1;
+    mockPublicationModel.destroy.mockResolvedValue(1);
+
+    // Act
+    const result = await service.delete(1);
+
+    // Assert
+    expect(mockPublicationModel.destroy).toHaveBeenCalledTimes(1);
+    expect(mockPublicationModel.destroy).toHaveBeenCalledWith({ where: { id: 1 } });
     expect(result).toEqual(expectedResult);
   });
 });

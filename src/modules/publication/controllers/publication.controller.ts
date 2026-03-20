@@ -7,6 +7,8 @@ import {
   Get,
   Param,
   Put,
+  Delete,
+  BadRequestException,
 } from '@nestjs/common';
 import { PublicationService } from '../services/publication.service';
 import { PostPublicationResponseDto, Publication } from '../models/publication.model';
@@ -44,11 +46,26 @@ export class PublicationController {
   @HttpCode(HttpStatus.OK)
   @Put('/update/:id')
   async update(@Param('id') id: number, @Body() updateDto: Record<string, any>) {
-      const pub_id =  this.publicationService.update(id, updateDto);
+      const pub_id : Publication | null =  await this.publicationService.update(id, updateDto);
+
+      if (pub_id === null) {
+        throw new BadRequestException("Erreur lors de la modification de la publication");
+      }
 
       let res = {
         message: "Publication éditée avec succès",
-        id : pub_id
+        id : pub_id.id
+      };
+      return res;
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Delete('/delete/:id')
+  async delete(@Param('id') id: number) {
+      const pub_id =  this.publicationService.delete(id);
+
+      let res = {
+        message: "Publication supprimée avec succès",
       };
 
       return res;

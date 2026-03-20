@@ -8,6 +8,7 @@ const mockPublicationService = {
   getAll: jest.fn(),
   getById: jest.fn(),
   update: jest.fn(),
+  delete: jest.fn(),
 }
 
 describe('PublicationController', () => {
@@ -108,7 +109,7 @@ describe('PublicationController', () => {
     it('should call PublicationService.update with correct id and updateDto and return the result', async () => {
       // Arrange
       const updateDto = { title: 'Updated Title' };
-      const expectedResult = { id: 1, title: 'Updated Title' };
+      const expectedResult = { message: "Publication éditée avec succès", id: 1 };
       mockPublicationService.update.mockResolvedValue(expectedResult);
 
       // Act
@@ -117,6 +118,22 @@ describe('PublicationController', () => {
       // Assert
       expect(mockPublicationService.update).toHaveBeenCalledTimes(1);
       expect(mockPublicationService.update).toHaveBeenCalledWith(1, updateDto);
+      expect(result).toEqual(expectedResult);
+    })
+  })
+
+  describe('delete', () => {
+    it('should call PublicationService.delete with correct id and return the result', async () => {
+      // Arrange
+      const expectedResult = { message: "Publication supprimée avec succès" };
+      mockPublicationService.delete.mockResolvedValue(expectedResult);
+
+      // Act
+      const result = await controller.delete(1);
+
+      // Assert
+      expect(mockPublicationService.delete).toHaveBeenCalledTimes(1);
+      expect(mockPublicationService.delete).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedResult);
     })
   })
