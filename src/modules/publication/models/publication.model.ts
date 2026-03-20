@@ -50,5 +50,6 @@ export class PostPublicationDto {
 
 export class PostPublicationResponseDto {
     message: string;
-    data: PostPublicationDto;
+    id: number;
+    createdAt: Date;
 }

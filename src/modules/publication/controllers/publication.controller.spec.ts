@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PublicationController } from './publication.controller';
 import { PublicationService } from '../services/publication.service';
-import { PostPublicationDto } from '../models/publication.model';
+import { PostPublicationDto, PostPublicationResponseDto } from '../models/publication.model';
 
 const mockPublicationService = {
   create: jest.fn(),
@@ -48,22 +48,25 @@ describe('PublicationController', () => {
         ending_date: new Date(),
       };
 
-      const expectedServiceResult = {
+      const expectedServiceResult : PostPublicationResponseDto = {
+        message: 'Publication created successfully',
         id: 1,
-        ...createDto,
-        CreatedAt: new Date(),
+        createdAt: new Date(),
       };
 
       mockPublicationService.create.mockResolvedValue(expectedServiceResult);
 
       // Act
-      const result = await controller.create(createDto);
+      const result : PostPublicationResponseDto = await controller.create(createDto);
 
       // Assert
       expect(mockPublicationService.create).toHaveBeenCalledTimes(1);
       expect(mockPublicationService.create).toHaveBeenCalledWith(createDto);
 
       expect(result).toEqual(expectedServiceResult);
+      expect(result.message).toBe('Publication created successfully');
+      expect(result.id).toBe(1);
+      expect(result.createdAt).toBeInstanceOf(Date);
     })
   })
 });
