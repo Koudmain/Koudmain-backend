@@ -22,6 +22,20 @@ CREATE TABLE "user" (
   "created_at" timestamp DEFAULT (now())
 );
 
+CREATE TABLE "refresh_session" (
+  "id" serial PRIMARY KEY,
+  "user_id" integer NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+  "token_hash" text NOT NULL,
+  "expires_at" timestamp NOT NULL,
+  "revoked_at" timestamp,
+  "created_at" timestamp NOT NULL DEFAULT (now()),
+  CONSTRAINT refresh_session_user_id_not_revoked UNIQUE (user_id) WHERE revoked_at IS NULL
+);
+
+CREATE INDEX ON "refresh_session" ("user_id");
+
+CREATE INDEX ON "refresh_session" ("expires_at");
+
 CREATE TABLE "worker_profile" (
   "id" serial PRIMARY KEY,
   "user_id" integer,

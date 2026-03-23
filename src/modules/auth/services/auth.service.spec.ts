@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { AuthService } from './auth.service';
+import { RefreshSessionService } from './refresh-session.service';
 import { UsersService } from '../../users/services/users.service';
 import { JwtService } from '@nestjs/jwt';
 
@@ -15,6 +16,12 @@ describe('AuthService', () => {
     signAsync: jest.fn(),
   };
 
+  const mockRefreshSessionService = {
+    createSession: jest.fn(),
+    validateSession: jest.fn(),
+    revokeSession: jest.fn(),
+  };
+
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -26,6 +33,10 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: RefreshSessionService,
+          useValue: mockRefreshSessionService,
         },
       ],
     }).compile();

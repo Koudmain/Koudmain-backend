@@ -20,6 +20,15 @@ type SignUpBody = {
   is_employer_active: boolean;
 };
 
+type AuthTokenResponse = {
+  access_token: string;
+  refresh_token: string;
+};
+
+type RefreshBody = {
+  refresh_token: string;
+};
+
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -27,13 +36,13 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  signIn(@Body() body: SignInBody): Promise<unknown> {
+  signIn(@Body() body: SignInBody): Promise<AuthTokenResponse> {
     return this.authService.signIn(body.email, body.password);
   }
 
   @Public()
   @Post('register')
-  signUp(@Body() body: SignUpBody): Promise<unknown> {
+  signUp(@Body() body: SignUpBody): Promise<AuthTokenResponse> {
     return this.authService.register(
       body.firstName,
       body.lastName,
@@ -42,6 +51,12 @@ export class AuthController {
       body.is_worker_active,
       body.is_employer_active,
     );
+  }
+
+  @Public()
+  @Post('refresh')
+  refresh(@Body() body: RefreshBody): Promise<{ access_token: string }> {
+    return this.authService.refresh(body.refresh_token);
   }
 
   @Get('profile')

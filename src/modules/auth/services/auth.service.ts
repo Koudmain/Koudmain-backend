@@ -1,5 +1,6 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../../users/services/users.service';
+import { RefreshSessionService } from './refresh-session.service';
 import { JwtService } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
 
@@ -8,9 +9,51 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private refreshSessionService: RefreshSessionService,
   ) {}
 
-  async signIn(email: string, pass: string): Promise<{ access_token: string }> {
+  private async generateTokens(payload: Record<string, unknown>, userId: number): Promise<{
+    access_token: string;
+    refresh_token: string;
+  }> {
+    const accessSecret = process.env.JWT_ACCESS_SECRET;
+    const refreshSecret = process.env.JWT_REFRESH_SECRET;
+    const accessExpiresIn = process.env.JWT_ACCESS_EXPIRES_IN ?? '15m';
+    const refreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
+
+    const [access_token, refresh_token] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: accessSecret,
+        expiresIn: accessExpiresIn,
+      } as any),
+      this.jwtService.signAsync({ ...payload, token_type: 'refresh' }, {
+        secret: refreshSecret,
+        expiresIn: refreshExpiresIn,
+      } as any),
+    ]);
+
+    const expiresAtMs = this.parseExpiresIn(refreshExpiresIn);
+    const expiresAt = new Date(Date.now() + expiresAtMs);
+    await this.refreshSessionService.createSession(userId, refresh_token, expiresAt);
+
+    return { access_token, refresh_token };
+  }
+
+  private parseExpiresIn(expiresIn: string): number {
+    const match = expiresIn.match(/(\d+)([smhd])/);
+    if (!match) return 7 * 24 * 60 * 60 * 1000;
+    const [, value, unit] = match;
+    const val = parseInt(value, 10);
+    const units: Record<string, number> = {
+      s: 1000,
+      m: 60 * 1000,
+      h: 60 * 60 * 1000,
+      d: 24 * 60 * 60 * 1000,
+    };
+    return val * (units[unit] || 1000);
+  }
+
+  async signIn(email: string, pass: string): Promise<{ access_token: string; refresh_token: string }> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) {
       throw new UnauthorizedException();
@@ -22,9 +65,38 @@ export class AuthService {
     }
 
     const payload = { sub: user.id, email: user.email };
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-    };
+    return this.generateTokens(payload, user.id);
+  }
+
+  async refresh(token: string): Promise<{ access_token: string }> {
+    try {
+      const accessSecret = process.env.JWT_ACCESS_SECRET ?? process.env.JWT_SECRET;
+      const accessExpiresIn = process.env.JWT_ACCESS_EXPIRES_IN ?? '15m';
+      const refreshSecret = process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET;
+      const payload = await this.jwtService.verifyAsync<{ sub: number; email: string; token_type?: string }>(
+        token,
+        { secret: refreshSecret },
+      );
+      if (payload.token_type !== 'refresh') {
+        throw new UnauthorizedException('Invalid token type');
+      }
+
+      const session = await this.refreshSessionService.validateSession(payload.sub, token);
+      if (!session) {
+        throw new UnauthorizedException('Refresh session invalid or revoked');
+      }
+
+      const newToken = await this.jwtService.signAsync(
+        { sub: payload.sub, email: payload.email },
+        {
+          secret: accessSecret,
+          expiresIn: accessExpiresIn,
+        } as any,
+      );
+      return { access_token: newToken };
+    } catch {
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 
   async register(
@@ -34,7 +106,7 @@ export class AuthService {
     password: string,
     is_worker_active = false,
     is_employer_active = false,
-  ) {
+  ): Promise<{ access_token: string; refresh_token: string }> {
     const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
@@ -56,8 +128,6 @@ export class AuthService {
       first_name: newUser.first_name,
       last_name: newUser.last_name,
     };
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-    };
+    return this.generateTokens(payload, newUser.id);
   }
 }
