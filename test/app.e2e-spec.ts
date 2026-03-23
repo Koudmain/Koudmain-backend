@@ -69,7 +69,7 @@ describe('AppController (e2e)', () => {
 
     expect(response.body).toBeInstanceOf(Array);
 
-    let first_pub: Publication = response.body[0] ? response.body[0] : undefined;
+    const first_pub: Publication = response.body[0] ? response.body[0] : undefined;
 
     if (first_pub) {
       expect(first_pub.id).toBe(1);

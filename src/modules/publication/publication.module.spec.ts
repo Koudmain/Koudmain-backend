@@ -8,10 +8,6 @@ import { Publication } from './models/publication.model';
 describe('PublicationModule', () => {
   let module: TestingModule;
 
-  const mockPublicationService = {
-    create: jest.fn(),
-  };
-
   beforeAll(async () => {
     module = await Test.createTestingModule({
       imports: [PublicationModule],
@@ -23,11 +19,11 @@ describe('PublicationModule', () => {
       .compile();
   });
 
-  it('should compile the module', async () => {
+  it('should compile the module', () => {
     expect(module).toBeDefined();
   });
 
-  it('should have Publication components', async () => {
+  it('should have Publication components', () => {
     expect(module.get(PublicationController)).toBeInstanceOf(PublicationController);
     expect(module.get(PublicationService)).toBeInstanceOf(PublicationService);
   });

@@ -7,8 +7,8 @@ export class PublicationService {
   constructor(@InjectModel(Publication) private publicationModel: typeof Publication) {}
 
   async create(publication: Partial<Publication>) {
-    const nextId =
-      publication.id ?? (((await this.publicationModel.max('id')) as number | null) ?? 0) + 1;
+    const maxId = await this.publicationModel.max('id');
+    const nextId = publication.id ?? (typeof maxId === 'number' ? maxId : 0) + 1;
 
     return this.publicationModel.create({
       ...publication,

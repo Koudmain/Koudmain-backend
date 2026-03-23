@@ -1,4 +1,3 @@
-import { BOOLEAN } from 'sequelize';
 import { Column, Model, Table, DataType } from 'sequelize-typescript';
 
 @Table({ tableName: 'publication', timestamps: false })
