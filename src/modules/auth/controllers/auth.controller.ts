@@ -21,6 +21,8 @@ export class AuthController {
       registerDto.last_name,
       registerDto.email,
       registerDto.password,
+      registerDto.is_worker_active,
+      registerDto.is_employer_active,
     );
   }
 

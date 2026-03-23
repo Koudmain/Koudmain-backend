@@ -27,7 +27,7 @@ export class AuthService {
     };
   }
 
-  async register(first_name: string, last_name: string, email: string, password: string) {
+  async register(first_name: string, last_name: string, email: string, password: string, is_worker_active = false, is_employer_active = false) {
     const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
@@ -40,8 +40,8 @@ export class AuthService {
       last_name,
       email,
       password: hashedPassword,
-      is_worker_active: false,
-      is_employer_active: false,
+      is_worker_active,
+      is_employer_active,
     });
 
     const payload = {
