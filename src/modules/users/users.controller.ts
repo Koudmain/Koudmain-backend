@@ -17,11 +17,10 @@ interface RequestWithUser extends Request {
   user: {
     sub: number;
     email: string;
-  }
+  };
 }
 
 @Controller('users')
-
 export class UsersController {
   constructor(
     private readonly driveService: DriveService,
@@ -30,10 +29,7 @@ export class UsersController {
 
   @Patch('me/avatar')
   @UseInterceptors(FileInterceptor('image'))
-  async uploadAvatar(
-    @UploadedFile() file: Express.Multer.File,
-    @Request() req: RequestWithUser
-  ) {
+  async uploadAvatar(@UploadedFile() file: Express.Multer.File, @Request() req: RequestWithUser) {
     if (!file) {
       throw new BadRequestException('Aucun fichier fourni');
     }

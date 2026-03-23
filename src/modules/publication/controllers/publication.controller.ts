@@ -15,7 +15,7 @@ import { PostPublicationResponseDto, Publication } from '../models/publication.m
 
 @Controller('publication')
 export class PublicationController {
-  constructor(private publicationService: PublicationService) { }
+  constructor(private publicationService: PublicationService) {}
 
   @HttpCode(HttpStatus.CREATED)
   @Post('create')
@@ -34,40 +34,40 @@ export class PublicationController {
   @HttpCode(HttpStatus.OK)
   @Get('get')
   async get() {
-      return this.publicationService.getAll();
+    return this.publicationService.getAll();
   }
 
   @HttpCode(HttpStatus.OK)
   @Get(':id')
   async getById(@Param('id') id: number) {
-      return this.publicationService.getById(id);
+    return this.publicationService.getById(id);
   }
 
   @HttpCode(HttpStatus.OK)
   @Put('/update/:id')
   async update(@Param('id') id: number, @Body() updateDto: Record<string, any>) {
-      const pub_id : Publication | null =  await this.publicationService.update(id, updateDto);
+    const pub_id: Publication | null = await this.publicationService.update(id, updateDto);
 
-      if (!pub_id) {
-        throw new BadRequestException('Publication non trouvée');
-      }
+    if (!pub_id) {
+      throw new BadRequestException('Publication non trouvée');
+    }
 
-      let res = {
-        message: "Publication éditée avec succès",
-        id : pub_id.id
-      };
-      return res;
+    let res = {
+      message: 'Publication éditée avec succès',
+      id: pub_id.id,
+    };
+    return res;
   }
 
   @HttpCode(HttpStatus.OK)
   @Delete('/delete/:id')
   async delete(@Param('id') id: number) {
-      const pub_id =  this.publicationService.delete(id);
+    const pub_id = this.publicationService.delete(id);
 
-      let res = {
-        message: "Publication supprimée avec succès",
-      };
+    let res = {
+      message: 'Publication supprimée avec succès',
+    };
 
-      return res;
+    return res;
   }
 }

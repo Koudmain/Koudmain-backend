@@ -45,29 +45,25 @@ describe('AppController (e2e)', () => {
   });
 
   it('should create a publication without any foreign Key constraint field', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/publication/create')
-      .send({
-        title: "E2E Database Test",
-        description: "This shouldn\'t be mocked!",
-        hourly_rate: 25.50,
-        starting_date: new Date(),
-        ending_date: new Date(),
-      });
+    const response = await request(app.getHttpServer()).post('/publication/create').send({
+      title: 'E2E Database Test',
+      description: "This shouldn\'t be mocked!",
+      hourly_rate: 25.5,
+      starting_date: new Date(),
+      ending_date: new Date(),
+    });
 
     expect(response.status).toBe(201);
 
     const dbCheck = await sequelize.query(
-      `SELECT * FROM "publication" WHERE title = 'E2E Database Test';`
+      `SELECT * FROM "publication" WHERE title = 'E2E Database Test';`,
     );
     expect(dbCheck[0].length).toBe(1);
-    expect((dbCheck[0][0] as any).description).toBe('This shouldn\'t be mocked!');
+    expect((dbCheck[0][0] as any).description).toBe("This shouldn't be mocked!");
   });
 
   it('should get all publication previously added by the test', async () => {
-    const response = await request(app.getHttpServer())
-      .get('/publication/get')
-      .send({})
+    const response = await request(app.getHttpServer()).get('/publication/get').send({});
 
     expect(response.status).toBe(200);
 
@@ -78,32 +74,26 @@ describe('AppController (e2e)', () => {
     if (first_pub) {
       expect(first_pub.id).toBe(1);
     }
-  })
+  });
 
   it('should edit the title of the first publication previously added by the test', async () => {
     const response = await request(app.getHttpServer())
       .put('/publication/update/1')
-      .send({ title: "Updated Title" });
+      .send({ title: 'Updated Title' });
 
     expect(response.status).toBe(200);
 
-    const dbCheck = await sequelize.query(
-      `SELECT * FROM "publication" WHERE id = 1;`
-    );
+    const dbCheck = await sequelize.query(`SELECT * FROM "publication" WHERE id = 1;`);
     expect(dbCheck[0].length).toBe(1);
     expect((dbCheck[0][0] as any).title).toBe('Updated Title');
-  })
+  });
 
   it('should delete the first publication previously added by the test', async () => {
-    const response = await request(app.getHttpServer())
-      .delete('/publication/delete/1')
-      .send({});
+    const response = await request(app.getHttpServer()).delete('/publication/delete/1').send({});
 
     expect(response.status).toBe(200);
 
-    const dbCheck = await sequelize.query(
-      `SELECT * FROM "publication" WHERE id = 1;`
-    );
+    const dbCheck = await sequelize.query(`SELECT * FROM "publication" WHERE id = 1;`);
     expect(dbCheck[0].length).toBe(0);
   });
 });

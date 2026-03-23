@@ -51,7 +51,6 @@ export class DriveService {
       });
 
       return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
-
     } catch (error) {
       console.error('Drive Upload Error:', error);
       throw new InternalServerErrorException("Échec du traitement ou de l'envoi de l'image");
@@ -59,23 +58,23 @@ export class DriveService {
   }
 
   async getOrCreateFolder(folderName: string): Promise<string> {
-  const response = await this.driveClient.files.list({
+    const response = await this.driveClient.files.list({
       q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
       fields: 'files(id)',
-  });
+    });
 
-  if (response.data.files && response.data.files.length > 0) {
+    if (response.data.files && response.data.files.length > 0) {
       return response.data.files[0].id!;
-  }
+    }
 
-  const folder = await this.driveClient.files.create({
+    const folder = await this.driveClient.files.create({
       requestBody: {
-      name: folderName,
-      mimeType: 'application/vnd.google-apps.folder',
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
       },
       fields: 'id',
-  });
+    });
 
-  return folder.data.id!;
+    return folder.data.id!;
   }
 }
