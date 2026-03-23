@@ -21,7 +21,7 @@ export class UsersService {
 
   async findOneByIdPublic(id: number): Promise<User | null> {
     return this.userModel.findByPk(id, {
-      attributes: { exclude: ['password'] }
+      attributes: { exclude: ['password'] },
     });
   }
 
@@ -39,9 +39,7 @@ export class UsersService {
   }
 
   async create(user: Partial<User>) {
-    const nextId =
-      user.id ??
-      (((await this.userModel.max('id')) as number | null) ?? 0) + 1;
+    const nextId = user.id ?? (((await this.userModel.max('id')) as number | null) ?? 0) + 1;
 
     return this.userModel.create({
       ...user,
@@ -51,9 +49,6 @@ export class UsersService {
   }
 
   async updateProfilePicture(id: number, url: string) {
-    return this.userModel.update(
-      { profile_picture_url: url },
-      { where: { id } }
-    );
+    return this.userModel.update({ profile_picture_url: url }, { where: { id } });
   }
 }

@@ -5,15 +5,15 @@ import { JwtService } from '@nestjs/jwt';
 
 describe('AuthService', () => {
   let service: AuthService;
-  
+
   const mockUserModel = {
     create: jest.fn(),
     max: jest.fn(),
-  }
+  };
 
   const mockJwtService = {
     signAsync: jest.fn(),
-  }
+  };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({

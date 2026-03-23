@@ -8,8 +8,7 @@ import { DriveModule } from '../drive/drive.module';
 @Module({
   providers: [UsersService],
   controllers: [UsersController],
-  imports: [SequelizeModule.forFeature([User]),
-  DriveModule,],
+  imports: [SequelizeModule.forFeature([User]), DriveModule],
   exports: [UsersService],
 })
 export class UsersModule {}

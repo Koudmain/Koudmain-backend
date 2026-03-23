@@ -9,7 +9,7 @@ const mockPublicationService = {
   getById: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
-}
+};
 
 describe('PublicationController', () => {
   let controller: PublicationController;
@@ -22,7 +22,7 @@ describe('PublicationController', () => {
         {
           provide: PublicationService,
           useValue: mockPublicationService,
-        }
+        },
       ],
     }).compile();
 
@@ -32,7 +32,7 @@ describe('PublicationController', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-  })
+  });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
@@ -46,13 +46,13 @@ describe('PublicationController', () => {
         created_by_user_id: 69,
         address_id: 10,
         title: 'Server (H/F)',
-        description: 'Besoin d\'un serveur pour une missions.',
+        description: "Besoin d'un serveur pour une missions.",
         hourly_rate: 35.0,
         starting_date: new Date(),
         ending_date: new Date(),
       };
 
-      const expectedServiceResult : PostPublicationResponseDto = {
+      const expectedServiceResult: PostPublicationResponseDto = {
         message: 'Publication créé avec succès',
         id: 1,
         createdAt: new Date(),
@@ -61,7 +61,7 @@ describe('PublicationController', () => {
       mockPublicationService.create.mockResolvedValue(expectedServiceResult);
 
       // Act
-      const result : PostPublicationResponseDto = await controller.create(createDto);
+      const result: PostPublicationResponseDto = await controller.create(createDto);
 
       // Assert
       expect(mockPublicationService.create).toHaveBeenCalledTimes(1);
@@ -71,8 +71,8 @@ describe('PublicationController', () => {
       expect(result.message).toBe('Publication créé avec succès');
       expect(result.id).toBe(1);
       expect(result.createdAt).toBeInstanceOf(Date);
-    })
-  })
+    });
+  });
 
   describe('getAll', () => {
     it('should call PublicationService.getAll and return the result', async () => {
@@ -86,8 +86,8 @@ describe('PublicationController', () => {
       // Assert
       expect(mockPublicationService.getAll).toHaveBeenCalledTimes(1);
       expect(result).toEqual(expectedResult);
-    })
-  })
+    });
+  });
 
   describe('getById', () => {
     it('should call PublicationService.getById with correct id and return the result', async () => {
@@ -102,14 +102,14 @@ describe('PublicationController', () => {
       expect(mockPublicationService.getById).toHaveBeenCalledTimes(1);
       expect(mockPublicationService.getById).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedResult);
-    })
-  })
+    });
+  });
 
   describe('update', () => {
     it('should call PublicationService.update with correct id and updateDto and return the result', async () => {
       // Arrange
       const updateDto = { title: 'Updated Title' };
-      const expectedResult = { message: "Publication éditée avec succès", id: 1 };
+      const expectedResult = { message: 'Publication éditée avec succès', id: 1 };
       mockPublicationService.update.mockResolvedValue(expectedResult);
 
       // Act
@@ -119,13 +119,13 @@ describe('PublicationController', () => {
       expect(mockPublicationService.update).toHaveBeenCalledTimes(1);
       expect(mockPublicationService.update).toHaveBeenCalledWith(1, updateDto);
       expect(result).toEqual(expectedResult);
-    })
-  })
+    });
+  });
 
   describe('delete', () => {
     it('should call PublicationService.delete with correct id and return the result', async () => {
       // Arrange
-      const expectedResult = { message: "Publication supprimée avec succès" };
+      const expectedResult = { message: 'Publication supprimée avec succès' };
       mockPublicationService.delete.mockResolvedValue(expectedResult);
 
       // Act
@@ -135,6 +135,6 @@ describe('PublicationController', () => {
       expect(mockPublicationService.delete).toHaveBeenCalledTimes(1);
       expect(mockPublicationService.delete).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedResult);
-    })
-  })
+    });
+  });
 });

@@ -30,20 +30,20 @@ describe('DriveService', () => {
   });
 
   it('should upload an image and return an ID', async () => {
-      const validImageBuffer = Buffer.from(
+    const validImageBuffer = Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
       'base64',
-      );
+    );
 
-      const mockFile = {
+    const mockFile = {
       buffer: validImageBuffer,
       mimetype: 'image/png',
-      originalname: 'test.png'
-      } as Express.Multer.File;
+      originalname: 'test.png',
+    } as Express.Multer.File;
 
-      const result = await service.uploadImage(mockFile);
+    const result = await service.uploadImage(mockFile);
 
-      expect(result).toContain('test-file-id');
-      expect(mockDriveClient.files.create).toHaveBeenCalled();
+    expect(result).toContain('test-file-id');
+    expect(mockDriveClient.files.create).toHaveBeenCalled();
   });
 });
