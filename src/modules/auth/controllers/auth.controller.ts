@@ -3,7 +3,10 @@ import type { Request as ExpressRequest } from 'express';
 import { AuthService } from '../services/auth.service';
 import { Public } from '../../../decorators/public.decorator';
 
-type JwtPayload = Record<string, unknown>;
+type JwtPayload = {
+  sub: number;
+  [key: string]: unknown;
+};
 type AuthenticatedRequest = ExpressRequest & { user: JwtPayload };
 
 type SignInBody = {
@@ -55,8 +58,20 @@ export class AuthController {
 
   @Public()
   @Post('refresh')
-  refresh(@Body() body: RefreshBody): Promise<{ access_token: string }> {
+  refresh(@Body() body: RefreshBody): Promise<AuthTokenResponse> {
     return this.authService.refresh(body.refresh_token);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  logout(@Request() req: AuthenticatedRequest): Promise<{ message: string }> {
+    return this.authService.logout(req.user.sub);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('logout-all')
+  logoutAll(@Request() req: AuthenticatedRequest): Promise<{ message: string }> {
+    return this.authService.logoutAll(req.user.sub);
   }
 
   @Get('profile')

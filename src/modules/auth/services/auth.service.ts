@@ -68,11 +68,9 @@ export class AuthService {
     return this.generateTokens(payload, user.id);
   }
 
-  async refresh(token: string): Promise<{ access_token: string }> {
+  async refresh(token: string): Promise<{ access_token: string; refresh_token: string }> {
     try {
-      const accessSecret = process.env.JWT_ACCESS_SECRET ?? process.env.JWT_SECRET;
-      const accessExpiresIn = process.env.JWT_ACCESS_EXPIRES_IN ?? '15m';
-      const refreshSecret = process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET;
+      const refreshSecret = process.env.JWT_REFRESH_SECRET;
       const payload = await this.jwtService.verifyAsync<{ sub: number; email: string; token_type?: string }>(
         token,
         { secret: refreshSecret },
@@ -86,17 +84,23 @@ export class AuthService {
         throw new UnauthorizedException('Refresh session invalid or revoked');
       }
 
-      const newToken = await this.jwtService.signAsync(
-        { sub: payload.sub, email: payload.email },
-        {
-          secret: accessSecret,
-          expiresIn: accessExpiresIn,
-        } as any,
-      );
-      return { access_token: newToken };
+      await this.refreshSessionService.revokeSession(session.id);
+
+      const nextPayload = { sub: payload.sub, email: payload.email };
+      return this.generateTokens(nextPayload, payload.sub);
     } catch {
       throw new UnauthorizedException('Invalid token');
     }
+  }
+
+  async logout(userId: number): Promise<{ message: string }> {
+    await this.refreshSessionService.revokeActiveSessionByUserId(userId);
+    return { message: 'Session revoked successfully' };
+  }
+
+  async logoutAll(userId: number): Promise<{ message: string }> {
+    await this.refreshSessionService.revokeAllSessions(userId);
+    return { message: 'All sessions revoked successfully' };
   }
 
   async register(
