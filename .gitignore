@@ -1,5 +1,11 @@
-# Created by https://www.toptal.com/developers/gitignore/api/node,visualstudiocode,go
-# Edit at https://www.toptal.com/developers/gitignore?templates=node,visualstudiocode,go
+## Project Related
+
+## Jest Files
+# Jest cache directory
+jest-cache/
+
+# Junit test reports
+test-reports/
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
