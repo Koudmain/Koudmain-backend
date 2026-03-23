@@ -1,24 +1,23 @@
-import { BOOLEAN } from 'sequelize';
 import { Column, Model, Table, DataType } from 'sequelize-typescript';
 
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true })
+  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   declare id: number;
 
-  @Column({ type: DataType.INTEGER, unique: true })
+  @Column({ type: DataType.INTEGER })
   declare company_id: number;
 
-  @Column({ type: DataType.INTEGER, unique: true })
+  @Column({ type: DataType.INTEGER })
   declare created_by_user_id: number;
 
-  @Column({ type: DataType.INTEGER, unique: true })
+  @Column({ type: DataType.INTEGER })
   declare address_id: number;
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.STRING })
   declare title: string;
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.TEXT })
   declare description: string;
 
   @Column({ type: DataType.DECIMAL(10, 2) })
@@ -30,11 +29,20 @@ export class Publication extends Model {
   @Column({ type: DataType.DATE })
   declare ending_date: Date;
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.STRING })
   declare status: string;
+
+  @Column({ type: DataType.BIGINT, defaultValue: 0 })
+  declare views: number;
+
+  @Column({ type: DataType.BIGINT, defaultValue: 0 })
+  declare clicks: number;
 
   @Column({ field: 'created_at', type: DataType.DATE })
   declare createdAt: Date;
+
+  @Column({ field: 'updated_at', type: DataType.DATE })
+  declare updatedAt: Date;
 }
 
 export class PostPublicationDto {

@@ -91,7 +91,10 @@ CREATE TABLE "publication" (
   "starting_date" timestamp,
   "ending_date" timestamp,
   "status" varchar(50),
-  "created_at" timestamp DEFAULT (now())
+	"views" bigint NOT NULL DEFAULT '0',
+	"clicks" bigint NOT NULL DEFAULT '0',
+  "created_at" timestamp DEFAULT (now()),
+  "updated_at" timestamp DEFAULT (now())
 );
 
 CREATE TABLE "publication_skill" (
