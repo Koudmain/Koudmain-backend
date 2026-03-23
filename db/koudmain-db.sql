@@ -19,7 +19,7 @@ CREATE TABLE "user" (
   "password" varchar,
   "is_worker_active" boolean DEFAULT false,
   "is_employer_active" boolean DEFAULT false,
-  "created_at" timestamp
+  "created_at" timestamp DEFAULT (now())
 );
 
 CREATE TABLE "worker_profile" (

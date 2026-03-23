@@ -22,7 +22,7 @@ export class PublicationController {
   async create(@Body() createDto: Record<string, any>) {
     const publication: Publication = await this.publicationService.create(createDto);
 
-    let res: PostPublicationResponseDto = {
+    const res: PostPublicationResponseDto = {
       message: 'Publication créé avec succès',
       id: publication.id,
       createdAt: publication.createdAt,
@@ -52,7 +52,7 @@ export class PublicationController {
       throw new BadRequestException('Publication non trouvée');
     }
 
-    let res = {
+    const res = {
       message: 'Publication éditée avec succès',
       id: pub_id.id,
     };
@@ -62,9 +62,9 @@ export class PublicationController {
   @HttpCode(HttpStatus.OK)
   @Delete('/delete/:id')
   async delete(@Param('id') id: number) {
-    const pub_id = this.publicationService.delete(id);
+    await this.publicationService.delete(id);
 
-    let res = {
+    const res = {
       message: 'Publication supprimée avec succès',
     };
 

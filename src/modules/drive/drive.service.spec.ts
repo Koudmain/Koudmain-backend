@@ -26,7 +26,7 @@ describe('DriveService', () => {
     }).compile();
 
     service = module.get<DriveService>(DriveService);
-    (service as any).driveClient = mockDriveClient;
+    Object.defineProperty(service, 'driveClient', { value: mockDriveClient });
   });
 
   it('should upload an image and return an ID', async () => {

@@ -1,6 +1,24 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Request } from '@nestjs/common';
+import type { Request as ExpressRequest } from 'express';
 import { AuthService } from '../services/auth.service';
 import { Public } from '../../../decorators/public.decorator';
+
+type JwtPayload = Record<string, unknown>;
+type AuthenticatedRequest = ExpressRequest & { user: JwtPayload };
+
+type SignInBody = {
+  email: string;
+  password: string;
+};
+
+type SignUpBody = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  is_worker_active: boolean;
+  is_employer_active: boolean;
+};
 
 @Controller('auth')
 export class AuthController {
@@ -9,23 +27,25 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  signIn(@Body() signInDto: Record<string, any>) {
-    return this.authService.signIn(signInDto.email, signInDto.password);
+  signIn(@Body() body: SignInBody): Promise<unknown> {
+    return this.authService.signIn(body.email, body.password);
   }
 
   @Public()
   @Post('register')
-  register(@Body() registerDto: Record<string, any>) {
+  signUp(@Body() body: SignUpBody): Promise<unknown> {
     return this.authService.register(
-      registerDto.first_name,
-      registerDto.last_name,
-      registerDto.email,
-      registerDto.password,
+      body.firstName,
+      body.lastName,
+      body.email,
+      body.password,
+      body.is_worker_active,
+      body.is_employer_active,
     );
   }
 
   @Get('profile')
-  getProfile(@Request() req: Record<string, any>) {
+  getProfile(@Request() req: AuthenticatedRequest): JwtPayload {
     return req.user;
   }
 }
