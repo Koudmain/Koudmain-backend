@@ -12,6 +12,9 @@ export class User extends Model {
   @Column({ type: DataType.STRING, unique: true })
   declare last_name: string;
 
+  @Column
+  declare profile_picture_url: string;
+
   @Column({ type: DataType.STRING, unique: true })
   declare email: string;
 
