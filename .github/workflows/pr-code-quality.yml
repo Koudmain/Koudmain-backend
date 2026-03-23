@@ -8,6 +8,9 @@ on:
 
 jobs:
   call-quality-code:
+    permissions:
+      pull-requests: write
+
     name: "Check formatting and linting"
     uses: Koudmain/.github/.github/workflows/reusable-code-quality.yml@main
     with:
