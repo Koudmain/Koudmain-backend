@@ -105,6 +105,8 @@ CREATE TABLE "publication" (
   "starting_date" timestamp,
   "ending_date" timestamp,
   "status" varchar(50),
+  "auto_accept" boolean DEFAULT false,
+  "highlighted" boolean DEFAULT false,
   "created_at" timestamp DEFAULT (now())
 );
 
