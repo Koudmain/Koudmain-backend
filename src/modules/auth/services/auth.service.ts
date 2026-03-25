@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../../users/services/users.service';
 import { RefreshSessionService } from './refresh-session.service';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
 
 @Injectable()
@@ -26,13 +26,16 @@ export class AuthService {
 
     const [access_token, refresh_token] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: accessSecret,
-        expiresIn: accessExpiresIn,
-      } as any),
-      this.jwtService.signAsync({ ...payload, token_type: 'refresh' }, {
-        secret: refreshSecret,
-        expiresIn: refreshExpiresIn,
-      } as any),
+        secret: accessSecret ?? '',
+        expiresIn: accessExpiresIn as JwtSignOptions['expiresIn'],
+      }),
+      this.jwtService.signAsync(
+        { ...payload, token_type: 'refresh' },
+        {
+          secret: refreshSecret ?? '',
+          expiresIn: refreshExpiresIn as JwtSignOptions['expiresIn'],
+        },
+      ),
     ]);
 
     const expiresAtMs = this.parseExpiresIn(refreshExpiresIn);

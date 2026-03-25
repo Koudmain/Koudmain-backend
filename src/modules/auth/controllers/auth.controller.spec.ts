@@ -98,7 +98,7 @@ describe('AuthController', () => {
       const mockResponse = { message: 'Session revoked successfully' };
       mockAuthService.logout.mockResolvedValue(mockResponse);
 
-      const mockReq = { user: { sub: 123 } } as any;
+      const mockReq = { user: { sub: 123 } } as unknown as Parameters<AuthController['logout']>[0];
       const result = await controller.logout(mockReq);
 
       expect(mockAuthService.logout).toHaveBeenCalledTimes(1);
@@ -112,7 +112,9 @@ describe('AuthController', () => {
       const mockResponse = { message: 'All sessions revoked successfully' };
       mockAuthService.logoutAll.mockResolvedValue(mockResponse);
 
-      const mockReq = { user: { sub: 123 } } as any;
+      const mockReq = { user: { sub: 123 } } as unknown as Parameters<
+        AuthController['logoutAll']
+      >[0];
       const result = await controller.logoutAll(mockReq);
 
       expect(mockAuthService.logoutAll).toHaveBeenCalledTimes(1);
@@ -124,7 +126,9 @@ describe('AuthController', () => {
   describe('getProfile', () => {
     it('should return the user payload from the request', () => {
       const mockPayload = { sub: 123, email: 'test@example.com' };
-      const mockReq = { user: mockPayload } as any;
+      const mockReq = { user: mockPayload } as unknown as Parameters<
+        AuthController['getProfile']
+      >[0];
 
       const result = controller.getProfile(mockReq);
 

@@ -13,9 +13,6 @@ jest.mock('bcrypt', () => ({
 
 describe('AuthService', () => {
   let service: AuthService;
-  let usersService: UsersService;
-  let jwtService: JwtService;
-  let refreshSessionService: RefreshSessionService;
 
   const mockUsersService = {
     findOneByEmail: jest.fn(),
@@ -52,9 +49,6 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    usersService = module.get<UsersService>(UsersService);
-    jwtService = module.get<JwtService>(JwtService);
-    refreshSessionService = module.get<RefreshSessionService>(RefreshSessionService);
   });
 
   afterEach(() => {

@@ -47,7 +47,7 @@ describe('RefreshSessionService', () => {
 
       // Check revokeActiveSessionByUserId was called via update
       expect(mockRefreshSessionModel.update).toHaveBeenCalledWith(
-        { revoked_at: expect.any(Date) },
+        { revoked_at: expect.any(Date) as unknown as Date },
         { where: { user_id: 123, revoked_at: null } },
       );
 
@@ -113,7 +113,7 @@ describe('RefreshSessionService', () => {
       await service.revokeSession(1);
 
       expect(mockRefreshSessionModel.update).toHaveBeenCalledWith(
-        { revoked_at: expect.any(Date) },
+        { revoked_at: expect.any(Date) as unknown as Date },
         { where: { id: 1 } },
       );
     });
@@ -124,7 +124,7 @@ describe('RefreshSessionService', () => {
       await service.revokeActiveSessionByUserId(123);
 
       expect(mockRefreshSessionModel.update).toHaveBeenCalledWith(
-        { revoked_at: expect.any(Date) },
+        { revoked_at: expect.any(Date) as unknown as Date },
         { where: { user_id: 123, revoked_at: null } },
       );
     });
@@ -135,7 +135,7 @@ describe('RefreshSessionService', () => {
       await service.revokeAllSessions(123);
 
       expect(mockRefreshSessionModel.update).toHaveBeenCalledWith(
-        { revoked_at: expect.any(Date) },
+        { revoked_at: expect.any(Date) as unknown as Date },
         { where: { user_id: 123 } },
       );
     });
