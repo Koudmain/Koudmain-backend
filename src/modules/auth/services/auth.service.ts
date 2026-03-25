@@ -12,7 +12,10 @@ export class AuthService {
     private refreshSessionService: RefreshSessionService,
   ) {}
 
-  private async generateTokens(payload: Record<string, unknown>, userId: number): Promise<{
+  private async generateTokens(
+    payload: Record<string, unknown>,
+    userId: number,
+  ): Promise<{
     access_token: string;
     refresh_token: string;
   }> {
@@ -53,7 +56,10 @@ export class AuthService {
     return val * (units[unit] || 1000);
   }
 
-  async signIn(email: string, pass: string): Promise<{ access_token: string; refresh_token: string }> {
+  async signIn(
+    email: string,
+    pass: string,
+  ): Promise<{ access_token: string; refresh_token: string }> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) {
       throw new UnauthorizedException();
@@ -71,10 +77,11 @@ export class AuthService {
   async refresh(token: string): Promise<{ access_token: string; refresh_token: string }> {
     try {
       const refreshSecret = process.env.JWT_REFRESH_SECRET;
-      const payload = await this.jwtService.verifyAsync<{ sub: number; email: string; token_type?: string }>(
-        token,
-        { secret: refreshSecret },
-      );
+      const payload = await this.jwtService.verifyAsync<{
+        sub: number;
+        email: string;
+        token_type?: string;
+      }>(token, { secret: refreshSecret });
       if (payload.token_type !== 'refresh') {
         throw new UnauthorizedException('Invalid token type');
       }

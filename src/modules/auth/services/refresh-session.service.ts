@@ -11,7 +11,11 @@ export class RefreshSessionService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  async createSession(userId: number, refreshToken: string, expiresAt: Date): Promise<RefreshSession> {
+  async createSession(
+    userId: number,
+    refreshToken: string,
+    expiresAt: Date,
+  ): Promise<RefreshSession> {
     await this.revokeActiveSessionByUserId(userId);
 
     const tokenHash = this.hashToken(refreshToken);
@@ -58,6 +62,9 @@ export class RefreshSessionService {
   }
 
   async revokeAllSessions(userId: number): Promise<void> {
-    await this.refreshSessionModel.update({ revoked_at: new Date() }, { where: { user_id: userId } });
+    await this.refreshSessionModel.update(
+      { revoked_at: new Date() },
+      { where: { user_id: userId } },
+    );
   }
 }

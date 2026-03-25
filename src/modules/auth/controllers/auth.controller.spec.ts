@@ -40,7 +40,10 @@ describe('AuthController', () => {
       const mockTokens = { access_token: 'acc_token', refresh_token: 'ref_token' };
       mockAuthService.signIn.mockResolvedValue(mockTokens);
 
-      const result = await controller.signIn({ email: 'test@example.com', password: 'password123' });
+      const result = await controller.signIn({
+        email: 'test@example.com',
+        password: 'password123',
+      });
 
       expect(mockAuthService.signIn).toHaveBeenCalledTimes(1);
       expect(mockAuthService.signIn).toHaveBeenCalledWith('test@example.com', 'password123');

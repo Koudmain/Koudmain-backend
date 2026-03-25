@@ -48,7 +48,7 @@ describe('RefreshSessionService', () => {
       // Check revokeActiveSessionByUserId was called via update
       expect(mockRefreshSessionModel.update).toHaveBeenCalledWith(
         { revoked_at: expect.any(Date) },
-        { where: { user_id: 123, revoked_at: null } }
+        { where: { user_id: 123, revoked_at: null } },
       );
 
       // Check creation with hashed token
@@ -100,7 +100,7 @@ describe('RefreshSessionService', () => {
         expires_at: futureDate,
         token_hash: hashToken(token),
       };
-      
+
       mockRefreshSessionModel.findOne.mockResolvedValue(expectedSession);
 
       const result = await service.validateSession(123, token);
@@ -111,10 +111,10 @@ describe('RefreshSessionService', () => {
   describe('revokeSession', () => {
     it('should update revoked_at for specific session', async () => {
       await service.revokeSession(1);
-      
+
       expect(mockRefreshSessionModel.update).toHaveBeenCalledWith(
         { revoked_at: expect.any(Date) },
-        { where: { id: 1 } }
+        { where: { id: 1 } },
       );
     });
   });
@@ -122,10 +122,10 @@ describe('RefreshSessionService', () => {
   describe('revokeActiveSessionByUserId', () => {
     it('should update revoked_at for active session of user', async () => {
       await service.revokeActiveSessionByUserId(123);
-      
+
       expect(mockRefreshSessionModel.update).toHaveBeenCalledWith(
         { revoked_at: expect.any(Date) },
-        { where: { user_id: 123, revoked_at: null } }
+        { where: { user_id: 123, revoked_at: null } },
       );
     });
   });
@@ -133,10 +133,10 @@ describe('RefreshSessionService', () => {
   describe('revokeAllSessions', () => {
     it('should update revoked_at for all sessions of user', async () => {
       await service.revokeAllSessions(123);
-      
+
       expect(mockRefreshSessionModel.update).toHaveBeenCalledWith(
         { revoked_at: expect.any(Date) },
-        { where: { user_id: 123 } }
+        { where: { user_id: 123 } },
       );
     });
   });

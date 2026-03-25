@@ -69,20 +69,32 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue(null);
 
-      await expect(service.signIn('test@test.com', 'password')).rejects.toThrow(UnauthorizedException);
+      await expect(service.signIn('test@test.com', 'password')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if password is wrong', async () => {
-      mockUsersService.findOneByEmail.mockResolvedValue({ id: 1, email: 'test@test.com', password: 'hashed' });
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+        password: 'hashed',
+      });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.signIn('test@test.com', 'wrong_pass')).rejects.toThrow(UnauthorizedException);
+      await expect(service.signIn('test@test.com', 'wrong_pass')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should return tokens if credentials are correct', async () => {
-      mockUsersService.findOneByEmail.mockResolvedValue({ id: 1, email: 'test@test.com', password: 'hashed' });
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+        password: 'hashed',
+      });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      
+
       mockJwtService.signAsync
         .mockResolvedValueOnce('access_token_mock')
         .mockResolvedValueOnce('refresh_token_mock');
@@ -101,9 +113,9 @@ describe('AuthService', () => {
     it('should throw ConflictException if email exists', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue({ id: 1 });
 
-      await expect(
-        service.register('John', 'Doe', 'exist@test.com', 'password')
-      ).rejects.toThrow(ConflictException);
+      await expect(service.register('John', 'Doe', 'exist@test.com', 'password')).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('should hash password, create user and return tokens', async () => {
@@ -146,22 +158,34 @@ describe('AuthService', () => {
     });
 
     it('should throw Unauthorized if token_type is not refresh', async () => {
-      mockJwtService.verifyAsync.mockResolvedValue({ sub: 1, email: 'test@test.com', token_type: 'access' });
+      mockJwtService.verifyAsync.mockResolvedValue({
+        sub: 1,
+        email: 'test@test.com',
+        token_type: 'access',
+      });
 
       await expect(service.refresh('token')).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw Unauthorized if session is invalid or revoked', async () => {
-      mockJwtService.verifyAsync.mockResolvedValue({ sub: 1, email: 'test@test.com', token_type: 'refresh' });
+      mockJwtService.verifyAsync.mockResolvedValue({
+        sub: 1,
+        email: 'test@test.com',
+        token_type: 'refresh',
+      });
       mockRefreshSessionService.validateSession.mockResolvedValue(null);
 
       await expect(service.refresh('token')).rejects.toThrow(UnauthorizedException);
     });
 
     it('should revoke old session and return new tokens', async () => {
-      mockJwtService.verifyAsync.mockResolvedValue({ sub: 1, email: 'test@test.com', token_type: 'refresh' });
+      mockJwtService.verifyAsync.mockResolvedValue({
+        sub: 1,
+        email: 'test@test.com',
+        token_type: 'refresh',
+      });
       mockRefreshSessionService.validateSession.mockResolvedValue({ id: 99 });
-      
+
       mockJwtService.signAsync
         .mockResolvedValueOnce('new_access_token')
         .mockResolvedValueOnce('new_refresh_token');

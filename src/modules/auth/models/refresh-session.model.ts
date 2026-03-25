@@ -19,6 +19,11 @@ export class RefreshSession extends Model {
   @Column({ type: DataType.DATE, allowNull: true })
   declare revoked_at: Date | null;
 
-  @Column({ field: 'created_at', type: DataType.DATE, allowNull: false, defaultValue: () => new Date() })
+  @Column({
+    field: 'created_at',
+    type: DataType.DATE,
+    allowNull: false,
+    defaultValue: () => new Date(),
+  })
   declare createdAt: Date;
 }
