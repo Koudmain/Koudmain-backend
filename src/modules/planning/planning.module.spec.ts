@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PlanningModule } from './planning.module';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
 import { Publication } from '../publication/models/publication.model';
+import { User } from '../users/models/user.model';
 import { PlanningController } from './controllers/planning.controller';
 import { PlanningService } from './services/planning.service';
 
@@ -15,6 +16,8 @@ describe('PlanningModule', () => {
       .overrideProvider(getConnectionToken())
       .useValue({ query: jest.fn() })
       .overrideProvider(getModelToken(Publication))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(User))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .compile();
   });

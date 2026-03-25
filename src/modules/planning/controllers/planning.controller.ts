@@ -22,6 +22,11 @@ export class PlanningController {
       }
     }
 
-    return this.planningService.getPlanning(startDate, endDate);
+    const userId = request?.user?.sub;
+    if (!userId) {
+      throw new BadRequestException('User not authenticated');
+    }
+
+    return this.planningService.getPlanning(userId, startDate, endDate);
   }
 }

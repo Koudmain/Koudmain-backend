@@ -35,28 +35,35 @@ describe('PlanningController', () => {
   });
 
   describe('getPlanning', () => {
+    const mockRequest = { user: { sub: 123 }, query: {} };
+
     it('should call getPlanning service method with correct parameters', async () => {
-      const req = { query: { startDate: '2026-01-01', endDate: '2026-01-31' } };
-      await controller.getPlanning('2026-01-01', '2026-01-31', req);
+      const startDate = '2026-05-01';
+      const endDate = '2026-05-15';
+      const requestWithDates = { ...mockRequest, query: { startDate, endDate } };
 
-      expect(service.getPlanning).toHaveBeenCalledWith('2026-01-01', '2026-01-31');
+      await controller.getPlanning(startDate, endDate, requestWithDates);
+
+      expect(service.getPlanning).toHaveBeenCalledWith(123, startDate, endDate);
     });
 
-    it('should throw BadRequestException if extra parameters are present', async () => {
-      const req = { query: { startDate: '2026-01-01', endDate: '2026-01-31', page: '2' } };
-
-      await expect(controller.getPlanning('2026-01-01', '2026-01-31', req))
-        .rejects
-        .toThrow(BadRequestException);
-      await expect(controller.getPlanning('2026-01-01', '2026-01-31', req))
-        .rejects
-        .toThrow('Seuls les paramètres startDate et endDate sont autorisés.');
+    it('should throw BadRequestException if unknown parameters are passed', async () => {
+      const invalidRequest = { query: { unknownParam: 'true' }, user: { sub: 123 } };
+      await expect(
+        controller.getPlanning(undefined, undefined, invalidRequest as any),
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should not throw if request or query is empty', async () => {
-      const req = { query: {} };
-      await controller.getPlanning(undefined, undefined, req);
-      expect(service.getPlanning).toHaveBeenCalledWith(undefined, undefined);
+    it('should fallback to user.id if user.sub is missing', async () => {
+      const requestId = { user: { id: 456 }, query: {} };
+      await controller.getPlanning(undefined, undefined, requestId as any);
+      expect(service.getPlanning).toHaveBeenCalledWith(456, undefined, undefined);
+    });
+
+    it('should handle request without query', async () => {
+      const requestWithoutQuery = { user: { sub: 123 } };
+      await controller.getPlanning(undefined, undefined, requestWithoutQuery as any);
+      expect(service.getPlanning).toHaveBeenCalledWith(123, undefined, undefined);
     });
   });
 });
