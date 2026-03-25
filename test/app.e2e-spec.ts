@@ -95,4 +95,43 @@ describe('AppController (e2e)', () => {
     const dbCheck = await sequelize.query(`SELECT * FROM "publication" WHERE id = 1;`);
     expect(dbCheck[0].length).toBe(0);
   });
+
+  it('should create a skill without any foreign Key constraint field', async () => {
+    const response = await request(app.getHttpServer()).post('/skill/create').send({
+      name: 'E2E Skill Test',
+    });
+
+    expect(response.status).toBe(201);
+
+    const dbCheck = await sequelize.query(
+      `SELECT * FROM "skill" WHERE name = 'E2E Skill Test';`,
+    );
+    expect(dbCheck[0].length).toBe(1);
+    expect((dbCheck[0][0] as any).name).toBe('E2E Skill Test');
+  });
+
+  it('should get all skill previously added by the test', async () => {
+    const response = await request(app.getHttpServer()).get('/skill/get').send({});
+
+    expect(response.status).toBe(200);
+
+    expect(response.body).toBeInstanceOf(Array);
+
+    const first_skill: Publication = response.body[0] ? response.body[0] : undefined;
+
+    if (first_skill) {
+      expect(first_skill.id).toBe(1);
+    }
+  });
+
+  it('should get the first skill previously added by the test', async () => {
+    const response = await request(app.getHttpServer()).get('/skill/get/1').send({});
+
+    expect(response.status).toBe(200);
+
+    const skill = response.body;
+
+    expect(skill.id).toBe(1);
+    expect(skill.name).toBe('E2E Skill Test');
+  });
 });
