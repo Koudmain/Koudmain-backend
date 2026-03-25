@@ -54,10 +54,11 @@ describe('PlanningController', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should fallback to user.id if user.sub is missing', async () => {
-      const requestId = { user: { id: 456 }, query: {} };
-      await controller.getPlanning(undefined, undefined, requestId as any);
-      expect(service.getPlanning).toHaveBeenCalledWith(456, undefined, undefined);
+    it('should throw BadRequestException if user.sub is missing', async () => {
+      const requestWithoutSub = { user: { id: 456 }, query: {} };
+      await expect(
+        controller.getPlanning(undefined, undefined, requestWithoutSub as any),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should handle request without query', async () => {
