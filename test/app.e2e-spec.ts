@@ -7,7 +7,6 @@ import { getConnectionToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { PublicationModule } from '../src/modules/publication/publication.module';
 import { Publication } from '@/modules/publication/models/publication.model';
-import { first } from 'rxjs';
 
 require('dotenv').config();
 
