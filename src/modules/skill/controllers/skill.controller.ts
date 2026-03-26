@@ -37,7 +37,7 @@ export class SkillController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Get(':id')
+  @Get('get/:id')
   async getById(@Param('id') id: number) {
     return this.skillService.getById(id);
   }

@@ -7,6 +7,7 @@ import { getConnectionToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { PublicationModule } from '../src/modules/publication/publication.module';
 import { Publication } from '@/modules/publication/models/publication.model';
+import { SkillModule } from '../src/modules/skill/skill.module';
 
 require('dotenv').config();
 
@@ -29,6 +30,7 @@ describe('AppController (e2e)', () => {
           synchronize: false,
         }),
         PublicationModule,
+        SkillModule,
       ],
     }).compile();
 
@@ -40,6 +42,7 @@ describe('AppController (e2e)', () => {
 
   afterAll(async () => {
     await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
+    await sequelize.query('TRUNCATE TABLE "skill" RESTART IDENTITY CASCADE;');
     await app.close();
   });
 
@@ -98,16 +101,18 @@ describe('AppController (e2e)', () => {
 
   it('should create a skill without any foreign Key constraint field', async () => {
     const response = await request(app.getHttpServer()).post('/skill/create').send({
-      name: 'E2E Skill Test',
+      name: 'Skill TEST E2E',
     });
+
+    console.log(response.body);
 
     expect(response.status).toBe(201);
 
     const dbCheck = await sequelize.query(
-      `SELECT * FROM "skill" WHERE name = 'E2E Skill Test';`,
+      `SELECT * FROM "skill" WHERE name = 'Skill TEST E2E';`,
     );
     expect(dbCheck[0].length).toBe(1);
-    expect((dbCheck[0][0] as any).name).toBe('E2E Skill Test');
+    expect((dbCheck[0][0] as any).name).toBe('Skill TEST E2E');
   });
 
   it('should get all skill previously added by the test', async () => {
@@ -132,6 +137,6 @@ describe('AppController (e2e)', () => {
     const skill = response.body;
 
     expect(skill.id).toBe(1);
-    expect(skill.name).toBe('E2E Skill Test');
+    expect(skill.name).toBe('Skill TEST E2E');
   });
 });
