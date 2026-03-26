@@ -15,8 +15,8 @@ type SignInBody = {
 };
 
 type SignUpBody = {
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
   is_worker_active: boolean;
@@ -47,8 +47,8 @@ export class AuthController {
   @Post('register')
   signUp(@Body() body: SignUpBody): Promise<AuthTokenResponse> {
     return this.authService.register(
-      body.firstName,
-      body.lastName,
+      body.first_name,
+      body.last_name,
       body.email,
       body.password,
       body.is_worker_active,
