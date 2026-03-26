@@ -52,4 +52,11 @@ export class UsersService {
   async updateProfilePicture(id: number, url: string) {
     return this.userModel.update({ profile_picture_url: url }, { where: { id } });
   }
+
+  async update(id: number, updateData: Partial<User>) {
+    return this.userModel.update(updateData, {
+      where: { id },
+      returning: true,
+    });
+  }
 }

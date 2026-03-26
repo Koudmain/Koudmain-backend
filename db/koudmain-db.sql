@@ -28,9 +28,11 @@ CREATE TABLE "refresh_session" (
   "token_hash" text NOT NULL,
   "expires_at" timestamp NOT NULL,
   "revoked_at" timestamp,
-  "created_at" timestamp NOT NULL DEFAULT (now()),
-  CONSTRAINT refresh_session_user_id_not_revoked UNIQUE (user_id) WHERE revoked_at IS NULL
+  "created_at" timestamp NOT NULL DEFAULT (now())
 );
+
+CREATE UNIQUE INDEX refresh_session_user_id_not_revoked ON "refresh_session" ("user_id")
+WHERE "revoked_at" IS NULL;
 
 CREATE INDEX ON "refresh_session" ("user_id");
 
@@ -362,3 +364,4 @@ ALTER TABLE "company_document" ADD FOREIGN KEY ("document_id") REFERENCES "docum
 ALTER TABLE "contract" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "invoice" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+ 

@@ -5,13 +5,13 @@ export class User extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true })
   declare id: number;
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.STRING, unique: false })
   declare first_name: string;
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.STRING, unique: false })
   declare last_name: string;
 
-  @Column
+  @Column({ type: DataType.STRING, unique: false })
   declare profile_picture_url: string;
 
   @Column({ type: DataType.STRING, unique: true })
