@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PlanningController } from './planning.controller';
 import { PlanningService } from '../services/planning.service';
 import { BadRequestException } from '@nestjs/common';
+import { Request } from 'express';
 
 describe('PlanningController', () => {
   let controller: PlanningController;
@@ -42,29 +43,29 @@ describe('PlanningController', () => {
       const endDate = '2026-05-15';
       const requestWithDates = { ...mockRequest, query: { startDate, endDate } };
 
-      await controller.getPlanning(startDate, endDate, requestWithDates);
+      await controller.getPlanning(startDate, endDate, requestWithDates as unknown as Request);
 
-      expect(service.getPlanning).toHaveBeenCalledWith(123, startDate, endDate);
+      expect(jest.spyOn(service, 'getPlanning')).toHaveBeenCalledWith(123, startDate, endDate);
     });
 
     it('should throw BadRequestException if unknown parameters are passed', async () => {
       const invalidRequest = { query: { unknownParam: 'true' }, user: { sub: 123 } };
-      await expect(
-        controller.getPlanning(undefined, undefined, invalidRequest as any),
+      await expect(() =>
+        controller.getPlanning(undefined, undefined, invalidRequest as unknown as Request),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if user.sub is missing', async () => {
       const requestWithoutSub = { user: { id: 456 }, query: {} };
-      await expect(
-        controller.getPlanning(undefined, undefined, requestWithoutSub as any),
+      await expect(() =>
+        controller.getPlanning(undefined, undefined, requestWithoutSub as unknown as Request),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should handle request without query', async () => {
       const requestWithoutQuery = { user: { sub: 123 } };
-      await controller.getPlanning(undefined, undefined, requestWithoutQuery as any);
-      expect(service.getPlanning).toHaveBeenCalledWith(123, undefined, undefined);
+      await controller.getPlanning(undefined, undefined, requestWithoutQuery as unknown as Request);
+      expect(jest.spyOn(service, 'getPlanning')).toHaveBeenCalledWith(123, undefined, undefined);
     });
   });
 });

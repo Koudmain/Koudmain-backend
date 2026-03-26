@@ -13,11 +13,7 @@ export class PlanningService {
     private readonly userModel: typeof User,
   ) {}
 
-  async getPlanning(
-    userId: number,
-    startDate?: string,
-    endDate?: string,
-  ) {
+  async getPlanning(userId: number, startDate?: string, endDate?: string) {
     let filterStartDate: Date;
     let filterEndDate: Date;
 
@@ -50,8 +46,8 @@ export class PlanningService {
 
     if (user.is_worker_active) {
       return this.getWorkerPlanning(userId, filterStartDate, filterEndDate);
-    // } else if (user.is_employer_active) {
-    //   return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
+      // } else if (user.is_employer_active) {
+      //   return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
     } else {
       throw new BadRequestException('User must be either an active worker or employer');
     }
@@ -65,11 +61,36 @@ export class PlanningService {
         ['hourly_rate', 'salary'],
         ['starting_date', 'startingDate'],
         ['ending_date', 'endingDate'],
-        [Sequelize.literal(`(SELECT name FROM company WHERE company.id = "Publication".company_id LIMIT 1)`), 'companyName'],
-        [Sequelize.literal(`(SELECT COALESCE(AVG(rating), 0) FROM review WHERE review.rated_id = "Publication".created_by_user_id)`), 'companyRating'],
-        [Sequelize.literal(`(SELECT COUNT(id) FROM review WHERE review.rated_id = "Publication".created_by_user_id)`), 'companyRatingCount'],
-        [Sequelize.literal(`(SELECT profile_picture_url FROM "user" WHERE "user".id = "Publication".created_by_user_id LIMIT 1)`), 'companyLogo'],
-        [Sequelize.literal(`(SELECT status FROM application JOIN worker_profile wp ON wp.id = application.worker_id WHERE application.publication_id = "Publication".id AND wp.user_id = ${userId} LIMIT 1)`), 'applicationStatus']
+        [
+          Sequelize.literal(
+            `(SELECT name FROM company WHERE company.id = "Publication".company_id LIMIT 1)`,
+          ),
+          'companyName',
+        ],
+        [
+          Sequelize.literal(
+            `(SELECT COALESCE(AVG(rating), 0) FROM review WHERE review.rated_id = "Publication".created_by_user_id)`,
+          ),
+          'companyRating',
+        ],
+        [
+          Sequelize.literal(
+            `(SELECT COUNT(id) FROM review WHERE review.rated_id = "Publication".created_by_user_id)`,
+          ),
+          'companyRatingCount',
+        ],
+        [
+          Sequelize.literal(
+            `(SELECT profile_picture_url FROM "user" WHERE "user".id = "Publication".created_by_user_id LIMIT 1)`,
+          ),
+          'companyLogo',
+        ],
+        [
+          Sequelize.literal(
+            `(SELECT status FROM application JOIN worker_profile wp ON wp.id = application.worker_id WHERE application.publication_id = "Publication".id AND wp.user_id = ${userId} LIMIT 1)`,
+          ),
+          'applicationStatus',
+        ],
       ],
       where: {
         starting_date: {
@@ -79,8 +100,10 @@ export class PlanningService {
           [Op.gte]: filterStartDate,
         },
         id: {
-          [Op.in]: Sequelize.literal(`(SELECT application.publication_id FROM application JOIN worker_profile wp ON wp.id = application.worker_id WHERE wp.user_id = ${userId})`)
-        }
+          [Op.in]: Sequelize.literal(
+            `(SELECT application.publication_id FROM application JOIN worker_profile wp ON wp.id = application.worker_id WHERE wp.user_id = ${userId})`,
+          ),
+        },
       },
       order: [['starting_date', 'ASC']],
     });

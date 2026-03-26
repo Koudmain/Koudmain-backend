@@ -1,4 +1,13 @@
-import { Controller, Get, HttpCode, HttpStatus, Query, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Query,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { PlanningService } from '../services/planning.service';
 
 @Controller('planning')
@@ -10,7 +19,7 @@ export class PlanningController {
   async getPlanning(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Req() request?: any,
+    @Req() request?: Request,
   ) {
     if (request && request.query) {
       const allowedKeys = ['startDate', 'endDate'];
@@ -22,11 +31,13 @@ export class PlanningController {
       }
     }
 
-    const userId = request?.user?.sub;
+    const customReq = request as unknown as { user?: { sub?: number } };
+    const userId = customReq?.user?.sub;
+
     if (!userId) {
       throw new BadRequestException('User not authenticated');
     }
 
-    return this.planningService.getPlanning(userId, startDate, endDate);
+    return this.planningService.getPlanning(Number(userId), startDate, endDate);
   }
 }

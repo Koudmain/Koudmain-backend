@@ -22,11 +22,11 @@ describe('PlanningModule', () => {
       .compile();
   });
 
-  it('should compile the module', async () => {
+  it('should compile the module', () => {
     expect(module).toBeDefined();
   });
 
-  it('should have Planning components', async () => {
+  it('should have Planning components', () => {
     expect(module.get(PlanningController)).toBeInstanceOf(PlanningController);
     expect(module.get(PlanningService)).toBeInstanceOf(PlanningService);
   });
