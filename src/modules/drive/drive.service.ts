@@ -93,11 +93,21 @@ export class DriveService {
       });
 
       console.log(`Fichier Drive supprimé avec succès.`);
-    } catch (error) {
-      if (error.code === 404) {
+    } catch (error: unknown) {
+      const errorCode =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? (error as { code?: number | string }).code
+          : undefined;
+
+      const errorMessage =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message?: unknown }).message)
+          : 'Erreur inconnue';
+
+      if (errorCode === 404 || errorCode === '404') {
         console.info(`Le fichier ${fileUrl} n'existe déjà plus sur Drive.`);
       } else {
-        console.error('Erreur lors de la suppression sur Google Drive:', error.message);
+        console.error('Erreur lors de la suppression sur Google Drive:', errorMessage);
       }
     }
   }

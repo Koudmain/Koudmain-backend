@@ -15,6 +15,7 @@ import { Public } from '../../decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DriveService } from '../drive/drive.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { User } from './models/user.model';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
@@ -57,13 +58,13 @@ export class UsersController {
   @Patch('me')
   @UseInterceptors(FileInterceptor('image'))
   async updateMe(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Body() updateUserDto: UpdateUserDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const userId = req.user.sub;
     const user = await this.usersService.findOneByIdPublic(userId);
-    const updates: any = { ...updateUserDto };
+    const updates: Partial<User> = { ...updateUserDto };
 
     if (file) {
       if (user && user.profile_picture_url) {
