@@ -7,7 +7,7 @@ import {
   Req,
   BadRequestException,
 } from '@nestjs/common';
-import { Request } from 'express';
+import type { Request } from 'express';
 import { PlanningService } from '../services/planning.service';
 
 @Controller('planning')
