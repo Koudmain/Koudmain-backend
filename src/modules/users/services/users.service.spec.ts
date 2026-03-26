@@ -1,4 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { Sequelize } from 'sequelize';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';

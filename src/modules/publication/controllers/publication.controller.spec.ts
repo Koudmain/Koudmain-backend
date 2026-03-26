@@ -13,7 +13,6 @@ const mockPublicationService = {
 
 describe('PublicationController', () => {
   let controller: PublicationController;
-  let service: PublicationService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,7 +26,6 @@ describe('PublicationController', () => {
     }).compile();
 
     controller = module.get<PublicationController>(PublicationController);
-    service = module.get<PublicationService>(PublicationService);
   });
 
   afterEach(() => {
