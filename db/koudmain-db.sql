@@ -42,8 +42,6 @@ CREATE TABLE "worker_profile" (
   "id" serial PRIMARY KEY,
   "user_id" integer,
   "address_id" integer,
-  "first_name" varchar,
-  "last_name" varchar,
   "max_distance_km" integer DEFAULT 20,
   "skills_description" text,
   "identity_verified" boolean DEFAULT false,

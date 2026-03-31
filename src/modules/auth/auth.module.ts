@@ -7,12 +7,16 @@ import { AuthGuard } from './auth.guard';
 import { AuthController } from './controllers/auth.controller';
 import { RefreshSession } from './models/refresh-session.model';
 import { UsersModule } from '@/modules/users/users.module';
+import { WorkersModule } from '@/modules/workers/workers.module';
+import { CompaniesModule } from '@/modules/companies/companies.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
     UsersModule,
+    WorkersModule,
+    CompaniesModule,
     SequelizeModule.forFeature([RefreshSession]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
