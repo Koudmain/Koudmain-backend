@@ -52,7 +52,7 @@ export class DriveService {
 
       return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
     } catch (error) {
-      console.error('Drive Upload Error:', error);
+      console.error('Erreur lors du chargement du Drive', error);
       throw new InternalServerErrorException("Échec du traitement ou de l'envoi de l'image");
     }
   }
@@ -76,5 +76,39 @@ export class DriveService {
     });
 
     return folder.data.id!;
+  }
+
+  async deleteFile(fileUrl: string): Promise<void> {
+    try {
+      const afterId = fileUrl.split('id=')[1];
+
+      if (!afterId) {
+        console.warn("Aucun ID trouvé dans l'URL:", fileUrl);
+        return;
+      }
+      const fileId = afterId.split('&')[0];
+
+      await this.driveClient.files.delete({
+        fileId: fileId,
+      });
+
+      console.log(`Fichier Drive supprimé avec succès.`);
+    } catch (error: unknown) {
+      const errorCode =
+        typeof error === 'object' && error !== null && 'code' in error
+          ? (error as { code?: number | string }).code
+          : undefined;
+
+      const errorMessage =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message?: unknown }).message)
+          : 'Erreur inconnue';
+
+      if (errorCode === 404 || errorCode === '404') {
+        console.info(`Le fichier ${fileUrl} n'existe déjà plus sur Drive.`);
+      } else {
+        console.error('Erreur lors de la suppression sur Google Drive:', errorMessage);
+      }
+    }
   }
 }
