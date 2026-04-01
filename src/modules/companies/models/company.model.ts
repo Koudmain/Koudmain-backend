@@ -1,4 +1,5 @@
-import { Column, Model, Table, DataType } from 'sequelize-typescript';
+import { Column, Model, Table, DataType, HasMany } from 'sequelize-typescript';
+import { CompanyMember } from './company-member.model';
 
 @Table({ tableName: 'company', timestamps: false })
 export class Company extends Model {
@@ -10,4 +11,7 @@ export class Company extends Model {
 
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   declare is_premium: boolean;
+
+  @HasMany(() => CompanyMember)
+  members: CompanyMember[];
 }

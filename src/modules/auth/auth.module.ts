@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AuthService } from './services/auth.service';
@@ -16,7 +16,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   imports: [
     UsersModule,
     WorkersModule,
-    CompaniesModule,
+    forwardRef(() => CompaniesModule),
     SequelizeModule.forFeature([RefreshSession]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -36,6 +36,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     },
   ],
   controllers: [AuthController],
-  exports: [AuthService, RefreshSessionService],
+  exports: [AuthService, RefreshSessionService, JwtModule],
 })
 export class AuthModule {}

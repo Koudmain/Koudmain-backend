@@ -19,4 +19,24 @@ export class CompaniesService {
     } as any);
     return company;
   }
+
+  async getUserCompanies(userId: number) {
+    const memberships = await this.memberModel.findAll({
+      where: { user_id: userId },
+      include: [{
+        model: Company,
+        attributes: ['id', 'name'],
+      }],
+    });
+
+    return memberships.map((m) => {
+      const companyData = m.get('company') as Company;
+
+      return {
+        id: companyData?.id,
+        name: companyData?.name,
+        role: m.role,
+      };
+    });
+  }
 }
