@@ -1,4 +1,5 @@
-import { Column, Model, Table, DataType } from 'sequelize-typescript';
+import { Column, Model, Table, DataType, HasMany } from 'sequelize-typescript';
+import { Review } from '../../review/models/review.model';
 
 @Table({ tableName: 'user', timestamps: false })
 export class User extends Model {
@@ -13,6 +14,9 @@ export class User extends Model {
 
   @Column({ type: DataType.STRING, unique: false })
   declare profile_picture_url: string;
+
+  @HasMany(() => Review, 'rated_id')
+  declare reviews: Review[];
 
   @Column({ type: DataType.STRING, unique: true })
   declare email: string;

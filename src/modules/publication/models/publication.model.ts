@@ -1,4 +1,7 @@
-import { Column, Model, Table, DataType } from 'sequelize-typescript';
+import { Column, Model, Table, DataType, BelongsTo, HasMany } from 'sequelize-typescript';
+import { Company } from '../../company/models/company.model';
+import { User } from '../../users/models/user.model';
+import { Application } from '../../application/models/application.model';
 
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
@@ -8,8 +11,17 @@ export class Publication extends Model {
   @Column({ type: DataType.INTEGER })
   declare company_id: number;
 
+  @BelongsTo(() => Company, 'company_id')
+  declare company: Company;
+
   @Column({ type: DataType.INTEGER })
   declare created_by_user_id: number;
+
+  @BelongsTo(() => User, 'created_by_user_id')
+  declare creator: User;
+
+  @HasMany(() => Application, 'publication_id')
+  declare applications: Application[];
 
   @Column({ type: DataType.INTEGER })
   declare address_id: number;
