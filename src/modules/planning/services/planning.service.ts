@@ -1,8 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Op, Sequelize } from 'sequelize';
+import { Op } from 'sequelize';
 import { Publication } from '../../publication/models/publication.model';
 import { User } from '../../users/models/user.model';
+import { Application } from '../../application/models/application.model';
+import { WorkerProfile } from '../../worker-profile/models/worker-profile.model';
+import { Company } from '../../company/models/company.model';
+import { Review } from '../../review/models/review.model';
 
 @Injectable()
 export class PlanningService {
@@ -11,6 +15,8 @@ export class PlanningService {
     private readonly publicationModel: typeof Publication,
     @InjectModel(User)
     private readonly userModel: typeof User,
+    @InjectModel(Application)
+    private readonly applicationModel: typeof Application,
   ) {}
 
   async getPlanning(userId: number, startDate?: string, endDate?: string) {
@@ -46,68 +52,71 @@ export class PlanningService {
 
     if (user.is_worker_active) {
       return this.getWorkerPlanning(userId, filterStartDate, filterEndDate);
-      // } else if (user.is_employer_active) {
-      //   return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
+    // } else if (user.is_employer_active) {
+    //   return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
     } else {
       throw new BadRequestException('User must be either an active worker or employer');
     }
   }
 
   private async getWorkerPlanning(userId: number, filterStartDate: Date, filterEndDate: Date) {
-    const rows = await this.publicationModel.findAll({
-      attributes: [
-        ['id', 'publicationId'],
-        ['title', 'title'],
-        ['hourly_rate', 'salary'],
-        ['starting_date', 'startingDate'],
-        ['ending_date', 'endingDate'],
-        [
-          Sequelize.literal(
-            `(SELECT name FROM company WHERE company.id = "Publication".company_id LIMIT 1)`,
-          ),
-          'companyName',
-        ],
-        [
-          Sequelize.literal(
-            `(SELECT COALESCE(AVG(rating), 0) FROM review WHERE review.rated_id = "Publication".created_by_user_id)`,
-          ),
-          'companyRating',
-        ],
-        [
-          Sequelize.literal(
-            `(SELECT COUNT(id) FROM review WHERE review.rated_id = "Publication".created_by_user_id)`,
-          ),
-          'companyRatingCount',
-        ],
-        [
-          Sequelize.literal(
-            `(SELECT profile_picture_url FROM "user" WHERE "user".id = "Publication".created_by_user_id LIMIT 1)`,
-          ),
-          'companyLogo',
-        ],
-        [
-          Sequelize.literal(
-            `(SELECT status FROM application JOIN worker_profile wp ON wp.id = application.worker_id WHERE application.publication_id = "Publication".id AND wp.user_id = ${userId} LIMIT 1)`,
-          ),
-          'applicationStatus',
-        ],
+    const applications = await this.applicationModel.findAll({
+      include: [
+        {
+          model: WorkerProfile,
+          where: { user_id: userId },
+          required: true,
+        },
+        {
+          model: Publication,
+          required: true,
+          where: {
+            starting_date: {
+              [Op.lte]: filterEndDate,
+            },
+            ending_date: {
+              [Op.gte]: filterStartDate,
+            },
+          },
+          include: [
+            {
+              model: Company,
+              required: false,
+            },
+            {
+              model: User,
+              required: false,
+              include: [
+                {
+                  model: Review,
+                  required: false,
+                },
+              ],
+            },
+          ],
+        },
       ],
-      where: {
-        starting_date: {
-          [Op.lte]: filterEndDate,
-        },
-        ending_date: {
-          [Op.gte]: filterStartDate,
-        },
-        id: {
-          [Op.in]: Sequelize.literal(
-            `(SELECT application.publication_id FROM application JOIN worker_profile wp ON wp.id = application.worker_id WHERE wp.user_id = ${userId})`,
-          ),
-        },
-      },
-      order: [['starting_date', 'ASC']],
+      order: [['publication', 'starting_date', 'ASC']],
     });
 
-    return rows;
+    return applications.map((app) => {
+      const pub = app.publication;
+      const reviews = pub?.creator?.reviews || [];
+      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+      const companyRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+
+      return {
+        publicationId: pub.id,
+        title: pub.title,
+        salary: pub.hourly_rate,
+        startingDate: pub.starting_date,
+        endingDate: pub.ending_date,
+        companyName: pub.company?.name || null,
+        companyRating: Number(companyRating.toFixed(2)),
+        companyRatingCount: reviews.length,
+        companyLogo: pub.creator?.profile_picture_url || null,
+        applicationStatus: app.status,
+      };
+    });
   }
 }
