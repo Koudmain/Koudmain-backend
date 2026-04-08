@@ -88,7 +88,7 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
-      app_context: targetApp
+      app_context: targetApp,
     };
     return this.generateTokens(payload, user.id);
   }
@@ -152,7 +152,7 @@ export class AuthService {
     });
     if (is_worker_active) {
       await this.workersService.create({
-        user_id: newUser.id
+        user_id: newUser.id,
       });
     }
 

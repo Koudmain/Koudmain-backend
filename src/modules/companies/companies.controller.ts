@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Request,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Request, UseGuards } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
 import { CompaniesService } from './services/companies.service';
 import { AuthGuard } from '@/modules/auth/auth.guard';
@@ -17,9 +12,7 @@ interface RequestWithUser extends ExpressRequest {
 
 @Controller('companies')
 export class CompaniesController {
-  constructor(
-    private readonly companiesService: CompaniesService,
-  ) {}
+  constructor(private readonly companiesService: CompaniesService) {}
 
   @UseGuards(AuthGuard)
   @Get('my-companies')

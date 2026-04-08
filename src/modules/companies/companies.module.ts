@@ -7,10 +7,7 @@ import { CompaniesController } from './companies.controller';
 import { AuthModule } from '@/modules/auth/auth.module';
 
 @Module({
-  imports: [
-    SequelizeModule.forFeature([Company, CompanyMember]),
-    forwardRef(() => AuthModule)
-  ],
+  imports: [SequelizeModule.forFeature([Company, CompanyMember]), forwardRef(() => AuthModule)],
   controllers: [CompaniesController],
   providers: [CompaniesService],
   exports: [CompaniesService],

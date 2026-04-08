@@ -23,10 +23,12 @@ export class CompaniesService {
   async getUserCompanies(userId: number) {
     const memberships = await this.memberModel.findAll({
       where: { user_id: userId },
-      include: [{
-        model: Company,
-        attributes: ['id', 'name'],
-      }],
+      include: [
+        {
+          model: Company,
+          attributes: ['id', 'name'],
+        },
+      ],
     });
 
     return memberships.map((m) => {
