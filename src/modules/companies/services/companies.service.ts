@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { CreationAttributes } from 'sequelize';
 
 @Injectable()
 export class CompaniesService {
@@ -11,12 +12,14 @@ export class CompaniesService {
   ) {}
 
   async createCompanyWithOwner(name: string, userId: number): Promise<Company> {
-    const company = await this.companyModel.create({ name } as any);
-    await this.memberModel.create({
+    const companyData: CreationAttributes<Company> = { name };
+    const company = await this.companyModel.create(companyData);
+    const memberData: CreationAttributes<CompanyMember> = {
       company_id: company.id,
       user_id: userId,
       role: 'Owner',
-    } as any);
+    };
+    await this.memberModel.create(memberData);
     return company;
   }
 
@@ -26,13 +29,14 @@ export class CompaniesService {
       include: [
         {
           model: Company,
+          as: 'company',
           attributes: ['id', 'name'],
         },
       ],
     });
 
     return memberships.map((m) => {
-      const companyData = m.get('company') as Company;
+      const companyData = m.company;
 
       return {
         id: companyData?.id,
