@@ -23,13 +23,7 @@ export class PlanningService {
     let filterStartDate: Date;
     let filterEndDate: Date;
 
-    if (startDate || endDate) {
-      if (!startDate || !endDate) {
-        throw new BadRequestException(
-          'Les paramètres startDate et endDate doivent être fournis ensemble',
-        );
-      }
-
+    if (startDate && endDate) {
       filterStartDate = new Date(startDate);
       filterEndDate = new Date(endDate);
 
@@ -40,10 +34,14 @@ export class PlanningService {
       if (filterStartDate > filterEndDate) {
         throw new BadRequestException('startDate doit être antérieure ou égale à endDate');
       }
-    } else {
+    } else if (!startDate && !endDate) {
       const now = new Date();
       filterStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       filterEndDate = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59, 999);
+    } else {
+        throw new BadRequestException(
+          'Les paramètres startDate et endDate doivent être fournis ensemble',
+        );
     }
 
     const user = await this.userModel.findByPk(userId);
