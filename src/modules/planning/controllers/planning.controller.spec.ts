@@ -1,12 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PlanningController } from './planning.controller';
-import { PlanningService } from '../services/planning.service';
+import { PlanningController } from '@/modules/planning/controllers/planning.controller';
+import { PlanningService } from '@/modules/planning/services/planning.service';
 import { BadRequestException } from '@nestjs/common';
 import { Request } from 'express';
 
 describe('PlanningController', () => {
   let controller: PlanningController;
-  let service: PlanningService;
 
   const mockPlanningService = {
     getPlanning: jest.fn().mockResolvedValue([]),
@@ -24,7 +23,6 @@ describe('PlanningController', () => {
     }).compile();
 
     controller = module.get<PlanningController>(PlanningController);
-    service = module.get<PlanningService>(PlanningService);
   });
 
   afterEach(() => {
@@ -45,7 +43,7 @@ describe('PlanningController', () => {
 
       await controller.getPlanning(startDate, endDate, requestWithDates as unknown as Request);
 
-      expect(jest.spyOn(service, 'getPlanning')).toHaveBeenCalledWith(
+      expect(mockPlanningService.getPlanning).toHaveBeenCalledWith(
         123,
         'worker',
         startDate,
@@ -73,7 +71,7 @@ describe('PlanningController', () => {
     it('should handle request without query', async () => {
       const requestWithoutQuery = { user: { sub: 123, app_context: 'worker' } };
       await controller.getPlanning(undefined, undefined, requestWithoutQuery as unknown as Request);
-      expect(jest.spyOn(service, 'getPlanning')).toHaveBeenCalledWith(
+      expect(mockPlanningService.getPlanning).toHaveBeenCalledWith(
         123,
         'worker',
         undefined,

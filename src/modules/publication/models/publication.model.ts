@@ -1,5 +1,5 @@
 import { Column, Model, Table, DataType, BelongsTo, HasMany } from 'sequelize-typescript';
-import { Company } from '../../company/models/company.model';
+import { Company } from '@/modules/companies/models/company.model';
 import { User } from '../../users/models/user.model';
 import { Application } from '../../application/models/application.model';
 
@@ -58,18 +58,18 @@ export class Publication extends Model {
 }
 
 export class PostPublicationDto {
-  company_id: number = 0;
-  created_by_user_id: number = 0;
-  address_id: number = 0;
-  title: string = '';
-  description: string = '';
-  hourly_rate: number = 0;
-  starting_date: Date = new Date();
-  ending_date: Date = new Date();
+  declare company_id: number;
+  declare created_by_user_id: number;
+  declare address_id: number;
+  declare title: string;
+  declare description: string;
+  declare hourly_rate: number;
+  declare starting_date: Date;
+  declare ending_date: Date;
 }
 
 export class PostPublicationResponseDto {
-  message: string = '';
-  id: number = 0;
-  createdAt: Date = new Date();
+  declare message: string;
+  declare id: number;
+  declare createdAt: Date;
 }

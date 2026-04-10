@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PlanningService } from './planning.service';
+import { PlanningService } from '@/modules/planning/services/planning.service';
 import { getModelToken } from '@nestjs/sequelize';
-import { Publication } from '../../publication/models/publication.model';
-import { User } from '../../users/models/user.model';
-import { Application } from '../../application/models/application.model';
-import { WorkerProfile } from '../../worker-profile/models/worker-profile.model';
-import { Company } from '../../company/models/company.model';
-import { Review } from '../../review/models/review.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { User } from '@/modules/users/models/user.model';
+import { Application } from '@/modules/application/models/application.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { Company } from '@/modules/companies/models/company.model';
+import { Review } from '@/modules/review/models/review.model';
 import { BadRequestException } from '@nestjs/common';
 import { Op } from 'sequelize';
 
@@ -75,7 +75,7 @@ describe('PlanningService', () => {
 
       await service.getPlanning(userId, 'worker');
 
-      expect(jest.spyOn(applicationModelMock, 'findAll')).toHaveBeenCalledWith({
+      expect(mockApplicationModel.findAll).toHaveBeenCalledWith({
         include: [
           {
             model: WorkerProfile,
@@ -122,7 +122,7 @@ describe('PlanningService', () => {
       const endDate = '2026-05-15';
       await service.getPlanning(userId, 'worker', startDate, endDate);
 
-      expect(jest.spyOn(applicationModelMock, 'findAll')).toHaveBeenCalledWith({
+      expect(mockApplicationModel.findAll).toHaveBeenCalledWith({
         include: [
           {
             model: WorkerProfile,

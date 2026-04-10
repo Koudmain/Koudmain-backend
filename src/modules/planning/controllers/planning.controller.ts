@@ -8,7 +8,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { PlanningService } from '../services/planning.service';
+import { PlanningService } from '@/modules/planning/services/planning.service';
 
 @Controller('planning')
 export class PlanningController {

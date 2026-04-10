@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
-import { Publication } from '../../publication/models/publication.model';
-import { User } from '../../users/models/user.model';
-import { Application } from '../../application/models/application.model';
-import { WorkerProfile } from '../../worker-profile/models/worker-profile.model';
-import { Company } from '../../company/models/company.model';
-import { Review } from '../../review/models/review.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { User } from '@/modules/users/models/user.model';
+import { Application } from '@/modules/application/models/application.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { Company } from '@/modules/companies/models/company.model';
+import { Review } from '@/modules/review/models/review.model';
 
 @Injectable()
 export class PlanningService {
@@ -39,9 +39,9 @@ export class PlanningService {
       filterStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       filterEndDate = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59, 999);
     } else {
-        throw new BadRequestException(
-          'Les paramètres startDate et endDate doivent être fournis ensemble',
-        );
+      throw new BadRequestException(
+        'Les paramètres startDate et endDate doivent être fournis ensemble',
+      );
     }
 
     const user = await this.userModel.findByPk(userId);
@@ -66,11 +66,13 @@ export class PlanningService {
       include: [
         {
           model: WorkerProfile,
+          as: 'workerProfile',
           where: { user_id: userId },
           required: true,
         },
         {
           model: Publication,
+          as: 'publication',
           required: true,
           where: {
             starting_date: {
@@ -83,14 +85,17 @@ export class PlanningService {
           include: [
             {
               model: Company,
+              as: 'company',
               required: false,
             },
             {
               model: User,
+              as: 'creator',
               required: false,
               include: [
                 {
                   model: Review,
+                  as: 'reviews',
                   required: false,
                 },
               ],

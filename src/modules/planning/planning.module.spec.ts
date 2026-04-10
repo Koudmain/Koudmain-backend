@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PlanningModule } from './planning.module';
+import { PlanningModule } from '@/modules/planning/planning.module';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
-import { Publication } from '../publication/models/publication.model';
-import { User } from '../users/models/user.model';
-import { Company } from '../company/models/company.model';
-import { Application } from '../application/models/application.model';
-import { WorkerProfile } from '../worker-profile/models/worker-profile.model';
-import { Review } from '../review/models/review.model';
-import { PlanningController } from './controllers/planning.controller';
-import { PlanningService } from './services/planning.service';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { User } from '@/modules/users/models/user.model';
+import { Company } from '@/modules/companies/models/company.model';
+import { Application } from '@/modules/application/models/application.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { Review } from '@/modules/review/models/review.model';
+import { PlanningController } from '@/modules/planning/controllers/planning.controller';
+import { PlanningService } from '@/modules/planning/services/planning.service';
 
 describe('PlanningModule', () => {
   let module: TestingModule;

@@ -1,6 +1,6 @@
 import { Column, Model, Table, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
-import { Publication } from '../../publication/models/publication.model';
-import { WorkerProfile } from '../../worker-profile/models/worker-profile.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 
 @Table({ tableName: 'application', timestamps: false })
 export class Application extends Model {
