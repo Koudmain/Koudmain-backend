@@ -19,7 +19,7 @@ export class PlanningService {
     private readonly applicationModel: typeof Application,
   ) {}
 
-  async getPlanning(userId: number, startDate?: string, endDate?: string) {
+  async getPlanning(userId: number, appContext?: string, startDate?: string, endDate?: string) {
     let filterStartDate: Date;
     let filterEndDate: Date;
 
@@ -50,12 +50,14 @@ export class PlanningService {
       throw new BadRequestException('User not found');
     }
 
-    if (user.is_worker_active) {
+    if (appContext === 'worker') {
       return this.getWorkerPlanning(userId, filterStartDate, filterEndDate);
-      // } else if (user.is_employer_active) {
+      // } else if (appContext === 'employer') {
       //   return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
     } else {
-      throw new BadRequestException('User must be either an active worker or employer');
+      throw new BadRequestException(
+        'User must have a valid app_context in token (worker or employer)',
+      );
     }
   }
 

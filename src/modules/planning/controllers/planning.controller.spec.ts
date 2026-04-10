@@ -36,7 +36,7 @@ describe('PlanningController', () => {
   });
 
   describe('getPlanning', () => {
-    const mockRequest = { user: { sub: 123 }, query: {} };
+    const mockRequest = { user: { sub: 123, app_context: 'worker' }, query: {} };
 
     it('should call getPlanning service method with correct parameters', async () => {
       const startDate = '2026-05-01';
@@ -45,27 +45,40 @@ describe('PlanningController', () => {
 
       await controller.getPlanning(startDate, endDate, requestWithDates as unknown as Request);
 
-      expect(jest.spyOn(service, 'getPlanning')).toHaveBeenCalledWith(123, startDate, endDate);
+      expect(jest.spyOn(service, 'getPlanning')).toHaveBeenCalledWith(
+        123,
+        'worker',
+        startDate,
+        endDate,
+      );
     });
 
     it('should throw BadRequestException if unknown parameters are passed', async () => {
-      const invalidRequest = { query: { unknownParam: 'true' }, user: { sub: 123 } };
+      const invalidRequest = {
+        query: { unknownParam: 'true' },
+        user: { sub: 123, app_context: 'worker' },
+      };
       await expect(() =>
         controller.getPlanning(undefined, undefined, invalidRequest as unknown as Request),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if user.sub is missing', async () => {
-      const requestWithoutSub = { user: { id: 456 }, query: {} };
+      const requestWithoutSub = { user: { id: 456, app_context: 'worker' }, query: {} };
       await expect(() =>
         controller.getPlanning(undefined, undefined, requestWithoutSub as unknown as Request),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should handle request without query', async () => {
-      const requestWithoutQuery = { user: { sub: 123 } };
+      const requestWithoutQuery = { user: { sub: 123, app_context: 'worker' } };
       await controller.getPlanning(undefined, undefined, requestWithoutQuery as unknown as Request);
-      expect(jest.spyOn(service, 'getPlanning')).toHaveBeenCalledWith(123, undefined, undefined);
+      expect(jest.spyOn(service, 'getPlanning')).toHaveBeenCalledWith(
+        123,
+        'worker',
+        undefined,
+        undefined,
+      );
     });
   });
 });

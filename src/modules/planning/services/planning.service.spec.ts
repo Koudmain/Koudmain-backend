@@ -73,7 +73,7 @@ describe('PlanningService', () => {
         999,
       );
 
-      await service.getPlanning(userId);
+      await service.getPlanning(userId, 'worker');
 
       expect(jest.spyOn(applicationModelMock, 'findAll')).toHaveBeenCalledWith({
         include: [
@@ -120,7 +120,7 @@ describe('PlanningService', () => {
     it('should call findAll with specific requested dates', async () => {
       const startDate = '2026-05-01';
       const endDate = '2026-05-15';
-      await service.getPlanning(userId, startDate, endDate);
+      await service.getPlanning(userId, 'worker', startDate, endDate);
 
       expect(jest.spyOn(applicationModelMock, 'findAll')).toHaveBeenCalledWith({
         include: [
@@ -163,27 +163,27 @@ describe('PlanningService', () => {
     });
 
     it('should throw BadRequestException if only startDate is provided', async () => {
-      await expect(service.getPlanning(userId, '2026-03-01', undefined)).rejects.toThrow(
+      await expect(service.getPlanning(userId, 'worker', '2026-03-01', undefined)).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('should throw BadRequestException if only endDate is provided', async () => {
-      await expect(service.getPlanning(userId, undefined, '2026-03-31')).rejects.toThrow(
+      await expect(service.getPlanning(userId, 'worker', undefined, '2026-03-31')).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('should throw BadRequestException if startDate format is invalid', async () => {
-      await expect(service.getPlanning(userId, 'invalid-date', '2026-03-31')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.getPlanning(userId, 'worker', 'invalid-date', '2026-03-31'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if endDate format is invalid', async () => {
-      await expect(service.getPlanning(userId, '2026-03-01', 'not-a-date')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.getPlanning(userId, 'worker', '2026-03-01', 'not-a-date'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should map returned applications properly', async () => {
@@ -221,7 +221,7 @@ describe('PlanningService', () => {
         .spyOn(applicationModelMock, 'findAll')
         .mockResolvedValueOnce(mockApplicationData as unknown as Application[]);
 
-      const result = await service.getPlanning(userId, '2026-05-01', '2026-05-31');
+      const result = await service.getPlanning(userId, 'worker', '2026-05-01', '2026-05-31');
 
       expect(result).toEqual([
         {

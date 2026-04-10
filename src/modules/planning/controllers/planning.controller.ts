@@ -31,13 +31,14 @@ export class PlanningController {
       }
     }
 
-    const customReq = request as unknown as { user?: { sub?: number } };
+    const customReq = request as unknown as { user?: { sub?: number; app_context?: string } };
     const userId = customReq?.user?.sub;
+    const appContext = customReq?.user?.app_context;
 
     if (!userId) {
       throw new BadRequestException('User not authenticated');
     }
 
-    return this.planningService.getPlanning(Number(userId), startDate, endDate);
+    return this.planningService.getPlanning(Number(userId), appContext, startDate, endDate);
   }
 }
