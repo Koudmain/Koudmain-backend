@@ -25,18 +25,20 @@ export class PlanningService {
 
     if (startDate || endDate) {
       if (!startDate || !endDate) {
-        throw new BadRequestException('Both startDate and endDate must be provided together');
+        throw new BadRequestException(
+          'Les paramètres startDate et endDate doivent être fournis ensemble',
+        );
       }
 
       filterStartDate = new Date(startDate);
       filterEndDate = new Date(endDate);
 
       if (isNaN(filterStartDate.getTime()) || isNaN(filterEndDate.getTime())) {
-        throw new BadRequestException('startDate and endDate must be valid dates');
+        throw new BadRequestException('startDate et endDate doivent être des dates valides');
       }
 
       if (filterStartDate > filterEndDate) {
-        throw new BadRequestException('startDate must be before or equal to endDate');
+        throw new BadRequestException('startDate doit être antérieure ou égale à endDate');
       }
     } else {
       const now = new Date();
@@ -47,7 +49,7 @@ export class PlanningService {
     const user = await this.userModel.findByPk(userId);
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new BadRequestException('Utilisateur non trouvé');
     }
 
     if (appContext === 'worker') {
@@ -56,7 +58,7 @@ export class PlanningService {
       //   return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
     } else {
       throw new BadRequestException(
-        'User must have a valid app_context in token (worker or employer)',
+        "L'utilisateur doit avoir un app_context valide dans le token (worker ou employer)",
       );
     }
   }

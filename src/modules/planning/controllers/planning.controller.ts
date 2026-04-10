@@ -36,7 +36,7 @@ export class PlanningController {
     const appContext = customReq?.user?.app_context;
 
     if (!userId) {
-      throw new BadRequestException('User not authenticated');
+      throw new BadRequestException('Utilisateur non authentifié');
     }
 
     return this.planningService.getPlanning(Number(userId), appContext, startDate, endDate);
