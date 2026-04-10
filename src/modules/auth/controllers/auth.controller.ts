@@ -12,11 +12,12 @@ type AuthenticatedRequest = ExpressRequest & { user: JwtPayload };
 type SignInBody = {
   email: string;
   password: string;
+  targetApp: 'worker' | 'employer';
 };
 
 type SignUpBody = {
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   password: string;
   is_worker_active: boolean;
@@ -40,15 +41,15 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   signIn(@Body() body: SignInBody): Promise<AuthTokenResponse> {
-    return this.authService.signIn(body.email, body.password);
+    return this.authService.signIn(body.email, body.password, body.targetApp);
   }
 
   @Public()
   @Post('register')
   signUp(@Body() body: SignUpBody): Promise<AuthTokenResponse> {
     return this.authService.register(
-      body.firstName,
-      body.lastName,
+      body.first_name,
+      body.last_name,
       body.email,
       body.password,
       body.is_worker_active,

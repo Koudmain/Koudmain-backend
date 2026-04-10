@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DriveModule } from './modules/drive/drive.module';
 import { PublicationModule } from './modules/publication/publication.module';
 import { PlanningModule } from './modules/planning/planning.module';
+import { CompaniesModule } from './modules/companies/companies.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PlanningModule } from './modules/planning/planning.module';
     }),
     UsersModule,
     AuthModule,
+    CompaniesModule,
     DriveModule,
     PublicationModule,
     PlanningModule,
