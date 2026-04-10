@@ -58,18 +58,18 @@ export class Publication extends Model {
 }
 
 export class PostPublicationDto {
-  company_id: number;
-  created_by_user_id: number;
-  address_id: number;
-  title: string;
-  description: string;
-  hourly_rate: number;
-  starting_date: Date;
-  ending_date: Date;
+  company_id: number = 0;
+  created_by_user_id: number = 0;
+  address_id: number = 0;
+  title: string = '';
+  description: string = '';
+  hourly_rate: number = 0;
+  starting_date: Date = new Date();
+  ending_date: Date = new Date();
 }
 
 export class PostPublicationResponseDto {
-  message: string;
-  id: number;
-  createdAt: Date;
+  message: string = '';
+  id: number = 0;
+  createdAt: Date = new Date();
 }
