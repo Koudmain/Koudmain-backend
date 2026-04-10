@@ -3,14 +3,20 @@ import { PlanningService } from './planning.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { Publication } from '../../publication/models/publication.model';
 import { User } from '../../users/models/user.model';
+import { Application } from '../../application/models/application.model';
+import { WorkerProfile } from '../../worker-profile/models/worker-profile.model';
+import { Company } from '../../company/models/company.model';
+import { Review } from '../../review/models/review.model';
 import { BadRequestException } from '@nestjs/common';
 import { Op } from 'sequelize';
 
 describe('PlanningService', () => {
   let service: PlanningService;
-  let model: typeof Publication;
+  let applicationModelMock: typeof Application;
 
-  const mockPublicationModel = {
+  const mockPublicationModel = {};
+
+  const mockApplicationModel = {
     findAll: jest.fn().mockResolvedValue([]),
   };
 
@@ -30,11 +36,15 @@ describe('PlanningService', () => {
           provide: getModelToken(User),
           useValue: mockUserModel,
         },
+        {
+          provide: getModelToken(Application),
+          useValue: mockApplicationModel,
+        },
       ],
     }).compile();
 
     service = module.get<PlanningService>(PlanningService);
-    model = module.get(getModelToken(Publication));
+    applicationModelMock = module.get(getModelToken(Application));
   });
 
   afterEach(() => {
@@ -65,20 +75,43 @@ describe('PlanningService', () => {
 
       await service.getPlanning(userId);
 
-      expect(jest.spyOn(model, 'findAll')).toHaveBeenCalledWith({
-        attributes: expect.any(Array) as unknown as string[],
-        where: {
-          starting_date: {
-            [Op.lte]: expectedEnd,
+      expect(jest.spyOn(applicationModelMock, 'findAll')).toHaveBeenCalledWith({
+        include: [
+          {
+            model: WorkerProfile,
+            where: { user_id: userId },
+            required: true,
           },
-          ending_date: {
-            [Op.gte]: expectedStart,
+          {
+            model: Publication,
+            required: true,
+            where: {
+              starting_date: {
+                [Op.lte]: expectedEnd,
+              },
+              ending_date: {
+                [Op.gte]: expectedStart,
+              },
+            },
+            include: [
+              {
+                model: Company,
+                required: false,
+              },
+              {
+                model: User,
+                required: false,
+                include: [
+                  {
+                    model: Review,
+                    required: false,
+                  },
+                ],
+              },
+            ],
           },
-          id: {
-            [Op.in]: expect.anything() as unknown as number[],
-          },
-        },
-        order: [['starting_date', 'ASC']],
+        ],
+        order: [['publication', 'starting_date', 'ASC']],
       });
 
       jest.useRealTimers();
@@ -89,20 +122,43 @@ describe('PlanningService', () => {
       const endDate = '2026-05-15';
       await service.getPlanning(userId, startDate, endDate);
 
-      expect(jest.spyOn(model, 'findAll')).toHaveBeenCalledWith({
-        attributes: expect.any(Array) as unknown as string[],
-        where: {
-          starting_date: {
-            [Op.lte]: new Date(endDate),
+      expect(jest.spyOn(applicationModelMock, 'findAll')).toHaveBeenCalledWith({
+        include: [
+          {
+            model: WorkerProfile,
+            where: { user_id: userId },
+            required: true,
           },
-          ending_date: {
-            [Op.gte]: new Date(startDate),
+          {
+            model: Publication,
+            required: true,
+            where: {
+              starting_date: {
+                [Op.lte]: new Date(endDate),
+              },
+              ending_date: {
+                [Op.gte]: new Date(startDate),
+              },
+            },
+            include: [
+              {
+                model: Company,
+                required: false,
+              },
+              {
+                model: User,
+                required: false,
+                include: [
+                  {
+                    model: Review,
+                    required: false,
+                  },
+                ],
+              },
+            ],
           },
-          id: {
-            [Op.in]: expect.anything() as unknown as number[],
-          },
-        },
-        order: [['starting_date', 'ASC']],
+        ],
+        order: [['publication', 'starting_date', 'ASC']],
       });
     });
 
@@ -128,6 +184,71 @@ describe('PlanningService', () => {
       await expect(service.getPlanning(userId, '2026-03-01', 'not-a-date')).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('should map returned applications properly', async () => {
+      const mockApplicationData = [
+        {
+          status: 'PENDING',
+          publication: {
+            id: 10,
+            title: 'Test Pub',
+            hourly_rate: 20,
+            starting_date: new Date('2026-05-10'),
+            ending_date: new Date('2026-05-12'),
+            company: { name: 'Test Company' },
+            creator: {
+              profile_picture_url: 'http://example.com/pic.jpg',
+              reviews: [{ rating: 4 }, { rating: 5 }],
+            },
+          },
+        },
+        {
+          status: 'ACCEPTED',
+          publication: {
+            id: 20,
+            title: 'Test Pub 2',
+            hourly_rate: 30,
+            starting_date: new Date('2026-05-15'),
+            ending_date: new Date('2026-05-16'),
+            company: null,
+            creator: null,
+          },
+        },
+      ];
+
+      jest
+        .spyOn(applicationModelMock, 'findAll')
+        .mockResolvedValueOnce(mockApplicationData as any);
+
+      const result = await service.getPlanning(userId, '2026-05-01', '2026-05-31');
+
+      expect(result).toEqual([
+        {
+          publicationId: 10,
+          title: 'Test Pub',
+          salary: 20,
+          startingDate: new Date('2026-05-10'),
+          endingDate: new Date('2026-05-12'),
+          companyName: 'Test Company',
+          companyRating: 4.5,
+          companyRatingCount: 2,
+          companyLogo: 'http://example.com/pic.jpg',
+          applicationStatus: 'PENDING',
+        },
+        {
+          publicationId: 20,
+          title: 'Test Pub 2',
+          salary: 30,
+          startingDate: new Date('2026-05-15'),
+          endingDate: new Date('2026-05-16'),
+          companyName: null,
+          companyRating: 0,
+          companyRatingCount: 0,
+          companyLogo: null,
+          applicationStatus: 'ACCEPTED',
+        },
+      ]);
     });
   });
 });

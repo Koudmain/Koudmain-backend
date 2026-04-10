@@ -3,6 +3,10 @@ import { PlanningModule } from './planning.module';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
 import { Publication } from '../publication/models/publication.model';
 import { User } from '../users/models/user.model';
+import { Company } from '../company/models/company.model';
+import { Application } from '../application/models/application.model';
+import { WorkerProfile } from '../worker-profile/models/worker-profile.model';
+import { Review } from '../review/models/review.model';
 import { PlanningController } from './controllers/planning.controller';
 import { PlanningService } from './services/planning.service';
 
@@ -18,6 +22,14 @@ describe('PlanningModule', () => {
       .overrideProvider(getModelToken(Publication))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .overrideProvider(getModelToken(User))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(Company))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(Application))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(WorkerProfile))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(Review))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .compile();
   });
