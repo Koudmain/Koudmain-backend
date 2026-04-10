@@ -10,7 +10,9 @@ import { WorkerProfile } from '../worker-profile/models/worker-profile.model';
 import { Review } from '../review/models/review.model';
 
 @Module({
-  imports: [SequelizeModule.forFeature([Publication, User, Company, Application, WorkerProfile, Review])],
+  imports: [
+    SequelizeModule.forFeature([Publication, User, Company, Application, WorkerProfile, Review]),
+  ],
   controllers: [PlanningController],
   providers: [PlanningService],
 })

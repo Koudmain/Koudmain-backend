@@ -52,8 +52,8 @@ export class PlanningService {
 
     if (user.is_worker_active) {
       return this.getWorkerPlanning(userId, filterStartDate, filterEndDate);
-    // } else if (user.is_employer_active) {
-    //   return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
+      // } else if (user.is_employer_active) {
+      //   return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
     } else {
       throw new BadRequestException('User must be either an active worker or employer');
     }

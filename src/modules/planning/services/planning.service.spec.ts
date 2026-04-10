@@ -219,7 +219,7 @@ describe('PlanningService', () => {
 
       jest
         .spyOn(applicationModelMock, 'findAll')
-        .mockResolvedValueOnce(mockApplicationData as any);
+        .mockResolvedValueOnce(mockApplicationData as unknown as Application[]);
 
       const result = await service.getPlanning(userId, '2026-05-01', '2026-05-31');
 
