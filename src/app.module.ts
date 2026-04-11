@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DriveModule } from './modules/drive/drive.module';
 import { PublicationModule } from './modules/publication/publication.module';
+import { PlanningModule } from './modules/planning/planning.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 
 @Module({
@@ -27,6 +28,7 @@ import { CompaniesModule } from './modules/companies/companies.module';
     CompaniesModule,
     DriveModule,
     PublicationModule,
+    PlanningModule,
   ],
   controllers: [AppController],
   providers: [AppService],
