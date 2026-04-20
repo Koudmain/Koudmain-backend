@@ -13,5 +13,5 @@ export class Company extends Model {
   declare is_premium: boolean;
 
   @HasMany(() => CompanyMember)
-  members: CompanyMember[];
+  declare members: CompanyMember[];
 }

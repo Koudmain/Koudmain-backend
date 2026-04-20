@@ -41,6 +41,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   signIn(@Body() body: SignInBody): Promise<AuthTokenResponse> {
+    console.log('Login attempt:', body); // Debug log
     return this.authService.signIn(body.email, body.password, body.targetApp);
   }
 
