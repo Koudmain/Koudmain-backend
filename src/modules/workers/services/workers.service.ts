@@ -19,7 +19,7 @@ export class WorkersService {
       where: { user_id: userId },
       attributes: ['id'],
     });
-    if (!worker) throw new NotFoundException("Profil Worker introuvable");
+    if (!worker) throw new NotFoundException('Profil Worker introuvable');
     return worker.id;
   }
 }

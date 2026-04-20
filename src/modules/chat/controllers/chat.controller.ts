@@ -39,7 +39,7 @@ export class ChatController {
   async getMessages(
     @Param('id') conversationId: number,
     @Query('limit') limit: number = 20,
-    @Query('offset') offset: number = 0
+    @Query('offset') offset: number = 0,
   ) {
     return this.chatService.getMessagesByConversation(conversationId, limit, offset);
   }

@@ -78,7 +78,6 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-
     if (targetApp === 'worker' && !user.is_worker_active) {
       throw new UnauthorizedException("Vous n'avez pas de profil worker actif");
     }

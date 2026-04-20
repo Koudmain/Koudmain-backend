@@ -16,7 +16,12 @@ export class ChatService {
     private readonly workersService: WorkersService,
   ) {}
 
-  async sendMessage(userId: number, conversationId: number, content: string, type: string = 'TEXT') {
+  async sendMessage(
+    userId: number,
+    conversationId: number,
+    content: string,
+    type: string = 'TEXT',
+  ) {
     const message = await this.messageModel.create({
       sender_id: userId,
       conversation_id: conversationId,
@@ -27,20 +32,19 @@ export class ChatService {
     const conv = await this.conversationModel.findByPk(conversationId, {
       include: [
         { model: WorkerProfile, as: 'worker' },
-        { model: Company, as: 'company', include: ['members'] }
+        { model: Company, as: 'company', include: ['members'] },
       ],
     });
 
-    if (!conv) throw new NotFoundException("Conversation introuvable");
+    if (!conv) throw new NotFoundException('Conversation introuvable');
 
     const targetUserIds = new Set<number>();
 
     if (userId === conv.worker.user_id) {
-      conv.company.members.forEach(member => {
+      conv.company.members.forEach((member) => {
         targetUserIds.add(member.user_id);
       });
-    }
-    else {
+    } else {
       targetUserIds.add(conv.worker.user_id);
     }
 

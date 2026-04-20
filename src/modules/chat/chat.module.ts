@@ -9,11 +9,7 @@ import { WorkersModule } from '@/modules/workers/workers.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';
 
 @Module({
-  imports: [
-    SequelizeModule.forFeature([Message, Conversation]),
-    WorkersModule,
-    CompaniesModule
-  ],
+  imports: [SequelizeModule.forFeature([Message, Conversation]), WorkersModule, CompaniesModule],
   controllers: [ChatController],
   providers: [ChatService, RedisPubService],
   exports: [ChatService],

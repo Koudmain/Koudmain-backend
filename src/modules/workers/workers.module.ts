@@ -8,5 +8,4 @@ import { WorkersService } from './services/workers.service';
   providers: [WorkersService],
   exports: [WorkersService],
 })
-
 export class WorkersModule {}
