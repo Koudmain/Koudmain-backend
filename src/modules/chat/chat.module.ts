@@ -6,7 +6,7 @@ import { RedisPubService } from './services/redis-pub.service';
 import { Message } from './models/message.model';
 import { Conversation } from './models/conversation.model';
 import { WorkersModule } from '@/modules/workers/workers.module';
-import { CompaniesModule } from '../companies/companies.module';
+import { CompaniesModule } from '@/modules/companies/companies.module';
 
 @Module({
   imports: [
