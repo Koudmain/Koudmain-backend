@@ -9,7 +9,7 @@ repos:
         pass_filenames: false
 
       - id: lint-check
-        name: 🕵️  Check code quality (ESLint)
+        name: 🕵️ Check code quality (ESLint)
         entry: npm run lint:check
         language: system
         files: \.(js|ts|jsx|tsx)$
