@@ -81,7 +81,7 @@ export class ChatService {
   async getMessagesByConversation(conversationId: number, limit: number, offset: number) {
     return this.messageModel.findAll({
       where: { conversation_id: conversationId },
-      order: [['created_at', 'ASC']],
+      order: [['created_at', 'DESC']],
       limit: limit,
       offset: offset,
     });
