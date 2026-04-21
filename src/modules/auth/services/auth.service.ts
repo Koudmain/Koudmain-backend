@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from '../../users/services/users.service';
-import { WorkersService } from '../../workers/services/workers.service';
-import { CompaniesService } from '../../companies/services/companies.service';
+import { UsersService } from '@/modules/users/services/users.service';
+import { WorkersService } from '@/modules/workers/services/workers.service';
+import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { RefreshSessionService } from './refresh-session.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';

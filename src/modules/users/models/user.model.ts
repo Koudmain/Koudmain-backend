@@ -1,5 +1,5 @@
 import { Column, Model, Table, DataType, HasMany } from 'sequelize-typescript';
-import { Review } from '../../review/models/review.model';
+import { Review } from '@/modules/review/models/review.model';
 
 @Table({ tableName: 'user', timestamps: false })
 export class User extends Model {
