@@ -1,23 +1,35 @@
-import { Column, Model, Table, DataType } from 'sequelize-typescript';
+import { Column, Model, Table, DataType, BelongsTo, HasMany } from 'sequelize-typescript';
+import { Company } from '@/modules/companies/models/company.model';
+import { User } from '../../users/models/user.model';
+import { Application } from '../../application/models/application.model';
 
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true })
+  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   declare id: number;
 
-  @Column({ type: DataType.INTEGER, unique: true })
+  @Column({ type: DataType.INTEGER })
   declare company_id: number;
 
-  @Column({ type: DataType.INTEGER, unique: true })
+  @BelongsTo(() => Company, 'company_id')
+  declare company: Company;
+
+  @Column({ type: DataType.INTEGER })
   declare created_by_user_id: number;
 
-  @Column({ type: DataType.INTEGER, unique: true })
+  @BelongsTo(() => User, 'created_by_user_id')
+  declare creator: User;
+
+  @HasMany(() => Application, 'publication_id')
+  declare applications: Application[];
+
+  @Column({ type: DataType.INTEGER })
   declare address_id: number;
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.STRING })
   declare title: string;
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.TEXT })
   declare description: string;
 
   @Column({ type: DataType.DECIMAL(10, 2) })
@@ -29,26 +41,35 @@ export class Publication extends Model {
   @Column({ type: DataType.DATE })
   declare ending_date: Date;
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.STRING })
   declare status: string;
+
+  @Column({ type: DataType.BIGINT, defaultValue: 0 })
+  declare views: number;
+
+  @Column({ type: DataType.BIGINT, defaultValue: 0 })
+  declare clicks: number;
 
   @Column({ field: 'created_at', type: DataType.DATE })
   declare createdAt: Date;
+
+  @Column({ field: 'updated_at', type: DataType.DATE })
+  declare updatedAt: Date;
 }
 
 export class PostPublicationDto {
-  company_id: number;
-  created_by_user_id: number;
-  address_id: number;
-  title: string;
-  description: string;
-  hourly_rate: number;
-  starting_date: Date;
-  ending_date: Date;
+  declare company_id: number;
+  declare created_by_user_id: number;
+  declare address_id: number;
+  declare title: string;
+  declare description: string;
+  declare hourly_rate: number;
+  declare starting_date: Date;
+  declare ending_date: Date;
 }
 
 export class PostPublicationResponseDto {
-  message: string;
-  id: number;
-  createdAt: Date;
+  declare message: string;
+  declare id: number;
+  declare createdAt: Date;
 }

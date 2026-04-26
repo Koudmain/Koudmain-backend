@@ -42,8 +42,6 @@ CREATE TABLE "worker_profile" (
   "id" serial PRIMARY KEY,
   "user_id" integer,
   "address_id" integer,
-  "first_name" varchar,
-  "last_name" varchar,
   "max_distance_km" integer DEFAULT 20,
   "skills_description" text,
   "identity_verified" boolean DEFAULT false,
@@ -107,9 +105,12 @@ CREATE TABLE "publication" (
   "starting_date" timestamp,
   "ending_date" timestamp,
   "status" varchar(50),
+	"views" bigint NOT NULL DEFAULT '0',
+	"clicks" bigint NOT NULL DEFAULT '0',
   "auto_accept" boolean DEFAULT false,
   "highlighted" boolean DEFAULT false,
-  "created_at" timestamp DEFAULT (now())
+  "created_at" timestamp DEFAULT (now()),
+  "updated_at" timestamp DEFAULT (now())
 );
 
 CREATE TABLE "publication_skill" (

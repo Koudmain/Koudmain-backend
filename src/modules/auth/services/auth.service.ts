@@ -1,5 +1,7 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../../users/services/users.service';
+import { WorkersService } from '../../workers/services/workers.service';
+import { CompaniesService } from '../../companies/services/companies.service';
 import { RefreshSessionService } from './refresh-session.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
@@ -10,6 +12,8 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private refreshSessionService: RefreshSessionService,
+    private workersService: WorkersService,
+    private companiesService: CompaniesService,
   ) {}
 
   private async generateTokens(
@@ -62,6 +66,7 @@ export class AuthService {
   async signIn(
     email: string,
     pass: string,
+    targetApp: 'worker' | 'employer',
   ): Promise<{ access_token: string; refresh_token: string }> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) {
@@ -73,7 +78,18 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    const payload = { sub: user.id, email: user.email };
+    if (targetApp === 'worker' && !user.is_worker_active) {
+      throw new UnauthorizedException("Vous n'avez pas de profil worker actif");
+    }
+    if (targetApp === 'employer' && !user.is_employer_active) {
+      throw new UnauthorizedException("Vous n'avez pas de profil employeur actif");
+    }
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      app_context: targetApp,
+    };
     return this.generateTokens(payload, user.id);
   }
 
@@ -120,12 +136,10 @@ export class AuthService {
     password: string,
     is_worker_active = false,
     is_employer_active = false,
+    company_name?: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
     const existingUser = await this.usersService.findOneByEmail(email);
-    if (existingUser) {
-      throw new ConflictException('Email already exists');
-    }
-
+    if (existingUser) throw new ConflictException('Email already exists');
     const hashedPassword = await hash(password, 10);
 
     const newUser = await this.usersService.create({
@@ -136,12 +150,20 @@ export class AuthService {
       is_worker_active,
       is_employer_active,
     });
+    if (is_worker_active) {
+      await this.workersService.create({
+        user_id: newUser.id,
+      });
+    }
 
-    const payload = {
-      sub: newUser.id,
-      first_name: newUser.first_name,
-      last_name: newUser.last_name,
-    };
+    if (is_employer_active) {
+      await this.companiesService.createCompanyWithOwner(
+        company_name || `Entreprise de ${newUser.last_name}`,
+        newUser.id,
+      );
+    }
+
+    const payload = { sub: newUser.id, email: newUser.email };
     return this.generateTokens(payload, newUser.id);
   }
 }

@@ -7,6 +7,8 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DriveModule } from './modules/drive/drive.module';
 import { PublicationModule } from './modules/publication/publication.module';
+import { PlanningModule } from './modules/planning/planning.module';
+import { CompaniesModule } from './modules/companies/companies.module';
 import { SkillModule } from './modules/skill/skill.module';
 
 @Module({
@@ -24,8 +26,10 @@ import { SkillModule } from './modules/skill/skill.module';
     }),
     UsersModule,
     AuthModule,
+    CompaniesModule,
     DriveModule,
     PublicationModule,
+    PlanningModule,
     SkillModule,
   ],
   controllers: [AppController],
