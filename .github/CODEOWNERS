@@ -5,3 +5,4 @@
 **/docker-compose.* @Koudmain/Koudmain-team-devops
 **/Makefile @Koudmain/Koudmain-team-devops
 .github/ @Koudmain/Koudmain-team-devops
+.pre-commit-config.yaml @Koudmain/Koudmain-team-devops
