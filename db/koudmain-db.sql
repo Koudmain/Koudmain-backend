@@ -85,7 +85,8 @@ CREATE TABLE "company_member" (
 
 CREATE TABLE "skill" (
   "id" serial PRIMARY KEY,
-  "name" varchar(255) UNIQUE
+  "name" varchar(255) UNIQUE,
+  "category_id" integer,
 );
 
 CREATE TABLE "worker_skill" (
@@ -222,6 +223,11 @@ CREATE TABLE "invoice" (
   "created_at" timestamp
 );
 
+CREATE TABLE "skill_category" (
+  "id" serial PRIMARY KEY,
+  "name" varchar(255) UNIQUE
+);
+
 CREATE UNIQUE INDEX ON "company_member" ("company_id", "user_id");
 
 CREATE UNIQUE INDEX ON "message_status" ("message_id", "user_id");
@@ -296,6 +302,8 @@ COMMENT ON COLUMN "invoice"."fee_amount" IS 'Ta commission';
 
 COMMENT ON COLUMN "invoice"."status" IS 'UNPAID, PAID, CANCELLED';
 
+COMMENT ON TABLE "skill_category" IS 'Catégories pour organiser les compétences';
+
 ALTER TABLE "worker_profile" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "worker_profile" ADD FOREIGN KEY ("address_id") REFERENCES "address" ("id") DEFERRABLE INITIALLY IMMEDIATE;
@@ -365,4 +373,5 @@ ALTER TABLE "company_document" ADD FOREIGN KEY ("document_id") REFERENCES "docum
 ALTER TABLE "contract" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "invoice" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
- 
+
+ALTER TABLE "skill" ADD FOREIGN KEY ("category_id") REFERENCES "skill_category" ("id") DEFERRABLE INITIALLY IMMEDIATE;
