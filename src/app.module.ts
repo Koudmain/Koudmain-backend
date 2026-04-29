@@ -9,6 +9,7 @@ import { DriveModule } from './modules/drive/drive.module';
 import { PublicationModule } from './modules/publication/publication.module';
 import { PlanningModule } from './modules/planning/planning.module';
 import { CompaniesModule } from './modules/companies/companies.module';
+import { SkillModule } from './modules/skill/skill.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { CompaniesModule } from './modules/companies/companies.module';
     DriveModule,
     PublicationModule,
     PlanningModule,
+    SkillModule,
   ],
   controllers: [AppController],
   providers: [AppService],
