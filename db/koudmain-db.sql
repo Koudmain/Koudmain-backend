@@ -86,7 +86,7 @@ CREATE TABLE "company_member" (
 CREATE TABLE "skill" (
   "id" serial PRIMARY KEY,
   "name" varchar(255) UNIQUE,
-  "category_id" integer,
+  "category_id" integer
 );
 
 CREATE TABLE "worker_skill" (
