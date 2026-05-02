@@ -3,5 +3,4 @@
 INSERT INTO "skill_category" ("name") VALUES
   ('Restaurant FOH'),
   ('Restaurant BOH'),
-  ('Coffee'),
-ON CONFLICT ("name") DO NOTHING;
+  ('Coffee');
