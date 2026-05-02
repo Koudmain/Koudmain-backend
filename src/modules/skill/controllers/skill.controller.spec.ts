@@ -7,6 +7,7 @@ const mockSkillService = {
   create: jest.fn(),
   getAll: jest.fn(),
   getById: jest.fn(),
+  getByCategoryId: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
 };
@@ -90,6 +91,22 @@ describe('SkillController', () => {
       // Assert
       expect(mockSkillService.getById).toHaveBeenCalledTimes(1);
       expect(mockSkillService.getById).toHaveBeenCalledWith(1);
+      expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('getByCategoryId', () => {
+    it('should call SkillService.getByCategoryId with correct categoryId and return the result', async () => {
+      // Arrange
+      const expectedResult = [{ id: 1, name: 'Test Skill', category_id: 2 }];
+      mockSkillService.getByCategoryId.mockResolvedValue(expectedResult);
+
+      // Act
+      const result = await controller.getByCategoryId(2);
+
+      // Assert
+      expect(mockSkillService.getByCategoryId).toHaveBeenCalledTimes(1);
+      expect(mockSkillService.getByCategoryId).toHaveBeenCalledWith(2);
       expect(result).toEqual(expectedResult);
     });
   });

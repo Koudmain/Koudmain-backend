@@ -56,7 +56,7 @@ describe('SkillService', () => {
 
   it('should get all Skills', async () => {
     // Arrange
-    const expectedResult = [{ id: 1, name: 'Test Skill' }];
+    const expectedResult = [{ id: 1, name: 'Test Skill', category_id: 1 }];
     mockSkillModel.findAll.mockResolvedValue(expectedResult);
 
     // Act
@@ -69,7 +69,7 @@ describe('SkillService', () => {
 
   it('should get a Skill by its ID', async () => {
     // Arrange
-    const expectedResult = { id: 1, name: 'Test Skill' };
+    const expectedResult = { id: 1, name: 'Test Skill', category_id: 1 };
     mockSkillModel.findByPk.mockResolvedValue(expectedResult);
 
     // Act
@@ -77,6 +77,22 @@ describe('SkillService', () => {
 
     // Assert
     expect(mockSkillModel.findByPk).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(expectedResult);
+  });
+
+  it('should get Skills by category ID', async () => {
+    // Arrange
+    const expectedResult = [{ id: 1, name: 'Test Skill', category_id: 2 }];
+    mockSkillModel.findAll.mockResolvedValue(expectedResult);
+
+    // Act
+    const result = await service.getByCategoryId(2);
+
+    // Assert
+    expect(mockSkillModel.findAll).toHaveBeenCalledWith({
+      where: { category_id: 2 },
+      include: [expect.anything()],
+    });
     expect(result).toEqual(expectedResult);
   });
 });

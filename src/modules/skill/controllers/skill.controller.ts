@@ -6,9 +6,6 @@ import {
   Post,
   Get,
   Param,
-  Put,
-  Delete,
-  BadRequestException,
 } from '@nestjs/common';
 import { SkillService } from '../services/skill.service';
 import { PostSkillResponseDto, Skill } from '../models/skill.model';
@@ -40,5 +37,11 @@ export class SkillController {
   @Get('get/:id')
   async getById(@Param('id') id: number) {
     return this.skillService.getById(id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('category/:categoryId')
+  async getByCategoryId(@Param('categoryId') categoryId: number) {
+    return this.skillService.getByCategoryId(categoryId);
   }
 }
