@@ -1,7 +1,7 @@
 import { Column, Model, Table, DataType, BelongsTo, HasMany } from 'sequelize-typescript';
 import { Company } from '@/modules/companies/models/company.model';
-import { User } from '../../users/models/user.model';
-import { Application } from '../../application/models/application.model';
+import { User } from '@/modules/users/models/user.model';
+import { Application } from '@/modules/application/models/application.model';
 
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
