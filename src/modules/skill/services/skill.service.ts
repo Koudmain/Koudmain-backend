@@ -19,12 +19,14 @@ export class SkillService {
 
   async getAll() {
     return this.skillModel.findAll({
+      attributes: { exclude: ['category_id'] },
       include: [SkillCategory],
     });
   }
 
   async getById(id: number) {
     return this.skillModel.findByPk(id, {
+      attributes: { exclude: ['category_id'] },
       include: [SkillCategory],
     });
   }
@@ -32,6 +34,7 @@ export class SkillService {
   async getByCategoryId(categoryId: number) {
     return this.skillModel.findAll({
       where: { category_id: categoryId },
+      attributes: { exclude: ['category_id'] },
       include: [SkillCategory],
     });
   }
