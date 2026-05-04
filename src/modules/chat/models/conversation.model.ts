@@ -1,7 +1,9 @@
-import { Column, Model, Table, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
+import { Column, Model, Table, ForeignKey, BelongsTo, DataType, HasMany } from 'sequelize-typescript';
 import { Publication } from '@/modules/publication/models/publication.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
+import { ConversationSetting } from './conversation-setting.model';
+import { Message } from './message.model';
 
 @Table({ tableName: 'conversation', timestamps: false })
 export class Conversation extends Model {
@@ -31,4 +33,14 @@ export class Conversation extends Model {
 
   @BelongsTo(() => Company)
   declare company: Company;
+
+  @HasMany(() => ConversationSetting)
+  declare settings: ConversationSetting[];
+
+  @HasMany(() => Message, {
+    foreignKey: 'conversation_id',
+    as: 'last_message',
+    sourceKey: 'id',
+  })
+  declare last_message: Message;
 }

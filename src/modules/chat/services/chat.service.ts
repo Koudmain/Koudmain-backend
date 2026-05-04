@@ -6,12 +6,18 @@ import { RedisPubService } from './redis-pub.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
+import { User } from '@/modules/users/models/user.model';
+import { ConversationSetting } from '../models/conversation-setting.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
 
 @Injectable()
 export class ChatService {
   constructor(
     @InjectModel(Message) private messageModel: typeof Message,
     @InjectModel(Conversation) private conversationModel: typeof Conversation,
+    @InjectModel(ConversationSetting) private conversationSettingModel: typeof ConversationSetting,
+    @InjectModel(WorkerProfile) private workerModel: typeof WorkerProfile,
+    @InjectModel(CompanyMember) private companyMemberModel: typeof CompanyMember,
     private redisPubService: RedisPubService,
     private readonly workersService: WorkersService,
   ) {}
@@ -70,11 +76,50 @@ export class ChatService {
     });
   }
 
-  async getConversationsForCompany(companyId: number) {
+  async getConversationsForCompany(companyId: number, userId: number) {
     return this.conversationModel.findAll({
       where: { company_id: companyId },
-      include: ['worker', 'publication'],
+      include: [
+        {
+          model: WorkerProfile,
+          as: 'worker',
+          include: [{ model: User, as: 'user', attributes: { exclude: ['password'] } }],
+        },
+        {
+          model: ConversationSetting,
+          as: 'settings',
+          where: { user_id: userId },
+          required: false,
+        },
+        'publication',
+        {
+          model: Message,
+          as: 'last_message',
+          limit: 1,
+          order: [['created_at', 'DESC']],
+        },
+      ],
       order: [['updated_at', 'DESC']],
+    });
+  }
+
+  async getConversationDetailsForCompany(userId: number, conversationId: number) {
+    return this.conversationModel.findOne({
+      where: { id: conversationId },
+      include: [
+        {
+          model: WorkerProfile,
+          as: 'worker',
+          include: [{ model: User, as: 'user', attributes: { exclude: ['password'] } }],
+        },
+        {
+          model: ConversationSetting,
+          as: 'settings',
+          where: { user_id: userId },
+          required: false,
+        },
+        'publication'
+      ],
     });
   }
 
@@ -106,6 +151,33 @@ export class ChatService {
         updated_at: new Date(),
       },
     });
+
+    if (created) {
+    console.log('Conversation créée avec ID:', conversation.id);
+    const workerProfile = await this.workerModel.findByPk(workerId);
+
+    const members = await this.companyMemberModel.findAll({
+      where: { company_id: companyId }
+    });
+
+    const settingsToCreate = [];
+
+    if (workerProfile) {
+      settingsToCreate.push({
+        user_id: workerProfile.user_id,
+        conversation_id: conversation.id
+      });
+    }
+
+    members.forEach(member => {
+      settingsToCreate.push({
+        user_id: member.user_id,
+        conversation_id: conversation.id
+      });
+    });
+
+    await this.conversationSettingModel.bulkCreate(settingsToCreate);
+  }
     return conversation;
   }
 }

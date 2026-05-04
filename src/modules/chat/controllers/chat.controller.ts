@@ -31,8 +31,19 @@ export class ChatController {
   }
 
   @Get('company/:companyId/conversations')
-  async getCompanyConvs(@Param('companyId', ParseIntPipe) companyId: number) {
-    return this.chatService.getConversationsForCompany(companyId);
+  async getCompanyConvs(
+    @Param('companyId', ParseIntPipe) companyId: number,
+    @Request() req: RequestWithUser
+  ) {
+    return this.chatService.getConversationsForCompany(companyId, req.user.sub);
+  }
+
+  @Get('company/conversations/:conversationId')
+  async getCompanyConv(
+    @Param('conversationId', ParseIntPipe) conversationId: number,
+    @Request() req: RequestWithUser
+  ) {
+    return this.chatService.getConversationDetailsForCompany(req.user.sub, conversationId);
   }
 
   @Get('conversations/:id/messages')
