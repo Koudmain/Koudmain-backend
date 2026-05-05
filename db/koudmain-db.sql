@@ -100,7 +100,7 @@ CREATE TABLE "worker_skill" (
 CREATE TABLE "publication" (
   "id" serial PRIMARY KEY,
   "company_id" integer,
-  "created_by_user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+  "created_by_user_id" uuid,
   "address_id" integer,
   "title" varchar(255),
   "description" text,
