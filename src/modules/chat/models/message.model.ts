@@ -27,3 +27,12 @@ export class Message extends Model {
   @BelongsTo(() => User)
   declare sender: User;
 }
+
+export interface MessageAttributes {
+  id: number;
+  conversation_id: number;
+  sender_id: number;
+  content_text: string;
+  file_url: string;
+  message_type: string;
+}

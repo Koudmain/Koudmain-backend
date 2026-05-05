@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Message } from '@/modules/chat/models/message.model';
+import { Message, MessageAttributes } from '@/modules/chat/models/message.model';
 import { Conversation } from '@/modules/chat/models/conversation.model';
 import { RedisPubService } from './redis-pub.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
@@ -54,7 +54,7 @@ export class ChatService {
       targetUserIds.add(conv.worker.user_id);
     }
 
-    const messageData = message.toJSON();
+    const messageData = message.toJSON<MessageAttributes>();
 
     for (const receiverId of targetUserIds) {
       await this.redisPubService.publishMessage({
@@ -118,7 +118,7 @@ export class ChatService {
           where: { user_id: userId },
           required: false,
         },
-        'publication'
+        'publication',
       ],
     });
   }
@@ -157,7 +157,7 @@ export class ChatService {
       const workerProfile = await this.workerModel.findByPk(workerId);
 
       const members = await this.companyMemberModel.findAll({
-        where: { company_id: companyId }
+        where: { company_id: companyId },
       });
 
       const settingsToCreate = [];
@@ -165,14 +165,14 @@ export class ChatService {
       if (workerProfile) {
         settingsToCreate.push({
           user_id: workerProfile.user_id,
-          conversation_id: conversation.id
+          conversation_id: conversation.id,
         });
       }
 
-      members.forEach(member => {
+      members.forEach((member) => {
         settingsToCreate.push({
           user_id: member.user_id,
-          conversation_id: conversation.id
+          conversation_id: conversation.id,
         });
       });
 
