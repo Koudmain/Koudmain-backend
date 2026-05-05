@@ -10,6 +10,8 @@ import { CompaniesModule } from '@/modules/companies/companies.module';
 import { ConversationSetting } from './models/conversation-setting.model';
 import { WorkerProfile } from '../workers/models/worker-profile.model';
 import { CompanyMember } from '../companies/models/company-member.model';
+import { Company } from '../companies/models/company.model';
+import { Publication } from '../publication/models/publication.model';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { CompanyMember } from '../companies/models/company-member.model';
       ConversationSetting,
       WorkerProfile,
       CompanyMember,
+      Company,
+      Publication,
     ]),
     WorkersModule,
     CompaniesModule,

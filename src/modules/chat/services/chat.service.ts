@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Message, MessageAttributes } from '@/modules/chat/models/message.model';
 import { Conversation } from '@/modules/chat/models/conversation.model';
@@ -9,6 +9,7 @@ import { Company } from '@/modules/companies/models/company.model';
 import { User } from '@/modules/users/models/user.model';
 import { ConversationSetting } from '../models/conversation-setting.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { Publication } from '@/modules/publication/models/publication.model';
 
 @Injectable()
 export class ChatService {
@@ -18,24 +19,29 @@ export class ChatService {
     @InjectModel(ConversationSetting) private conversationSettingModel: typeof ConversationSetting,
     @InjectModel(WorkerProfile) private workerModel: typeof WorkerProfile,
     @InjectModel(CompanyMember) private companyMemberModel: typeof CompanyMember,
+    @InjectModel(Company) private companyModel: typeof Company,
+    @InjectModel(Publication) private publicationModel: typeof Publication,
     private redisPubService: RedisPubService,
     private readonly workersService: WorkersService,
   ) {}
 
   async sendMessage(
     userId: number,
-    conversationId: number,
+    conversation_id: number,
     content: string,
     type: string = 'TEXT',
   ) {
+    if (!content || content.trim() === '') {
+      throw new BadRequestException('Le contenu du message ne peut pas être vide.');
+    }
     const message = await this.messageModel.create({
       sender_id: userId,
-      conversation_id: conversationId,
+      conversation_id: conversation_id,
       content_text: content,
       message_type: type,
     });
 
-    const conv = await this.conversationModel.findByPk(conversationId, {
+    const conv = await this.conversationModel.findByPk(conversation_id, {
       include: [
         { model: WorkerProfile, as: 'worker' },
         { model: Company, as: 'company', include: ['members'] },
@@ -68,17 +74,20 @@ export class ChatService {
   }
 
   async getConversationsForWorker(userId: number) {
-    const workerId = await this.workersService.getWorkerIdByUserId(userId);
+    const worker_id = await this.workersService.getWorkerIdByUserId(userId);
     return this.conversationModel.findAll({
-      where: { worker_id: workerId },
+      where: { worker_id: worker_id },
       include: ['company', 'publication'],
       order: [['updated_at', 'DESC']],
     });
   }
 
-  async getConversationsForCompany(companyId: number, userId: number) {
+  async getConversationsForCompany(company_id: number, userId: number) {
+    const company = await this.companyModel.findByPk(company_id);
+
+    if (!company) throw new NotFoundException(`L'entreprise ${company_id} n'existe pas.`);
     return this.conversationModel.findAll({
-      where: { company_id: companyId },
+      where: { company_id: company_id },
       include: [
         {
           model: WorkerProfile,
@@ -103,9 +112,9 @@ export class ChatService {
     });
   }
 
-  async getConversationDetailsForCompany(userId: number, conversationId: number) {
+  async getConversationDetailsForCompany(userId: number, conversation_id: number) {
     return this.conversationModel.findOne({
-      where: { id: conversationId },
+      where: { id: conversation_id },
       include: [
         {
           model: WorkerProfile,
@@ -123,28 +132,38 @@ export class ChatService {
     });
   }
 
-  async getMessagesByConversation(conversationId: number, limit: number, offset: number) {
+  async getMessagesByConversation(conversation_id: number, limit: number, offset: number) {
     return this.messageModel.findAll({
-      where: { conversation_id: conversationId },
+      where: { conversation_id: conversation_id },
       order: [['created_at', 'DESC']],
       limit: limit,
       offset: offset,
     });
   }
 
-  async getConversationMessages(conversationId: number) {
+  async getConversationMessages(conversation_id: number) {
     return this.messageModel.findAll({
-      where: { conversation_id: conversationId },
+      where: { conversation_id: conversation_id },
       order: [['created_at', 'ASC']],
     });
   }
 
-  async findOrCreateConversation(publicationId: number, workerId: number, companyId: number) {
+  async findOrCreateConversation(publication_id: number, worker_id: number, company_id: number) {
+    const [publication, workerProfile, company] = await Promise.all([
+      this.publicationModel.findByPk(publication_id),
+      this.workerModel.findByPk(worker_id),
+      this.companyModel.findByPk(company_id),
+    ]);
+
+    if (!publication) throw new NotFoundException(`La publication ${publication_id} n'existe pas.`);
+    if (!workerProfile)
+      throw new NotFoundException(`Le profil travailleur ${worker_id} n'existe pas.`);
+    if (!company) throw new NotFoundException(`L'entreprise ${company_id} n'existe pas.`);
     const [conversation, created] = await this.conversationModel.findOrCreate({
       where: {
-        publication_id: publicationId,
-        worker_id: workerId,
-        company_id: companyId,
+        publication_id: publication_id,
+        worker_id: worker_id,
+        company_id: company_id,
       },
       defaults: {
         status: 'active',
@@ -154,11 +173,16 @@ export class ChatService {
 
     if (created) {
       console.log('Conversation créée avec ID:', conversation.id);
-      const workerProfile = await this.workerModel.findByPk(workerId);
+      const workerProfile = await this.workerModel.findByPk(worker_id);
 
       const members = await this.companyMemberModel.findAll({
-        where: { company_id: companyId },
+        where: { company_id: company_id },
       });
+      if (members.length === 0) {
+        throw new BadRequestException(
+          'Impossible de créer une conversation pour une entreprise sans membres.',
+        );
+      }
 
       const settingsToCreate = [];
 
