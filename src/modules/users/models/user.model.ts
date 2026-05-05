@@ -3,8 +3,12 @@ import { Review } from '../../review/models/review.model';
 
 @Table({ tableName: 'user', timestamps: false })
 export class User extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true })
-  declare id: number;
+  @Column({
+    type: DataType.UUID,
+    defaultValue: DataType.UUIDV4,
+    primaryKey: true,
+  })
+  declare id: string;
 
   @Column({ type: DataType.STRING, unique: false })
   declare first_name: string;

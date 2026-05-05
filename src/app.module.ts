@@ -22,7 +22,7 @@ import { SkillModule } from './modules/skill/skill.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadModels: true,
-      synchronize: false,
+      synchronize: true,
     }),
     UsersModule,
     AuthModule,

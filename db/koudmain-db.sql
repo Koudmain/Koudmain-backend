@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 CREATE TABLE "address" (
   "id" serial PRIMARY KEY,
   "street_number" varchar(10),
@@ -11,20 +13,21 @@ CREATE TABLE "address" (
 );
 
 CREATE TABLE "user" (
-  "id" serial PRIMARY KEY,
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "first_name" varchar(255),
   "last_name" varchar(255),
   "profile_picture_url" varchar(255),
-  "email" varchar UNIQUE,
-  "password" varchar,
+  "email" varchar UNIQUE NOT NULL,
+  "password" varchar NOT NULL,
   "is_worker_active" boolean DEFAULT false,
   "is_employer_active" boolean DEFAULT false,
-  "created_at" timestamp DEFAULT (now())
+  "created_at" timestamp DEFAULT (now()),
+  "updated_at" timestamp DEFAULT (now())
 );
 
 CREATE TABLE "refresh_session" (
   "id" serial PRIMARY KEY,
-  "user_id" integer NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+  "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
   "token_hash" text NOT NULL,
   "expires_at" timestamp NOT NULL,
   "revoked_at" timestamp,
@@ -40,7 +43,7 @@ CREATE INDEX ON "refresh_session" ("expires_at");
 
 CREATE TABLE "worker_profile" (
   "id" serial PRIMARY KEY,
-  "user_id" integer,
+  "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
   "address_id" integer,
   "max_distance_km" integer DEFAULT 20,
   "skills_description" text,
@@ -79,7 +82,7 @@ CREATE TABLE "company" (
 CREATE TABLE "company_member" (
   "id" serial PRIMARY KEY,
   "company_id" integer,
-  "user_id" integer,
+  "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
   "role" varchar(50)
 );
 
@@ -89,7 +92,7 @@ CREATE TABLE "skill" (
 );
 
 CREATE TABLE "worker_skill" (
-  "worker_id" integer,
+  "worker_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
   "skill_id" integer,
   PRIMARY KEY ("worker_id", "skill_id")
 );
@@ -97,7 +100,7 @@ CREATE TABLE "worker_skill" (
 CREATE TABLE "publication" (
   "id" serial PRIMARY KEY,
   "company_id" integer,
-  "created_by_user_id" integer,
+  "created_by_user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
   "address_id" integer,
   "title" varchar(255),
   "description" text,
@@ -171,7 +174,7 @@ CREATE TABLE "message" (
 CREATE TABLE "message_status" (
   "id" serial PRIMARY KEY,
   "message_id" integer,
-  "user_id" integer,
+  "user_id" uuid NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
   "read_at" timestamp,
   "is_hidden" boolean DEFAULT false
 );

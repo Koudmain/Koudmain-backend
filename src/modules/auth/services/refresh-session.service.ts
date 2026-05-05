@@ -12,7 +12,7 @@ export class RefreshSessionService {
   }
 
   async createSession(
-    userId: number,
+    userId: string,
     refreshToken: string,
     expiresAt: Date,
   ): Promise<RefreshSession> {
@@ -27,7 +27,7 @@ export class RefreshSessionService {
     });
   }
 
-  async validateSession(userId: number, refreshToken: string): Promise<RefreshSession | null> {
+  async validateSession(userId: string, refreshToken: string): Promise<RefreshSession | null> {
     const session = await this.refreshSessionModel.findOne({
       where: { user_id: userId, revoked_at: null },
       order: [['created_at', 'DESC']],
@@ -54,14 +54,14 @@ export class RefreshSessionService {
     await this.refreshSessionModel.update({ revoked_at: new Date() }, { where: { id: sessionId } });
   }
 
-  async revokeActiveSessionByUserId(userId: number): Promise<void> {
+  async revokeActiveSessionByUserId(userId: string): Promise<void> {
     await this.refreshSessionModel.update(
       { revoked_at: new Date() },
       { where: { user_id: userId, revoked_at: null } },
     );
   }
 
-  async revokeAllSessions(userId: number): Promise<void> {
+  async revokeAllSessions(userId: string): Promise<void> {
     await this.refreshSessionModel.update(
       { revoked_at: new Date() },
       { where: { user_id: userId } },

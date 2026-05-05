@@ -14,8 +14,8 @@ export class Publication extends Model {
   @BelongsTo(() => Company, 'company_id')
   declare company: Company;
 
-  @Column({ type: DataType.INTEGER })
-  declare created_by_user_id: number;
+  @Column({ type: DataType.UUID })
+  declare created_by_user_id: string;
 
   @BelongsTo(() => User, 'created_by_user_id')
   declare creator: User;
@@ -59,7 +59,7 @@ export class Publication extends Model {
 
 export class PostPublicationDto {
   declare company_id: number;
-  declare created_by_user_id: number;
+  declare created_by_user_id: string;
   declare address_id: number;
   declare title: string;
   declare description: string;

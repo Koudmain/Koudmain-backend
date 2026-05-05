@@ -8,7 +8,7 @@ export class RefreshSession extends Model {
 
   @ForeignKey(() => User)
   @Column({ type: DataType.INTEGER, allowNull: false })
-  declare user_id: number;
+  declare user_id: string;
 
   @Column({ type: DataType.TEXT, allowNull: false })
   declare token_hash: string;

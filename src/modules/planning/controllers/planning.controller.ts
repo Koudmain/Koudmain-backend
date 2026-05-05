@@ -31,7 +31,7 @@ export class PlanningController {
       }
     }
 
-    const customReq = request as unknown as { user?: { sub?: number; app_context?: string } };
+    const customReq = request as unknown as { user?: { sub?: string; app_context?: string } };
     const userId = customReq?.user?.sub;
     const appContext = customReq?.user?.app_context;
 
@@ -39,6 +39,6 @@ export class PlanningController {
       throw new BadRequestException('Utilisateur non authentifié');
     }
 
-    return this.planningService.getPlanning(Number(userId), appContext, startDate, endDate);
+    return this.planningService.getPlanning(userId, appContext, startDate, endDate);
   }
 }

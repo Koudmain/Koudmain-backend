@@ -1,10 +1,10 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Request } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
 import { AuthService } from '../services/auth.service';
-import { Public } from '../../../decorators/public.decorator';
+import { Public } from '@/decorators/public.decorator';
 
 type JwtPayload = {
-  sub: number;
+  sub: string;
   [key: string]: unknown;
 };
 type AuthenticatedRequest = ExpressRequest & { user: JwtPayload };

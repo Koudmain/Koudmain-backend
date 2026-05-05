@@ -7,11 +7,11 @@ export class WorkerProfile extends Model {
   declare id: number;
 
   @ForeignKey(() => User)
-  @Column({ type: DataType.INTEGER })
-  declare user_id: number;
+  @Column({ type: DataType.STRING })
+  declare user_id: string;
 
   @BelongsTo(() => User)
-  user: User;
+  declare user: User;
 
   @Column({ type: DataType.INTEGER, defaultValue: 20 })
   declare max_distance_km: number;

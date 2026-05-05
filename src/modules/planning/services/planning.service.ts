@@ -19,7 +19,7 @@ export class PlanningService {
     private readonly applicationModel: typeof Application,
   ) {}
 
-  async getPlanning(userId: number, appContext?: string, startDate?: string, endDate?: string) {
+  async getPlanning(userId: string, appContext?: string, startDate?: string, endDate?: string) {
     let filterStartDate: Date;
     let filterEndDate: Date;
 
@@ -61,7 +61,7 @@ export class PlanningService {
     }
   }
 
-  private async getWorkerPlanning(userId: number, filterStartDate: Date, filterEndDate: Date) {
+  private async getWorkerPlanning(userId: string, filterStartDate: Date, filterEndDate: Date) {
     const applications = await this.applicationModel.findAll({
       include: [
         {

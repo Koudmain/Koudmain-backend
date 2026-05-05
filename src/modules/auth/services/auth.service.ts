@@ -18,7 +18,7 @@ export class AuthService {
 
   private async generateTokens(
     payload: Record<string, unknown>,
-    userId: number,
+    userId: string,
   ): Promise<{
     access_token: string;
     refresh_token: string;
@@ -97,7 +97,7 @@ export class AuthService {
     try {
       const refreshSecret = process.env.JWT_REFRESH_SECRET;
       const payload = await this.jwtService.verifyAsync<{
-        sub: number;
+        sub: string;
         email: string;
         token_type?: string;
       }>(token, { secret: refreshSecret });
@@ -119,12 +119,12 @@ export class AuthService {
     }
   }
 
-  async logout(userId: number): Promise<{ message: string }> {
+  async logout(userId: string): Promise<{ message: string }> {
     await this.refreshSessionService.revokeActiveSessionByUserId(userId);
     return { message: 'Session revoked successfully' };
   }
 
-  async logoutAll(userId: number): Promise<{ message: string }> {
+  async logoutAll(userId: string): Promise<{ message: string }> {
     await this.refreshSessionService.revokeAllSessions(userId);
     return { message: 'All sessions revoked successfully' };
   }

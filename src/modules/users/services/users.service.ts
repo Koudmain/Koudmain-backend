@@ -11,7 +11,7 @@ export class UsersService {
     return this.userModel.findAll();
   }
 
-  findOneById(id: number) {
+  findOneById(id: string) {
     return this.userModel.findByPk(id);
   }
 
@@ -19,7 +19,7 @@ export class UsersService {
     return this.userModel.findOne({ where: { email } });
   }
 
-  async findOneByIdPublic(id: number): Promise<User | null> {
+  async findOneByIdPublic(id: string): Promise<User | null> {
     return this.userModel.findByPk(id, {
       attributes: { exclude: ['password'] },
     });
@@ -39,21 +39,14 @@ export class UsersService {
   }
 
   async create(user: Partial<User>) {
-    const maxId = await this.userModel.max('id');
-    const nextId = user.id ?? (typeof maxId === 'number' ? maxId : 0) + 1;
-
-    return this.userModel.create({
-      ...user,
-      id: nextId,
-      updatedAt: user.updatedAt ?? new Date(),
-    });
+    return this.userModel.create(user);
   }
 
-  async updateProfilePicture(id: number, url: string) {
+  async updateProfilePicture(id: string, url: string) {
     return this.userModel.update({ profile_picture_url: url }, { where: { id } });
   }
 
-  async update(id: number, updateData: Partial<User>) {
+  async update(id: string, updateData: Partial<User>) {
     return this.userModel.update(updateData, {
       where: { id },
       returning: true,

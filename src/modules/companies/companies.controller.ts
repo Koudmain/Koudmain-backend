@@ -4,7 +4,7 @@ import { CompaniesService } from './services/companies.service';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
-    sub: number;
+    sub: string;
     email: string;
   };
 }

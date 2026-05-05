@@ -19,7 +19,7 @@ import { User } from './models/user.model';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
-    sub: number;
+    sub: string;
     email: string;
   };
 }

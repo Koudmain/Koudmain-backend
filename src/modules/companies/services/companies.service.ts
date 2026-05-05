@@ -11,7 +11,7 @@ export class CompaniesService {
     @InjectModel(CompanyMember) private memberModel: typeof CompanyMember,
   ) {}
 
-  async createCompanyWithOwner(name: string, userId: number): Promise<Company> {
+  async createCompanyWithOwner(name: string, userId: string): Promise<Company> {
     const companyData: CreationAttributes<Company> = { name };
     const company = await this.companyModel.create(companyData);
     const memberData: CreationAttributes<CompanyMember> = {
@@ -23,7 +23,7 @@ export class CompaniesService {
     return company;
   }
 
-  async getUserCompanies(userId: number) {
+  async getUserCompanies(userId: string) {
     const memberships = await this.memberModel.findAll({
       where: { user_id: userId },
       include: [
