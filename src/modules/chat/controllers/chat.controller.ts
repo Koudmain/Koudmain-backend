@@ -15,7 +15,6 @@ export class ChatController {
 
   @Post('conversations')
   async createConversation(
-    @Request() req: RequestWithUser,
     @Body() body: { publicationId: number; workerId: number; companyId: number },
   ) {
     return this.chatService.findOrCreateConversation(
@@ -33,7 +32,7 @@ export class ChatController {
   @Get('company/:companyId/conversations')
   async getCompanyConvs(
     @Param('companyId', ParseIntPipe) companyId: number,
-    @Request() req: RequestWithUser
+    @Request() req: RequestWithUser,
   ) {
     return this.chatService.getConversationsForCompany(companyId, req.user.sub);
   }
@@ -41,7 +40,7 @@ export class ChatController {
   @Get('company/conversations/:conversationId')
   async getCompanyConv(
     @Param('conversationId', ParseIntPipe) conversationId: number,
-    @Request() req: RequestWithUser
+    @Request() req: RequestWithUser,
   ) {
     return this.chatService.getConversationDetailsForCompany(req.user.sub, conversationId);
   }

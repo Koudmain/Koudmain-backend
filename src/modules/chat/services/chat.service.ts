@@ -153,31 +153,31 @@ export class ChatService {
     });
 
     if (created) {
-    console.log('Conversation créée avec ID:', conversation.id);
-    const workerProfile = await this.workerModel.findByPk(workerId);
+      console.log('Conversation créée avec ID:', conversation.id);
+      const workerProfile = await this.workerModel.findByPk(workerId);
 
-    const members = await this.companyMemberModel.findAll({
-      where: { company_id: companyId }
-    });
-
-    const settingsToCreate = [];
-
-    if (workerProfile) {
-      settingsToCreate.push({
-        user_id: workerProfile.user_id,
-        conversation_id: conversation.id
+      const members = await this.companyMemberModel.findAll({
+        where: { company_id: companyId }
       });
+
+      const settingsToCreate = [];
+
+      if (workerProfile) {
+        settingsToCreate.push({
+          user_id: workerProfile.user_id,
+          conversation_id: conversation.id
+        });
+      }
+
+      members.forEach(member => {
+        settingsToCreate.push({
+          user_id: member.user_id,
+          conversation_id: conversation.id
+        });
+      });
+
+      await this.conversationSettingModel.bulkCreate(settingsToCreate);
     }
-
-    members.forEach(member => {
-      settingsToCreate.push({
-        user_id: member.user_id,
-        conversation_id: conversation.id
-      });
-    });
-
-    await this.conversationSettingModel.bulkCreate(settingsToCreate);
-  }
     return conversation;
   }
 }
