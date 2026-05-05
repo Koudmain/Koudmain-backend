@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Request, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Request,
+  Get,
+  Param,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
 import { ChatService } from '@/modules/chat/services/chat.service';
 
