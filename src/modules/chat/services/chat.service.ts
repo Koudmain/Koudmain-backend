@@ -172,7 +172,6 @@ export class ChatService {
     });
 
     if (created) {
-      console.log('Conversation créée avec ID:', conversation.id);
       const workerProfile = await this.workerModel.findByPk(worker_id);
 
       const members = await this.companyMemberModel.findAll({
