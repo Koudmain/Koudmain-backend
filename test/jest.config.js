@@ -4,8 +4,14 @@ module.exports = {
     rootDir: '../',
     modulePaths: ['<rootDir>'],
     moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
         '^src$': '<rootDir>/src',
         '^src/(.+)$': '<rootDir>/src/$1',
+    },
+    globals: {
+        'ts-jest': {
+            tsconfig: '<rootDir>/tsconfig.json',
+        },
     },
     modulePathIgnorePatterns: ['src/typings'],
     testPathIgnorePatterns: [

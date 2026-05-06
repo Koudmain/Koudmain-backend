@@ -89,10 +89,11 @@ describe('SkillService', () => {
     const result = await service.getByCategoryId(2);
 
     // Assert
-    expect(mockSkillModel.findAll).toHaveBeenCalledWith({
-      where: { category_id: 2 },
-      include: [expect.anything()],
-    });
+    expect(mockSkillModel.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { category_id: 2 },
+      }),
+    );
     expect(result).toEqual(expectedResult);
   });
 });

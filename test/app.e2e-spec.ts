@@ -11,6 +11,7 @@ import { UsersModule } from '@/modules/users/users.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { DriveModule } from '@/modules/drive/drive.module';
 import { PlanningModule } from '@/modules/planning/planning.module';
+import { SkillCategory } from '@/modules/skill/models/skill-category.model';
 
 require('dotenv').config();
 
@@ -152,7 +153,9 @@ describe('AppController (e2e)', () => {
   });
 
   it('should create a skill without any foreign Key constraint field', async () => {
-    await sequelize.query(`INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`);
+    await sequelize.query(
+      `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
+    );
 
     const response = await request(app.getHttpServer())
       .post('/skill/create')
@@ -166,9 +169,7 @@ describe('AppController (e2e)', () => {
 
     expect(response.status).toBe(201);
 
-    const dbCheck = await sequelize.query(
-      `SELECT * FROM "skill" WHERE name = 'Skill TEST E2E';`,
-    );
+    const dbCheck = await sequelize.query(`SELECT * FROM "skill" WHERE name = 'Skill TEST E2E';`);
     expect(dbCheck[0].length).toBe(1);
     expect((dbCheck[0][0] as any).name).toBe('Skill TEST E2E');
     expect((dbCheck[0][0] as any).category_id).toBe(1);
@@ -203,7 +204,9 @@ describe('AppController (e2e)', () => {
 
     expect(skill.id).toBe(1);
     expect(skill.name).toBe('Skill TEST E2E');
-    expect(skill.category_id).toBe(1);
+    expect(skill.category).toStrictEqual(
+      SkillCategory.build({ id: 1, name: 'Test Category' }).get({ plain: true }),
+    );
   });
 
   it('should get skills by category ID', async () => {
@@ -215,6 +218,8 @@ describe('AppController (e2e)', () => {
     expect(response.status).toBe(200);
     expect(response.body).toBeInstanceOf(Array);
     expect(response.body.length).toBeGreaterThan(0);
-    expect(response.body[0].category_id).toBe(1);
+    expect(response.body[0].category).toStrictEqual(
+      SkillCategory.build({ id: 1, name: 'Test Category' }).get({ plain: true }),
+    );
   });
 });

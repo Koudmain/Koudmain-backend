@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Get,
-  Param,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Get, Param } from '@nestjs/common';
 import { SkillService } from '../services/skill.service';
 import { PostSkillResponseDto, Skill } from '../models/skill.model';
 
