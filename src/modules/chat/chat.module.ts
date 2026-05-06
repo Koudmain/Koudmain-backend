@@ -8,10 +8,10 @@ import { Conversation } from './models/conversation.model';
 import { WorkersModule } from '@/modules/workers/workers.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';
 import { ConversationSetting } from './models/conversation-setting.model';
-import { WorkerProfile } from '../workers/models/worker-profile.model';
-import { CompanyMember } from '../companies/models/company-member.model';
-import { Company } from '../companies/models/company.model';
-import { Publication } from '../publication/models/publication.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { Company } from '@/modules/companies/models/company.model';
+import { Publication } from '@/modules/publication/models/publication.model';
 
 @Module({
   imports: [
