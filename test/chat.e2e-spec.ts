@@ -53,7 +53,6 @@ describe('Chat System (e2e)', () => {
     await sequelize.query('TRUNCATE TABLE "message" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "conversation_setting" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "conversation" RESTART IDENTITY CASCADE;');
-    // On nettoie aussi les pré-requis pour garder la DB propre
     await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "company" RESTART IDENTITY CASCADE;');
     await app.close();
@@ -67,7 +66,8 @@ describe('Chat System (e2e)', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .send({ name: 'Entreprise Test E2E' });
 
-    companyId = coRes.body.id;
+    const body = coRes.body as { id: number };
+    companyId = body.id;
 
     const pubRes = await request(server)
       .post('/publication/create')
@@ -75,10 +75,11 @@ describe('Chat System (e2e)', () => {
       .send({
         title: 'Développeur Fullstack E2E',
         company_id: companyId,
-        hourly_rate: 50
+        hourly_rate: 50,
       });
 
-    pubId = pubRes.body.id;
+    const pubBody = pubRes.body as { id: number };
+    pubId = pubBody.id;
     expect(pubRes.status).toBe(201);
   });
 
@@ -94,7 +95,8 @@ describe('Chat System (e2e)', () => {
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('id');
-    convId = response.body.id;
+    const convBody = response.body as { id: number };
+    convId = convBody.id;
   });
 
   it('POST /chat/messages - devrait envoyer un message', async () => {
