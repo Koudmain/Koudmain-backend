@@ -11,7 +11,7 @@ import { UsersModule } from '@/modules/users/users.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { DriveModule } from '@/modules/drive/drive.module';
 import { PlanningModule } from '@/modules/planning/planning.module';
-import { SkillCategory } from '@/modules/skill/models/skill-category.model';
+import { SkillCategory } from '@/modules/skill-category/models/skill-category.model';
 
 require('dotenv').config();
 

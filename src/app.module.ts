@@ -10,6 +10,7 @@ import { PublicationModule } from './modules/publication/publication.module';
 import { PlanningModule } from './modules/planning/planning.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { SkillModule } from './modules/skill/skill.module';
+import { SkillCategoryModule } from './modules/skill-category/skill-category.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { SkillModule } from './modules/skill/skill.module';
     PublicationModule,
     PlanningModule,
     SkillModule,
+    SkillCategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

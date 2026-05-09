@@ -17,7 +17,7 @@
     "lint:check": "eslint \"{src,apps,libs}/**/*.ts\"",
     "test": "jest --config ./test/jest.unit.js",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
+    "test:cov": "jest --config ./test/jest.unit.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:supertest": "jest --config ./test/jest.supertest.js"

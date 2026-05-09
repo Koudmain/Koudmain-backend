@@ -1,5 +1,5 @@
 import { Column, Model, Table, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
-import { SkillCategory } from './skill-category.model';
+import { SkillCategory } from '../../skill-category/models/skill-category.model';
 
 @Table({ tableName: 'skill', timestamps: false })
 export class Skill extends Model {

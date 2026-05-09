@@ -3,7 +3,7 @@ import { SkillService } from './services/skill.service';
 import { SkillController } from './controllers/skill.controller';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { Skill } from './models/skill.model';
-import { SkillCategory } from './models/skill-category.model';
+import { SkillCategory } from '../skill-category/models/skill-category.model';
 
 @Module({
   providers: [SkillService],
