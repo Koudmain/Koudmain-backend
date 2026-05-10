@@ -38,7 +38,10 @@ describe('SkillCategoryService', () => {
 
   it('should get all Skills', async () => {
     // Arrange
-    const expectedResult = [{ id: 1, name: 'Test Category' }, { id: 2, name: 'Another Category' }];
+    const expectedResult = [
+      { id: 1, name: 'Test Category' },
+      { id: 2, name: 'Another Category' },
+    ];
     mockSkillCategoryModel.findAll.mockResolvedValue(expectedResult);
 
     // Act

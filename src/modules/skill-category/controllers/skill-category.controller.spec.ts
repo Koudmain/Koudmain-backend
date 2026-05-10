@@ -29,7 +29,10 @@ describe('SkillCategoryController', () => {
 
   it('should return an array of skill categories', async () => {
     // Arrange
-    const result = [{ id: 1, name: 'Category 1' }, { id: 2, name: 'Category 2' }];
+    const result = [
+      { id: 1, name: 'Category 1' },
+      { id: 2, name: 'Category 2' },
+    ];
     mockSkillCategoryService.getAll.mockResolvedValue(result);
 
     // Act & Assert

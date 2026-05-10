@@ -4,9 +4,9 @@ import { InjectModel } from '@nestjs/sequelize';
 
 @Injectable()
 export class SkillCategoryService {
-    constructor(@InjectModel(SkillCategory) private skillCategoryModel: typeof SkillCategory) {}
+  constructor(@InjectModel(SkillCategory) private skillCategoryModel: typeof SkillCategory) {}
 
-    async getAll() {
-        return this.skillCategoryModel.findAll();
-    }
+  async getAll() {
+    return this.skillCategoryModel.findAll();
+  }
 }
