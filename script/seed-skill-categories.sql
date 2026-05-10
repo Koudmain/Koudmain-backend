@@ -3,4 +3,4 @@
 INSERT INTO "skill_category" ("name") VALUES
   ('Restaurant FOH'),
   ('Restaurant BOH'),
-  ('Coffee');
+  ('Café');
