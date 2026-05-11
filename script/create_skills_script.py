@@ -13,26 +13,26 @@ login_data = {
 }
 
 skills_to_create = [
-    # Restauration en salle (ID 1)
-    {"name": "Service à l'assiette et au plateau", "category_id": 1},
-    {"name": "Gestion de l'encaissement et POS", "category_id": 1},
-    {"name": "Accueil et relation client", "category_id": 1},
-    {"name": "Conseil en sommellerie", "category_id": 1},
-    {"name": "Mise en place et dressage", "category_id": 1},
+    # Restauration en salle (ID 0)
+    {"name": "Service à l'assiette et au plateau", "category_id": 0},
+    {"name": "Gestion de l'encaissement et POS", "category_id": 0},
+    {"name": "Accueil et relation client", "category_id": 0},
+    {"name": "Conseil en sommellerie", "category_id": 0},
+    {"name": "Mise en place et dressage", "category_id": 0},
 
-    # Restauration en cuisine (ID 2)
-    {"name": "Normes HACCP", "category_id": 2},
-    {"name": "Techniques de découpe", "category_id": 2},
-    {"name": "Gestion des modes de cuisson", "category_id": 2},
-    {"name": "Élaboration de fiches techniques", "category_id": 2},
-    {"name": "Dressage culinaire", "category_id": 2},
+    # Restauration en cuisine (ID 1)
+    {"name": "Normes HACCP", "category_id": 1},
+    {"name": "Techniques de découpe", "category_id": 1},
+    {"name": "Gestion des modes de cuisson", "category_id": 1},
+    {"name": "Élaboration de fiches techniques", "category_id": 1},
+    {"name": "Dressage culinaire", "category_id": 1},
 
-    # Café (ID 3)
-    {"name": "Extraction Espresso et réglage moulin", "category_id": 3},
-    {"name": "Latte Art et moussage de lait", "category_id": 3},
-    {"name": "Méthodes douces (Slow Coffee)", "category_id": 3},
-    {"name": "Entretien du matériel de bar", "category_id": 3},
-    {"name": "Connaissance des terroirs caféiers", "category_id": 3}
+    # Café (ID 2)
+    {"name": "Extraction Espresso et réglage moulin", "category_id": 2},
+    {"name": "Latte Art et moussage de lait", "category_id": 2},
+    {"name": "Méthodes douces (Slow Coffee)", "category_id": 2},
+    {"name": "Entretien du matériel de bar", "category_id": 2},
+    {"name": "Connaissance des terroirs caféiers", "category_id": 2}
 ]
 
 def main():
