@@ -11,6 +11,7 @@ import { PlanningModule } from './modules/planning/planning.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { SkillModule } from './modules/skill/skill.module';
 import { SkillCategoryModule } from './modules/skill-category/skill-category.module';
+import { MailerModule } from './modules/mailer/mailer.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SkillCategoryModule } from './modules/skill-category/skill-category.mod
     PlanningModule,
     SkillModule,
     SkillCategoryModule,
+    MailerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,0 +1,1 @@
+export const MAILJET_CLIENT = 'MAILJET_CLIENT';
