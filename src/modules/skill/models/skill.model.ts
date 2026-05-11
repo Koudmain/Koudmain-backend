@@ -10,16 +10,16 @@ export class Skill extends Model {
   declare name: string;
 
   @ForeignKey(() => SkillCategory)
-  @Column({ type: DataType.INTEGER })
-  declare category_id: number;
+  @Column({ type: DataType.INTEGER, allowNull: true })
+  declare category_id?: number | null;
 
   @BelongsTo(() => SkillCategory)
-  declare category: SkillCategory;
+  declare category?: SkillCategory | null;
 }
 
 export class PostSkillDto {
   name: string;
-  category_id?: number;
+  category_id?: number | null;
 }
 
 export class PostSkillResponseDto {
