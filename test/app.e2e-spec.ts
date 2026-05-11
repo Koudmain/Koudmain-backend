@@ -52,7 +52,7 @@ describe('AppController (e2e)', () => {
 
       sequelize = app.get<Sequelize>(getConnectionToken());
     } catch (error) {
-      console.error('❌ Erreur Sequelize détaillée :', error);
+      console.error('Erreur Sequelize détaillée :', error);
       process.exit(1);
     }
   });
@@ -164,8 +164,6 @@ describe('AppController (e2e)', () => {
         name: 'Skill TEST E2E',
         category_id: 1,
       });
-
-    console.log(response.body);
 
     expect(response.status).toBe(201);
 
