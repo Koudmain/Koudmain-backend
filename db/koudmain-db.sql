@@ -89,6 +89,8 @@ CREATE TABLE "skill" (
   "category_id" integer
 );
 
+CREATE INDEX idx_skill_category_id ON "skill" ("category_id");
+
 CREATE TABLE "worker_skill" (
   "worker_id" integer,
   "skill_id" integer,
