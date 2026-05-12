@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { google, drive_v3 } from 'googleapis';
 import { Readable } from 'stream';
 
-import { processProfilePicture } from '../../common/utils/image-processor.util';
+import { processProfilePicture } from '@/common/utils/image-processor.util';
 
 @Injectable()
 export class DriveService {

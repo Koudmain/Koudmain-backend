@@ -12,6 +12,8 @@ import { CompaniesModule } from './modules/companies/companies.module';
 import { SkillModule } from './modules/skill/skill.module';
 import { SkillCategoryModule } from './modules/skill-category/skill-category.module';
 import { MailerModule } from './modules/mailer/mailer.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { WorkersModule } from './modules/workers/workers.module';
 
 @Module({
   imports: [
@@ -24,7 +26,7 @@ import { MailerModule } from './modules/mailer/mailer.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadModels: true,
-      synchronize: false,
+      synchronize: true,
     }),
     UsersModule,
     AuthModule,
@@ -35,6 +37,8 @@ import { MailerModule } from './modules/mailer/mailer.module';
     SkillModule,
     SkillCategoryModule,
     MailerModule,
+    ChatModule,
+    WorkersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,0 +1,34 @@
+import { Module } from '@nestjs/common';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { ChatController } from './controllers/chat.controller';
+import { ChatService } from './services/chat.service';
+import { RedisPubService } from './services/redis-pub.service';
+import { Message } from './models/message.model';
+import { Conversation } from './models/conversation.model';
+import { WorkersModule } from '@/modules/workers/workers.module';
+import { CompaniesModule } from '@/modules/companies/companies.module';
+import { ConversationSetting } from './models/conversation-setting.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { Company } from '@/modules/companies/models/company.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+
+@Module({
+  imports: [
+    SequelizeModule.forFeature([
+      Message,
+      Conversation,
+      ConversationSetting,
+      WorkerProfile,
+      CompanyMember,
+      Company,
+      Publication,
+    ]),
+    WorkersModule,
+    CompaniesModule,
+  ],
+  controllers: [ChatController],
+  providers: [ChatService, RedisPubService],
+  exports: [ChatService],
+})
+export class ChatModule {}

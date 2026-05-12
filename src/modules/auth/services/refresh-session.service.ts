@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { RefreshSession } from '../models/refresh-session.model';
+import { RefreshSession } from '@/modules/auth/models/refresh-session.model';
 import { createHash } from 'crypto';
 
 @Injectable()

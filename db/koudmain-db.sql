@@ -161,6 +161,17 @@ CREATE TABLE "conversation" (
   "status" varchar DEFAULT 'active'
 );
 
+CREATE TABLE "conversation_settings" (
+  "id" serial PRIMARY KEY,
+  "user_id" integer not null,
+  "conversation_id" integer not null,
+  "is_pinned" boolean DEFAULT false,
+  "is_deleted" boolean DEFAULT false,
+  PRIMARY KEY ("user_id", "conversation_id"),
+);
+
+CREATE INDEX idx_conv_settings_user_id ON "conversation_settings"("user_id");
+
 CREATE TABLE "message" (
   "id" serial PRIMARY KEY,
   "conversation_id" integer,
