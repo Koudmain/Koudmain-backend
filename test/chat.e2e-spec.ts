@@ -5,7 +5,7 @@ import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule, getConnectionToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
-import { getAuthToken } from './utils/auth.helper';
+import { AuthResponse, getAuthToken } from './utils/auth.helper';
 
 import { PublicationModule } from '../src/modules/publication/publication.module';
 import { CompaniesModule } from '../src/modules/companies/companies.module';
@@ -14,6 +14,8 @@ import { AuthModule } from '@/modules/auth/auth.module';
 import { DriveModule } from '@/modules/drive/drive.module';
 import { PlanningModule } from '@/modules/planning/planning.module';
 import { SkillModule } from '@/modules/skill/skill.module';
+import { ChatModule } from '@/modules/chat/chat.module';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 
 require('dotenv').config();
 
@@ -24,7 +26,7 @@ describe('Chat System (e2e)', () => {
   let companyId: number;
   let pubId: number;
   let convId: number;
-  const workerId = 1;
+  let workerId: number;
 
   beforeAll(async () => {
     try {
@@ -39,7 +41,7 @@ describe('Chat System (e2e)', () => {
             password: process.env.DB_TEST_PASSWORD || 'postgres',
             database: process.env.DB_TEST_NAME || 'koudmain_test',
             autoLoadModels: true,
-            synchronize: false,
+            synchronize: true,
             retryAttempts: 3,
             retryDelay: 2000,
           }),
@@ -50,6 +52,7 @@ describe('Chat System (e2e)', () => {
           PublicationModule,
           PlanningModule,
           SkillModule,
+          ChatModule,
         ],
       }).compile();
 
@@ -58,6 +61,7 @@ describe('Chat System (e2e)', () => {
 
       sequelize = app.get<Sequelize>(getConnectionToken());
       authToken = await getAuthToken(app, 'recruteur@test.com');
+      console.log('✅ Auth token obtenu pour les tests E2E', authToken);
     } catch (error) {
       console.error('❌ Erreur Sequelize détaillée :', error);
       process.exit(1);
@@ -65,24 +69,62 @@ describe('Chat System (e2e)', () => {
   });
 
   afterAll(async () => {
+    await sequelize.query('TRUNCATE TABLE "user" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "message" RESTART IDENTITY CASCADE;');
-    await sequelize.query('TRUNCATE TABLE "conversation_setting" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "conversation" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "company" RESTART IDENTITY CASCADE;');
     await app.close();
   });
 
-  it('PRE-REQUIS : Créer une entreprise et une publication', async () => {
+  it("PRE-REQUIS : Créer un user pour l'authentification", async () => {
+    // Register
+    await request(app.getHttpServer()).post('/auth/register').send({
+      first_name: 'Test',
+      last_name: 'E2E',
+      email: 'test.e2e@example.com',
+      password: 'password123',
+      is_employer_active: true,
+    });
+
+    // Login
+    const response = await request(app.getHttpServer()).post('/auth/login').send({
+      email: 'test.e2e@example.com',
+      password: 'password123',
+      targetApp: 'employer',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('access_token');
+
+    const authBody = response.body as AuthResponse;
+    authToken = authBody.access_token;
+  });
+
+  it('PRE-REQUIS : Créer un worker, une entreprise et une publication', async () => {
     const server = app.getHttpServer();
 
-    const coRes = await request(server)
-      .post('/companies')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send({ name: 'Entreprise Test E2E' });
+    const workerRes = await request(server).post('/auth/register').send({
+      email: 'worker_test@gmail.com',
+      password: 'Password123!',
+      first_name: 'Worker',
+      last_name: 'Test',
+      is_worker_active: true,
+    });
+    const authBodyWorker = workerRes.body as AuthResponse;
+    const tokenWorker = authBodyWorker.access_token;
+    const workerProfileRes = await request(server)
+      .get('/workers')
+      .set('Authorization', `Bearer ${tokenWorker}`);
+    const workerProfile = workerProfileRes.body as WorkerProfile;
+    workerId = workerProfile.id;
 
-    const body = coRes.body as { id: number };
-    companyId = body.id;
+    const coRes = await request(server)
+      .get('/companies/my-companies')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    const body = coRes.body as [{ id: number }];
+    companyId = body[0].id;
 
     const pubRes = await request(server)
       .post('/publication/create')

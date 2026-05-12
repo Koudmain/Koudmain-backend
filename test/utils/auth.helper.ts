@@ -1,14 +1,19 @@
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 
-interface AuthResponse {
+export interface AuthResponse {
   access_token: string;
+  refresh_token: string;
 }
 
 export async function getAuthToken(app: INestApplication, email: string) {
-  await request(app.getHttpServer())
-    .post('/auth/register')
-    .send({ email, password: 'Password123!', first_name: 'Test', last_name: 'User' });
+  await request(app.getHttpServer()).post('/auth/register').send({
+    email,
+    password: 'Password123!',
+    first_name: 'Test',
+    last_name: 'User',
+    is_employer_active: true,
+  });
 
   const response = await request(app.getHttpServer())
     .post('/auth/login')

@@ -22,4 +22,12 @@ export class WorkersService {
     if (!worker) throw new NotFoundException('Profil Worker introuvable');
     return worker.id;
   }
+
+  async getWorkerByUserId(userId: number): Promise<WorkerProfile> {
+    const worker = await this.workerProfileModel.findOne({
+      where: { user_id: userId },
+    });
+    if (!worker) throw new NotFoundException('Profil Worker introuvable');
+    return worker;
+  }
 }

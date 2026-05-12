@@ -12,6 +12,7 @@ import { CompaniesModule } from './modules/companies/companies.module';
 import { SkillModule } from './modules/skill/skill.module';
 import { SkillCategoryModule } from './modules/skill-category/skill-category.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { WorkersModule } from './modules/workers/workers.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ChatModule } from './modules/chat/chat.module';
     SkillModule,
     SkillCategoryModule,
     ChatModule,
+    WorkersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
