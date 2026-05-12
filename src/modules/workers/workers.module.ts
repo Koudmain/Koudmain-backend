@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { WorkerProfile } from './models/worker-profile.model';
 import { WorkersService } from './services/workers.service';
-import { AuthModule } from '../auth/auth.module';
+import { AuthModule } from '@/modules/auth/auth.module';
 import { WorkersController } from './controllers/workers.controller';
 
 @Module({

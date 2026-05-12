@@ -5,7 +5,7 @@ import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule, getConnectionToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
-import { AuthResponse, getAuthToken } from './utils/auth.helper';
+import { AuthResponse, getAuthTokenForEmployer } from './utils/auth.helper';
 
 import { PublicationModule } from '../src/modules/publication/publication.module';
 import { CompaniesModule } from '../src/modules/companies/companies.module';
@@ -60,10 +60,10 @@ describe('Chat System (e2e)', () => {
       await app.init();
 
       sequelize = app.get<Sequelize>(getConnectionToken());
-      authToken = await getAuthToken(app, 'recruteur@test.com');
-      console.log('✅ Auth token obtenu pour les tests E2E', authToken);
+      authToken = await getAuthTokenForEmployer(app, 'recruteur@test.com');
+      console.log('Auth token obtenu pour les tests E2E', authToken);
     } catch (error) {
-      console.error('❌ Erreur Sequelize détaillée :', error);
+      console.error('Erreur Sequelize détaillée :', error);
       process.exit(1);
     }
   });

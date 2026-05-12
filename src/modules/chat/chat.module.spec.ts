@@ -7,10 +7,10 @@ import { Message } from './models/message.model';
 import { Conversation } from './models/conversation.model';
 import { ConversationSetting } from './models/conversation-setting.model';
 import { WorkersService } from '@/modules/workers/services/workers.service';
-import { WorkerProfile } from '../workers/models/worker-profile.model';
-import { CompanyMember } from '../companies/models/company-member.model';
-import { Company } from '../companies/models/company.model';
-import { Publication } from '../publication/models/publication.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { Company } from '@/modules/companies/models/company.model';
+import { Publication } from '@/modules/publication/models/publication.model';
 
 describe('ChatModule', () => {
   it('devrait compiler le module et résoudre ses dépendances', async () => {

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChatController } from './chat.controller';
 import { ChatService } from '@/modules/chat/services/chat.service';
@@ -52,7 +51,7 @@ describe('ChatController', () => {
       const dto = { publication_id: 1, worker_id: 2, company_id: 3 };
       await controller.createConversation(dto);
 
-      expect(service.findOrCreateConversation).toHaveBeenCalledWith(1, 2, 3);
+      expect(service.findOrCreateConversation.mock.calls).toEqual([[1, 2, 3]]);
     });
   });
 
@@ -61,7 +60,7 @@ describe('ChatController', () => {
       const companyId = 10;
       await controller.getCompanyConvs(companyId, mockRequest);
 
-      expect(service.getConversationsForCompany).toHaveBeenCalledWith(companyId, 1);
+      expect(service.getConversationsForCompany.mock.calls).toEqual([[companyId, 1]]);
     });
   });
 
@@ -70,7 +69,7 @@ describe('ChatController', () => {
       const body = { conversation_id: 5, content: 'Hello' };
       await controller.send(mockRequest, body);
 
-      expect(service.sendMessage).toHaveBeenCalledWith(1, 5, 'Hello');
+      expect(service.sendMessage.mock.calls).toEqual([[1, 5, 'Hello']]);
     });
   });
 });

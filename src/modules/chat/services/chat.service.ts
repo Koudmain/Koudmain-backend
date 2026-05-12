@@ -7,7 +7,7 @@ import { WorkersService } from '@/modules/workers/services/workers.service';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
 import { User } from '@/modules/users/models/user.model';
-import { ConversationSetting } from '../models/conversation-setting.model';
+import { ConversationSetting } from '@/modules/chat/models/conversation-setting.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Publication } from '@/modules/publication/models/publication.model';
 
