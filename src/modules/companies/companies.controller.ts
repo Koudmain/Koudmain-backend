@@ -1,6 +1,7 @@
-import { Controller, Get, Request } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Put, Request } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
 import { CompaniesService } from './services/companies.service';
+import { UpdateCompanyAddressDto } from '@/modules/adress/adress.dto';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
@@ -18,5 +19,17 @@ export class CompaniesController {
     const userId = req.user.sub;
 
     return this.companiesService.getUserCompanies(userId);
+  }
+
+  @Put(':company_id/address')
+  async updateCompanyAddress(
+    @Request() req: RequestWithUser,
+    @Param('company_id', ParseIntPipe) company_id: number,
+    @Body() body: { update_address_dto: UpdateCompanyAddressDto },
+  ) {
+    const userId = req.user.sub;
+    const { update_address_dto } = body;
+
+    return this.companiesService.updateCompanyAddress(userId, company_id, update_address_dto);
   }
 }

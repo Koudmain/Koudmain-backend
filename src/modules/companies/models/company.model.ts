@@ -1,5 +1,14 @@
-import { Column, Model, Table, DataType, HasMany } from 'sequelize-typescript';
+import {
+  Column,
+  Model,
+  Table,
+  DataType,
+  HasMany,
+  ForeignKey,
+  BelongsTo,
+} from 'sequelize-typescript';
 import { CompanyMember } from './company-member.model';
+import { Address } from '@/modules/adress/adress.model';
 
 @Table({ tableName: 'company', timestamps: false })
 export class Company extends Model {
@@ -14,4 +23,14 @@ export class Company extends Model {
 
   @HasMany(() => CompanyMember)
   declare members: CompanyMember[];
+
+  @ForeignKey(() => Address)
+  @Column({
+    type: DataType.INTEGER,
+    field: 'address_id',
+  })
+  addressId: number;
+
+  @BelongsTo(() => Address)
+  address: Address;
 }
