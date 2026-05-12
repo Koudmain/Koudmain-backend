@@ -26,7 +26,7 @@ import { WorkersModule } from './modules/workers/workers.module';
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadModels: true,
-      synchronize: true,
+      synchronize: false,
     }),
     UsersModule,
     AuthModule,
