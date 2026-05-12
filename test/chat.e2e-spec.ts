@@ -5,18 +5,15 @@ import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule, getConnectionToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
-import { ChatModule } from '../src/modules/chat/chat.module';
 import { getAuthToken } from './utils/auth.helper';
 
 import { PublicationModule } from '../src/modules/publication/publication.module';
 import { CompaniesModule } from '../src/modules/companies/companies.module';
-import { Review } from '@/modules/review/models/review.model';
-import { Application } from '@/modules/application/models/application.model';
-import { Publication } from '@/modules/publication/models/publication.model';
-import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
-import { Company } from '@/modules/companies/models/company.model';
-import { User } from '@/modules/users/models/user.model';
-import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { UsersModule } from '@/modules/users/users.module';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { DriveModule } from '@/modules/drive/drive.module';
+import { PlanningModule } from '@/modules/planning/planning.module';
+import { SkillModule } from '@/modules/skill/skill.module';
 
 require('dotenv').config();
 
@@ -45,11 +42,14 @@ describe('Chat System (e2e)', () => {
             synchronize: false,
             retryAttempts: 3,
             retryDelay: 2000,
-            models: [Review, Application, Publication, WorkerProfile, Company, User, CompanyMember],
           }),
-          ChatModule,
-          PublicationModule,
+          UsersModule,
+          AuthModule,
           CompaniesModule,
+          DriveModule,
+          PublicationModule,
+          PlanningModule,
+          SkillModule,
         ],
       }).compile();
 
