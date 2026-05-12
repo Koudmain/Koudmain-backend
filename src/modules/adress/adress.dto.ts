@@ -1,9 +1,24 @@
+// update-company-address.dto.ts
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+
 export class UpdateCompanyAddressDto {
-  declare street_name: string;
-  declare street_number: string;
-  declare zip_code: string;
-  declare city: string;
-  declare state: string;
-  declare postalCode: string;
-  declare country: string;
+  @IsString()
+  @IsOptional()
+  street_number: string;
+
+  @IsString()
+  @IsNotEmpty()
+  street_name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  zip_code: string;
+
+  @IsString()
+  @IsNotEmpty()
+  city: string;
+
+  @IsString()
+  @IsOptional()
+  country: string;
 }
