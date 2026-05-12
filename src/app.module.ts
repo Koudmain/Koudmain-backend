@@ -11,6 +11,8 @@ import { PlanningModule } from './modules/planning/planning.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { SkillModule } from './modules/skill/skill.module';
 import { SkillCategoryModule } from './modules/skill-category/skill-category.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { WorkersModule } from './modules/workers/workers.module';
 
 @Module({
   imports: [
@@ -23,7 +25,7 @@ import { SkillCategoryModule } from './modules/skill-category/skill-category.mod
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
       autoLoadModels: true,
-      synchronize: false,
+      synchronize: true,
     }),
     UsersModule,
     AuthModule,
@@ -33,6 +35,8 @@ import { SkillCategoryModule } from './modules/skill-category/skill-category.mod
     PlanningModule,
     SkillModule,
     SkillCategoryModule,
+    ChatModule,
+    WorkersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

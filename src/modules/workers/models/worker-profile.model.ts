@@ -11,7 +11,7 @@ export class WorkerProfile extends Model {
   declare user_id: number;
 
   @BelongsTo(() => User)
-  user: User;
+  declare user: User;
 
   @Column({ type: DataType.INTEGER, defaultValue: 20 })
   declare max_distance_km: number;

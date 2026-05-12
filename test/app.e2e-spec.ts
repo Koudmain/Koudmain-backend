@@ -12,6 +12,7 @@ import { AuthModule } from '@/modules/auth/auth.module';
 import { DriveModule } from '@/modules/drive/drive.module';
 import { PlanningModule } from '@/modules/planning/planning.module';
 import { SkillCategory } from '@/modules/skill-category/models/skill-category.model';
+import { AuthResponse } from './utils/auth.helper';
 
 require('dotenv').config();
 
@@ -86,7 +87,8 @@ describe('AppController (e2e)', () => {
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty('access_token');
 
-    accessToken = response.body.access_token;
+    const authBody = response.body as AuthResponse;
+    accessToken = authBody.access_token;
   });
 
   it('should create a publication without any foreign Key constraint field', async () => {

@@ -20,6 +20,7 @@
     "test:cov": "jest --config ./test/jest.unit.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e:chat": "jest --config ./test/jest-e2e.json test/chat.e2e-spec.ts --detectOpenHandles",
     "test:supertest": "jest --config ./test/jest.supertest.js"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "googleapis": "^171.4.0",
+    "ioredis": "^5.10.1",
     "pg": "^8.20.0",
     "pg-hstore": "^2.3.4",
     "reflect-metadata": "^0.2.2",

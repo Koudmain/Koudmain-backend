@@ -1,5 +1,5 @@
 import { Column, Model, Table, DataType, ForeignKey } from 'sequelize-typescript';
-import { User } from '../../users/models/user.model';
+import { User } from '@/modules/users/models/user.model';
 
 @Table({ tableName: 'refresh_session', timestamps: false })
 export class RefreshSession extends Model {

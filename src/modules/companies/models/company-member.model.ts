@@ -12,14 +12,14 @@ export class CompanyMember extends Model {
   declare company_id: number;
 
   @BelongsTo(() => Company)
-  company: Company;
+  declare company: Company;
 
   @ForeignKey(() => User)
   @Column({ type: DataType.INTEGER })
   declare user_id: number;
 
   @BelongsTo(() => User)
-  user: User;
+  declare user: User;
 
   @Column({ type: DataType.STRING(50) })
   declare role: string;
