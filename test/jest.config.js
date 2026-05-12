@@ -15,8 +15,8 @@ module.exports = {
     },
     modulePathIgnorePatterns: ['src/typings'],
     testPathIgnorePatterns: [
-        '/node_modules./',
-        '<rootDir>/(coverage|dist|lib|tmp)./',
+        '/node_modules/',
+        '<rootDir>/(coverage|dist|lib|tmp)/',
     ],
     setupFilesAfterEnv: ['dotenv/config'],
 };

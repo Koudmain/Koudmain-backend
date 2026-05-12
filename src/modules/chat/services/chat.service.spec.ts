@@ -12,7 +12,6 @@ import { Company } from '@/modules/companies/models/company.model';
 import { Publication } from '@/modules/publication/models/publication.model';
 import { RedisPubService } from './redis-pub.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
-import { beforeEach } from 'node:test';
 
 type MockModel<T = any> = {
   [P in keyof T]?: jest.Mock;
@@ -93,7 +92,7 @@ describe('ChatService', () => {
       const result = await service.sendMessage(10, 1, 'Hello');
 
       expect(messageModel.create).toHaveBeenCalled();
-      expect(() => redisPubService.publishMessage).toHaveBeenCalledWith(
+      expect(redisPubService.publishMessage).toHaveBeenCalledWith(
         expect.objectContaining({ receiver_id: 20 }),
       );
       expect(result).toEqual(mockMsg);
@@ -112,8 +111,12 @@ describe('ChatService', () => {
       const serviceMocks = service as unknown as ChatServiceMocks;
 
       serviceMocks.publicationModel.findByPk.mockResolvedValue({ id: 1 });
-      serviceMocks.workerModel.findByPk.mockResolvedValue({ id: 1, user_id: 100 });
       serviceMocks.companyModel.findByPk.mockResolvedValue({ id: 1 });
+
+      serviceMocks.workerModel.findByPk.mockResolvedValue({
+        id: 1,
+        user_id: 100,
+      });
 
       conversationModel.findOrCreate.mockResolvedValue([{ id: 50 }, true]);
 
@@ -121,7 +124,7 @@ describe('ChatService', () => {
 
       await service.findOrCreateConversation(1, 1, 1);
 
-      expect(service['conversationSettingModel'].bulkCreate).toHaveBeenCalledWith([
+      expect(serviceMocks.conversationSettingModel.bulkCreate).toHaveBeenCalledWith([
         { user_id: 100, conversation_id: 50 },
         { user_id: 200, conversation_id: 50 },
       ]);

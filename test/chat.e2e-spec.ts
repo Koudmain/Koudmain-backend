@@ -10,6 +10,13 @@ import { getAuthToken } from './utils/auth.helper';
 
 import { PublicationModule } from '../src/modules/publication/publication.module';
 import { CompaniesModule } from '../src/modules/companies/companies.module';
+import { Review } from '@/modules/review/models/review.model';
+import { Application } from '@/modules/application/models/application.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { Company } from '@/modules/companies/models/company.model';
+import { User } from '@/modules/users/models/user.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
 
 require('dotenv').config();
 
@@ -23,30 +30,38 @@ describe('Chat System (e2e)', () => {
   const workerId = 1;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
-        SequelizeModule.forRoot({
-          dialect: 'postgres',
-          host: process.env.DB_TEST_HOST,
-          port: parseInt(process.env.DB_TEST_PORT ?? '5432', 10),
-          username: process.env.DB_TEST_USER,
-          password: process.env.DB_TEST_PASSWORD,
-          database: process.env.DB_TEST_NAME,
-          autoLoadModels: true,
-          synchronize: false,
-        }),
-        ChatModule,
-        PublicationModule,
-        CompaniesModule,
-      ],
-    }).compile();
+    try {
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [
+          ConfigModule.forRoot({ isGlobal: true }),
+          SequelizeModule.forRoot({
+            dialect: 'postgres',
+            host: process.env.DB_TEST_HOST,
+            port: parseInt(process.env.DB_TEST_DOCKER_PORT ?? '5432', 10),
+            username: process.env.DB_TEST_USER || 'postgres',
+            password: process.env.DB_TEST_PASSWORD || 'postgres',
+            database: process.env.DB_TEST_NAME || 'koudmain_test',
+            autoLoadModels: true,
+            synchronize: false,
+            retryAttempts: 3,
+            retryDelay: 2000,
+            models: [Review, Application, Publication, WorkerProfile, Company, User, CompanyMember],
+          }),
+          ChatModule,
+          PublicationModule,
+          CompaniesModule,
+        ],
+      }).compile();
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
-    sequelize = app.get<Sequelize>(getConnectionToken());
+      app = moduleFixture.createNestApplication();
+      await app.init();
 
-    authToken = await getAuthToken(app, 'recruteur@test.com');
+      sequelize = app.get<Sequelize>(getConnectionToken());
+      authToken = await getAuthToken(app, 'recruteur@test.com');
+    } catch (error) {
+      console.error('❌ Erreur Sequelize détaillée :', error);
+      process.exit(1);
+    }
   });
 
   afterAll(async () => {
@@ -114,7 +129,7 @@ describe('Chat System (e2e)', () => {
     expect(response.body.content_text).toBe(payload.content);
 
     const [msgCheck]: any = await sequelize.query(
-      `SELECT * FROM "message" WHERE conversation_id = ${convId} ORDER BY created_at DESC LIMIT 1;`
+      `SELECT * FROM "message" WHERE conversation_id = ${convId} ORDER BY created_at DESC LIMIT 1;`,
     );
     expect(msgCheck.length).toBe(1);
     expect(msgCheck[0].content_text).toBe(payload.content);

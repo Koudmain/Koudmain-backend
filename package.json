@@ -20,6 +20,7 @@
     "test:cov": "jest --config ./test/jest.unit.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e:chat": "jest --config ./test/jest-e2e.json test/chat.e2e-spec.ts --detectOpenHandles",
     "test:supertest": "jest --config ./test/jest.supertest.js"
   },
   "dependencies": {
