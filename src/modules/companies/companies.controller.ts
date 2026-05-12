@@ -25,11 +25,10 @@ export class CompaniesController {
   async updateCompanyAddress(
     @Request() req: RequestWithUser,
     @Param('company_id', ParseIntPipe) company_id: number,
-    @Body() body: { update_address_dto: UpdateCompanyAddressDto },
+    @Body() body: UpdateCompanyAddressDto,
   ) {
     const userId = req.user.sub;
-    const { update_address_dto } = body;
 
-    return this.companiesService.updateCompanyAddress(userId, company_id, update_address_dto);
+    return this.companiesService.updateCompanyAddress(userId, company_id, body);
   }
 }
