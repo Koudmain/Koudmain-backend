@@ -5,11 +5,16 @@ import { CompanyMember } from './models/company-member.model';
 import { CompaniesService } from './services/companies.service';
 import { CompaniesController } from './companies.controller';
 import { AuthModule } from '@/modules/auth/auth.module';
+import { Address } from '../adress/adress.model';
+import { GeocodingService } from '@/common/utils/geocoding.service';
 
 @Module({
-  imports: [SequelizeModule.forFeature([Company, CompanyMember]), forwardRef(() => AuthModule)],
+  imports: [
+    SequelizeModule.forFeature([Company, CompanyMember, Address]),
+    forwardRef(() => AuthModule),
+  ],
   controllers: [CompaniesController],
-  providers: [CompaniesService],
+  providers: [CompaniesService, GeocodingService],
   exports: [CompaniesService],
 })
 export class CompaniesModule {}
