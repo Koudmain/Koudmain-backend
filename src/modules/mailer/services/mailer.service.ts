@@ -1,7 +1,7 @@
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
-import { MAILJET_CLIENT } from '../mailer.constants';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
 
 type MailjetSendMessage = {
   From: { Email: string; Name?: string };
@@ -27,36 +27,29 @@ type MailjetClient = {
 
 export class SendEmailInput {
   @IsEmail()
-  @MaxLength(320)
   toEmail!: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(200)
   toName?: string;
 
   @IsString()
-  @MaxLength(500)
   subject!: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(10000)
   text?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(20000)
   html?: string;
 
   @IsOptional()
   @IsEmail()
-  @MaxLength(320)
   replyToEmail?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(200)
   replyToName?: string;
 }
 
