@@ -62,26 +62,25 @@ export class CompaniesService {
     companyId: number,
     update_adress_dto: UpdateCompanyAddressDto,
   ) {
-    const membership = await this.memberModel.findOne({
-      where: { user_id: userId, company_id: companyId },
-    });
-
-    if (!membership || membership.role !== 'Owner') {
-      throw new ForbiddenException("Vous n'avez pas les droits pour modifier cette entreprise");
-    }
-
-    const company = await this.companyModel.findByPk(companyId, {
-      include: ['address'],
-    });
-
-    if (!company) {
-      throw new NotFoundException('Entreprise introuvable');
-    }
-
-    const { street_number, street_name, zip_code, city, country } = update_adress_dto;
-    const fullAddressString = `${street_number} ${street_name}, ${zip_code} ${city}, ${country}`;
-
     try {
+      const membership = await this.memberModel.findOne({
+        where: { user_id: userId, company_id: companyId },
+      });
+
+      if (!membership || membership.role !== 'Owner') {
+        throw new ForbiddenException("Vous n'avez pas les droits pour modifier cette entreprise");
+      }
+
+      const company = await this.companyModel.findByPk(companyId, {
+        include: ['address'],
+      });
+
+      if (!company) {
+        throw new NotFoundException('Entreprise introuvable');
+      }
+
+      const { street_number, street_name, zip_code, city, country } = update_adress_dto;
+      const fullAddressString = `${street_number} ${street_name}, ${zip_code} ${city}, ${country}`;
       const coords = await this.geocodingService.getCoordsFromAddress(fullAddressString);
 
       const addressData = {
@@ -124,6 +123,10 @@ export class CompaniesService {
         include: ['address'],
       });
     } catch (error) {
+      if (error instanceof ForbiddenException || error instanceof NotFoundException) {
+        throw error;
+      }
+
       throw new InternalServerErrorException(
         "Erreur lors de la mise à jour de l'adresse",
         error instanceof Error ? error.message : 'Unknown error',

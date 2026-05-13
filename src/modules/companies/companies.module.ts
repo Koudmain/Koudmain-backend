@@ -3,7 +3,7 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { Company } from './models/company.model';
 import { CompanyMember } from './models/company-member.model';
 import { CompaniesService } from './services/companies.service';
-import { CompaniesController } from './companies.controller';
+import { CompaniesController } from './controllers/companies.controller';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { Address } from '../adress/adress.model';
 import { GeocodingService } from '@/common/utils/geocoding.service';
