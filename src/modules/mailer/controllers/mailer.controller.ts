@@ -1,7 +1,7 @@
 import { Body, Controller, NotFoundException, Post } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { MailerService, SendEmailInput } from '../services/mailer.service';
+import { MailerService, SendEmailInput } from '@/modules/mailer/services/mailer.service';
 
 @Controller('mailer')
 export class MailerController {
@@ -19,7 +19,7 @@ export class MailerController {
     // Hide the route in production unless explicitly enabled.
     const enabled = nodeEnv !== 'production' || isExplicitlyEnabled;
     if (!enabled) {
-      throw new NotFoundException();
+      throw new NotFoundException('Mailer test route is disabled');
     }
 
     await this.mailerService.sendEmail(body);

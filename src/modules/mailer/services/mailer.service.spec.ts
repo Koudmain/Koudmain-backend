@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 
-import { MAILJET_CLIENT } from '../mailer.constants';
-import { MailerService } from './mailer.service';
+import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
+import { MailerService } from '@/modules/mailer/services/mailer.service';
 
 describe('MailerService', () => {
   let service: MailerService;

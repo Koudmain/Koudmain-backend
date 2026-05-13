@@ -2,9 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Mailjet from 'node-mailjet';
 
-import { MAILJET_CLIENT } from './mailer.constants';
-import { MailerController } from './controllers/mailer.controller';
-import { MailerService } from './services/mailer.service';
+import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
+import { MailerController } from '@/modules/mailer/controllers/mailer.controller';
+import { MailerService } from '@/modules/mailer/services/mailer.service';
 
 type MailjetClient = ReturnType<(typeof Mailjet)['apiConnect']>;
 
