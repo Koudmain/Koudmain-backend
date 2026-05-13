@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Put, Request } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
-import { CompaniesService } from '../services/companies.service';
+import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { UpdateCompanyAddressDto } from '@/modules/adress/adress.dto';
 
 interface RequestWithUser extends ExpressRequest {

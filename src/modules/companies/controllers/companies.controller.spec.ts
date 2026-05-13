@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CompaniesController } from './companies.controller';
-import { CompaniesService } from '../services/companies.service';
+import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { UpdateCompanyAddressDto } from '@/modules/adress/adress.dto';
 import { InternalServerErrorException, ForbiddenException } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
