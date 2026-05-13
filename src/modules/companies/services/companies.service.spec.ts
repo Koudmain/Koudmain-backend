@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { CompaniesService } from './companies.service';
-import { Company } from '../models/company.model';
-import { CompanyMember } from '../models/company-member.model';
+import { Company } from '@/modules/companies/models/company.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Address } from '@/modules/adress/adress.model';
 import { GeocodingService } from '@/common/utils/geocoding.service';
 import {
