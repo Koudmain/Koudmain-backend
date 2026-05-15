@@ -11,6 +11,7 @@ import { PlanningModule } from './modules/planning/planning.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { SkillModule } from './modules/skill/skill.module';
 import { SkillCategoryModule } from './modules/skill-category/skill-category.module';
+import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { WorkersModule } from './modules/workers/workers.module';
 
@@ -35,6 +36,7 @@ import { WorkersModule } from './modules/workers/workers.module';
     PlanningModule,
     SkillModule,
     SkillCategoryModule,
+    MailerModule,
     ChatModule,
     WorkersModule,
   ],
