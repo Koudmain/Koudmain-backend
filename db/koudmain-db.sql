@@ -167,7 +167,7 @@ CREATE TABLE "conversation_settings" (
   "conversation_id" integer not null,
   "is_pinned" boolean DEFAULT false,
   "is_deleted" boolean DEFAULT false,
-  PRIMARY KEY ("user_id", "conversation_id"),
+  UNIQUE ("user_id", "conversation_id")
 );
 
 CREATE INDEX idx_conv_settings_user_id ON "conversation_settings"("user_id");
