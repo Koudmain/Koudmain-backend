@@ -52,13 +52,86 @@ export class PlanningService {
 
     if (appContext === 'worker') {
       return this.getWorkerPlanning(userId, filterStartDate, filterEndDate);
-      // } else if (appContext === 'employer') {
-      //   return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
+    } else if (appContext === 'employer') {
+      return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
     } else {
       throw new BadRequestException(
         "L'utilisateur doit avoir un app_context valide dans le token (worker ou employer)",
       );
     }
+  }
+
+  private async getEmployerPlanning(userId: number, filterStartDate: Date, filterEndDate: Date) {
+    const applications = await this.applicationModel.findAll({
+      include: [
+        {
+          model: Publication,
+          as: 'publication',
+          required: true,
+          where: {
+            created_by_user_id: userId,
+            starting_date: {
+              [Op.lte]: filterEndDate,
+            },
+            ending_date: {
+              [Op.gte]: filterStartDate,
+            },
+          },
+          include: [
+            {
+              model: Company,
+              as: 'company',
+              required: false,
+            },
+          ],
+        },
+        {
+          model: WorkerProfile,
+          as: 'workerProfile',
+          required: true,
+          include: [
+            {
+              model: User,
+              as: 'user',
+              required: true,
+              include: [
+                {
+                  model: Review,
+                  as: 'reviews',
+                  required: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      where: {
+        status: {
+          [Op.in]: ['Accepted'],
+        },
+      },
+      order: [['publication', 'starting_date', 'ASC']],
+    });
+
+    return applications.map((app) => {
+      const pub = app.publication;
+      const worker = app.workerProfile?.user;
+      const reviews = worker?.reviews || [];
+      const totalRating = reviews.reduce((sum: number, r: Review) => sum + r.rating, 0);
+      const workerRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+
+      return {
+        publicationId: pub.id,
+        title: pub.title,
+        salary: pub.hourly_rate,
+        startingDate: pub.starting_date,
+        endingDate: pub.ending_date,
+        workerName: worker ? `${worker.first_name} ${worker.last_name}` : null,
+        workerProfilePicture: worker?.profile_picture_url || null,
+        workerRating: Number(workerRating.toFixed(2)),
+        workerRatingCount: reviews.length,
+      };
+    });
   }
 
   private async getWorkerPlanning(userId: number, filterStartDate: Date, filterEndDate: Date) {
