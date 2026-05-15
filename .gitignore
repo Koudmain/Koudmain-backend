@@ -189,4 +189,8 @@ dist
 .history
 .ionide
 
+### Database
+# Backup files
+backup_*
+
 # End of https://www.toptal.com/developers/gitignore/api/node,visualstudiocode,go

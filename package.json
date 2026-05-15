@@ -20,8 +20,20 @@
     "test:cov": "jest --config ./test/jest.unit.js --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:e2e:chat": "jest --config ./test/jest-e2e.json test/chat.e2e-spec.ts",
-    "test:supertest": "jest --config ./test/jest.supertest.js"
+    "test:e2e:chat": "jest --config ./test/jest-e2e.json test/chat.e2e-spec.ts --detectOpenHandles",
+    "test:supertest": "jest --config ./test/jest.supertest.js",
+    "db:migrate": "npx sequelize-cli db:migrate",
+    "db:migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "db:migrate:undo:all": "npx sequelize-cli db:migrate:undo:all",
+    "db:seed": "npx sequelize-cli db:seed:all",
+    "db:reset": "npm run db:migrate:undo:all && npm run db:migrate && npm run db:seed",
+    "docker:db:migrate": "docker exec -it koudmain-backend npx sequelize-cli db:migrate",
+    "docker:db:migrate:undo": "docker exec -it koudmain-backend npx sequelize-cli db:migrate:undo",
+    "docker:db:migrate:undo:all": "docker exec -it koudmain-backend npx sequelize-cli db:migrate:undo:all",
+    "docker:db:seed": "docker exec -it koudmain-backend npx sequelize-cli db:seed:all",
+    "docker:db:reset": "docker exec -it koudmain-backend npm run db:migrate:undo:all && npm run db:migrate && npm run db:seed",
+    "db:backup": "docker exec -t koudmain-db pg_dump -U ${DB_USER:-postgres} -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} ${DB_NAME:-koudmain} > backup_$(date +%Y%m%d_%H%M%S).sql",
+    "db:backup:schema": "docker exec -t koudmain-db pg_dump -U ${DB_USER:-postgres} -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -s ${DB_NAME:-koudmain} > backup_schema_$(date +%Y%m%d_%H%M%S).sql"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
