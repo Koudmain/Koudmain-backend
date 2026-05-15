@@ -3,6 +3,8 @@ import { AuthService } from './auth.service';
 import { UsersService } from '@/modules/users/services/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshSessionService } from './refresh-session.service';
+import { WorkersService } from '@/modules/workers/services/workers.service';
+import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
@@ -32,6 +34,14 @@ describe('AuthService', () => {
     revokeAllSessions: jest.fn(),
   };
 
+  const mockWorkersService = {
+    create: jest.fn(),
+  };
+
+  const mockCompaniesService = {
+    createCompanyWithOwner: jest.fn(),
+  };
+
   beforeEach(async () => {
     // Reset env vars
     process.env.JWT_ACCESS_SECRET = 'access_secret';
@@ -45,6 +55,8 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: mockUsersService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: RefreshSessionService, useValue: mockRefreshSessionService },
+        { provide: WorkersService, useValue: mockWorkersService },
+        { provide: CompaniesService, useValue: mockCompaniesService },
       ],
     }).compile();
 
@@ -63,7 +75,7 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue(null);
 
-      await expect(service.signIn('test@test.com', 'password')).rejects.toThrow(
+      await expect(service.signIn('test@test.com', 'password', 'worker')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -73,19 +85,53 @@ describe('AuthService', () => {
         id: 1,
         email: 'test@test.com',
         password: 'hashed',
+        is_worker_active: true,
+        is_employer_active: true,
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.signIn('test@test.com', 'wrong_pass')).rejects.toThrow(
+      await expect(service.signIn('test@test.com', 'wrong_pass', 'worker')).rejects.toThrow(
         UnauthorizedException,
       );
     });
 
-    it('should return tokens if credentials are correct', async () => {
+    it('should throw UnauthorizedException if worker profile is inactive', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue({
         id: 1,
         email: 'test@test.com',
         password: 'hashed',
+        is_worker_active: false,
+        is_employer_active: true,
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(service.signIn('test@test.com', 'correct_pass', 'worker')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw UnauthorizedException if employer profile is inactive', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+        password: 'hashed',
+        is_worker_active: true,
+        is_employer_active: false,
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(service.signIn('test@test.com', 'correct_pass', 'employer')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should return tokens if credentials are correct for active worker app', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+        password: 'hashed',
+        is_worker_active: true,
+        is_employer_active: false,
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -93,13 +139,32 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('access_token_mock')
         .mockResolvedValueOnce('refresh_token_mock');
 
-      const result = await service.signIn('test@test.com', 'correct_pass');
+      const result = await service.signIn('test@test.com', 'correct_pass', 'worker');
 
       expect(result).toEqual({
         access_token: 'access_token_mock',
         refresh_token: 'refresh_token_mock',
       });
-      expect(mockRefreshSessionService.createSession).toHaveBeenCalled();
+      expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
+        1,
+        { sub: 1, email: 'test@test.com', app_context: 'worker' },
+        expect.objectContaining({ secret: 'access_secret', expiresIn: '15m' }),
+      );
+      expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
+        2,
+        {
+          sub: 1,
+          email: 'test@test.com',
+          app_context: 'worker',
+          token_type: 'refresh',
+        },
+        expect.objectContaining({ secret: 'refresh_secret', expiresIn: '7d' }),
+      );
+      expect(mockRefreshSessionService.createSession).toHaveBeenCalledWith(
+        1,
+        'refresh_token_mock',
+        expect.any(Date),
+      );
     });
   });
 
@@ -137,10 +202,60 @@ describe('AuthService', () => {
         is_worker_active: true,
         is_employer_active: false,
       });
+      expect(mockWorkersService.create).toHaveBeenCalledWith({ user_id: 2 });
+      expect(mockCompaniesService.createCompanyWithOwner).not.toHaveBeenCalled();
       expect(result).toEqual({
         access_token: 'access_token_mock',
         refresh_token: 'refresh_token_mock',
       });
+    });
+
+    it('should create company when employer profile is active', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      mockUsersService.create.mockResolvedValue({
+        id: 3,
+        first_name: 'Jane',
+        last_name: 'Smith',
+        email: 'employer@test.com',
+      });
+      mockJwtService.signAsync
+        .mockResolvedValueOnce('access_token_mock')
+        .mockResolvedValueOnce('refresh_token_mock');
+
+      await service.register(
+        'Jane',
+        'Smith',
+        'employer@test.com',
+        'password',
+        false,
+        true,
+        'Acme Corp',
+      );
+
+      expect(mockWorkersService.create).not.toHaveBeenCalled();
+      expect(mockCompaniesService.createCompanyWithOwner).toHaveBeenCalledWith('Acme Corp', 3);
+    });
+
+    it('should create company with default name when employer profile is active and no company name is provided', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      mockUsersService.create.mockResolvedValue({
+        id: 4,
+        first_name: 'Paul',
+        last_name: 'Martin',
+        email: 'employer2@test.com',
+      });
+      mockJwtService.signAsync
+        .mockResolvedValueOnce('access_token_mock')
+        .mockResolvedValueOnce('refresh_token_mock');
+
+      await service.register('Paul', 'Martin', 'employer2@test.com', 'password', false, true);
+
+      expect(mockCompaniesService.createCompanyWithOwner).toHaveBeenCalledWith(
+        'Entreprise de Martin',
+        4,
+      );
     });
   });
 
