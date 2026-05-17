@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "module": "nodenext",
-    "types": ["node", "jest", "multer"],
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
@@ -15,7 +14,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
     },
     "incremental": true,
     "skipLibCheck": true,
@@ -25,6 +24,8 @@
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true,
     "strictPropertyInitialization": false,
-    "types": ["jest", "node", "multer", "express"]
-  }
+    "types": ["jest", "node", "multer", "express"],
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "build", "coverage", ".zed"],
 }
