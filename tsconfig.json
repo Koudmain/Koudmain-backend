@@ -26,6 +26,6 @@
     "strictPropertyInitialization": false,
     "types": ["jest", "node", "multer", "express"],
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist", "build", "coverage", ".zed"],
 }
