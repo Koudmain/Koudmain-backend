@@ -39,15 +39,22 @@ describe('PlanningController', () => {
     it('should call getPlanning service method with correct parameters', async () => {
       const startDate = '2026-05-01';
       const endDate = '2026-05-15';
-      const requestWithDates = { ...mockRequest, query: { startDate, endDate } };
+      const activeCompanyId = 10;
+      const requestWithDates = { ...mockRequest, query: { startDate, endDate, activeCompanyId } };
 
-      await controller.getPlanning(startDate, endDate, requestWithDates as unknown as Request);
+      await controller.getPlanning(
+        startDate,
+        endDate,
+        activeCompanyId,
+        requestWithDates as unknown as Request,
+      );
 
       expect(mockPlanningService.getPlanning).toHaveBeenCalledWith(
         123,
         'worker',
         startDate,
         endDate,
+        10,
       );
     });
 
@@ -57,23 +64,39 @@ describe('PlanningController', () => {
         user: { sub: 123, app_context: 'worker' },
       };
       await expect(() =>
-        controller.getPlanning(undefined, undefined, invalidRequest as unknown as Request),
+        controller.getPlanning(
+          undefined,
+          undefined,
+          undefined,
+          invalidRequest as unknown as Request,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if user.sub is missing', async () => {
       const requestWithoutSub = { user: { id: 456, app_context: 'worker' }, query: {} };
       await expect(() =>
-        controller.getPlanning(undefined, undefined, requestWithoutSub as unknown as Request),
+        controller.getPlanning(
+          undefined,
+          undefined,
+          undefined,
+          requestWithoutSub as unknown as Request,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should handle request without query', async () => {
       const requestWithoutQuery = { user: { sub: 123, app_context: 'worker' } };
-      await controller.getPlanning(undefined, undefined, requestWithoutQuery as unknown as Request);
+      await controller.getPlanning(
+        undefined,
+        undefined,
+        undefined,
+        requestWithoutQuery as unknown as Request,
+      );
       expect(mockPlanningService.getPlanning).toHaveBeenCalledWith(
         123,
         'worker',
+        undefined,
         undefined,
         undefined,
       );

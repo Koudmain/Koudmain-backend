@@ -6,6 +6,7 @@ import { User } from '@/modules/users/models/user.model';
 import { Application } from '@/modules/application/models/application.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Review } from '@/modules/review/models/review.model';
 import { BadRequestException } from '@nestjs/common';
 import { Op } from 'sequelize';
@@ -18,6 +19,10 @@ describe('PlanningService', () => {
 
   const mockApplicationModel = {
     findAll: jest.fn().mockResolvedValue([]),
+  };
+
+  const mockCompanyMemberModel = {
+    findOne: jest.fn().mockResolvedValue({ id: 1, user_id: 1, company_id: 10 }),
   };
 
   const mockUserModel = {
@@ -39,6 +44,10 @@ describe('PlanningService', () => {
         {
           provide: getModelToken(Application),
           useValue: mockApplicationModel,
+        },
+        {
+          provide: getModelToken(CompanyMember),
+          useValue: mockCompanyMemberModel,
         },
       ],
     }).compile();
@@ -160,6 +169,12 @@ describe('PlanningService', () => {
         ],
         order: [['publication', 'starting_date', 'ASC']],
       });
+    });
+
+    it('should throw BadRequestException for employer planning without activeCompanyId', async () => {
+      await expect(
+        service.getPlanning(userId, 'employer', '2026-03-01', '2026-03-31'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if only startDate is provided', async () => {

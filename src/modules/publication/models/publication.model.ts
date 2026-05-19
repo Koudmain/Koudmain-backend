@@ -2,6 +2,7 @@ import { Column, Model, Table, DataType, BelongsTo, HasMany } from 'sequelize-ty
 import { Company } from '@/modules/companies/models/company.model';
 import { User } from '@/modules/users/models/user.model';
 import { Application } from '@/modules/application/models/application.model';
+import { Address } from './address.model';
 
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
@@ -25,6 +26,9 @@ export class Publication extends Model {
 
   @Column({ type: DataType.INTEGER })
   declare address_id: number;
+
+  @BelongsTo(() => Address, 'address_id')
+  declare address: Address;
 
   @Column({ type: DataType.STRING })
   declare title: string;

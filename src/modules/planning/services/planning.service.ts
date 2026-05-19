@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Op } from 'sequelize';
 import { Publication } from '@/modules/publication/models/publication.model';
@@ -6,7 +6,9 @@ import { User } from '@/modules/users/models/user.model';
 import { Application } from '@/modules/application/models/application.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Review } from '@/modules/review/models/review.model';
+import { Address } from '@/modules/publication/models/address.model';
 
 @Injectable()
 export class PlanningService {
@@ -17,9 +19,17 @@ export class PlanningService {
     private readonly userModel: typeof User,
     @InjectModel(Application)
     private readonly applicationModel: typeof Application,
+    @InjectModel(CompanyMember)
+    private readonly companyMemberModel: typeof CompanyMember,
   ) {}
 
-  async getPlanning(userId: number, appContext?: string, startDate?: string, endDate?: string) {
+  async getPlanning(
+    userId: number,
+    appContext?: string,
+    startDate?: string,
+    endDate?: string,
+    activeCompanyId?: number,
+  ) {
     let filterStartDate: Date;
     let filterEndDate: Date;
 
@@ -53,7 +63,7 @@ export class PlanningService {
     if (appContext === 'worker') {
       return this.getWorkerPlanning(userId, filterStartDate, filterEndDate);
     } else if (appContext === 'employer') {
-      return this.getEmployerPlanning(userId, filterStartDate, filterEndDate);
+      return this.getEmployerPlanning(userId, filterStartDate, filterEndDate, activeCompanyId);
     } else {
       throw new BadRequestException(
         "L'utilisateur doit avoir un app_context valide dans le token (worker ou employer)",
@@ -61,7 +71,26 @@ export class PlanningService {
     }
   }
 
-  private async getEmployerPlanning(userId: number, filterStartDate: Date, filterEndDate: Date) {
+  private async getEmployerPlanning(
+    userId: number,
+    filterStartDate: Date,
+    filterEndDate: Date,
+    activeCompanyId?: number,
+  ) {
+    if (!activeCompanyId) {
+      throw new BadRequestException(
+        'activeCompanyId est obligatoire pour consulter le planning employer',
+      );
+    }
+
+    const membership = await this.companyMemberModel.findOne({
+      where: { user_id: userId, company_id: activeCompanyId },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Utilisateur non autorisé pour cette company');
+    }
+
     const applications = await this.applicationModel.findAll({
       include: [
         {
@@ -69,7 +98,7 @@ export class PlanningService {
           as: 'publication',
           required: true,
           where: {
-            created_by_user_id: userId,
+            company_id: activeCompanyId,
             starting_date: {
               [Op.lte]: filterEndDate,
             },
@@ -157,6 +186,11 @@ export class PlanningService {
           },
           include: [
             {
+              model: Address,
+              as: 'address',
+              required: false,
+            },
+            {
               model: Company,
               as: 'company',
               required: false,
@@ -196,6 +230,8 @@ export class PlanningService {
         companyRatingCount: reviews.length,
         companyLogo: pub.creator?.profile_picture_url || null,
         applicationStatus: app.status,
+        city: pub.address?.city || null,
+        zip: pub.address?.zip_code || null,
       };
     });
   }

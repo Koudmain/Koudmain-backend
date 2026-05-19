@@ -5,13 +5,24 @@ import { PlanningService } from '@/modules/planning/services/planning.service';
 import { Publication } from '@/modules/publication/models/publication.model';
 import { User } from '@/modules/users/models/user.model';
 import { Company } from '@/modules/companies/models/company.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Application } from '@/modules/application/models/application.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Review } from '@/modules/review/models/review.model';
+import { Address } from '@/modules/publication/models/address.model';
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([Publication, User, Company, Application, WorkerProfile, Review]),
+    SequelizeModule.forFeature([
+      Publication,
+      User,
+      Company,
+      CompanyMember,
+      Application,
+      WorkerProfile,
+      Review,
+      Address,
+    ]),
   ],
   controllers: [PlanningController],
   providers: [PlanningService],
