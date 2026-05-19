@@ -3,7 +3,7 @@ import { getModelToken } from '@nestjs/sequelize';
 import { CompaniesService } from './companies.service';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
-import { Address } from '@/modules/adress/adress.model';
+import { Address } from '@/modules/address/address.model';
 import { GeocodingService } from '@/common/utils/geocoding.service';
 import {
   ForbiddenException,

@@ -8,9 +8,9 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { CreationAttributes } from 'sequelize';
-import { UpdateCompanyAddressDto } from '@/modules/adress/adress.dto';
+import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding.service';
-import { Address } from '@/modules/adress/adress.model';
+import { Address } from '@/modules/address/address.model';
 
 @Injectable()
 export class CompaniesService {

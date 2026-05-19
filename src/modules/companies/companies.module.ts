@@ -5,7 +5,7 @@ import { CompanyMember } from './models/company-member.model';
 import { CompaniesService } from './services/companies.service';
 import { CompaniesController } from './controllers/companies.controller';
 import { AuthModule } from '@/modules/auth/auth.module';
-import { Address } from '@/modules/adress/adress.model';
+import { Address } from '@/modules/address/address.model';
 import { GeocodingService } from '@/common/utils/geocoding.service';
 
 @Module({
