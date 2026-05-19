@@ -43,10 +43,15 @@ describe('AuthController', () => {
       const result = await controller.signIn({
         email: 'test@example.com',
         password: 'password123',
+        targetApp: 'worker',
       });
 
       expect(mockAuthService.signIn).toHaveBeenCalledTimes(1);
-      expect(mockAuthService.signIn).toHaveBeenCalledWith('test@example.com', 'password123');
+      expect(mockAuthService.signIn).toHaveBeenCalledWith(
+        'test@example.com',
+        'password123',
+        'worker',
+      );
       expect(result).toEqual(mockTokens);
     });
   });
@@ -57,8 +62,8 @@ describe('AuthController', () => {
       mockAuthService.register.mockResolvedValue(mockTokens);
 
       const payload = {
-        firstName: 'John',
-        lastName: 'Doe',
+        first_name: 'John',
+        last_name: 'Doe',
         email: 'john@example.com',
         password: 'password123',
         is_worker_active: true,
@@ -69,8 +74,8 @@ describe('AuthController', () => {
 
       expect(mockAuthService.register).toHaveBeenCalledTimes(1);
       expect(mockAuthService.register).toHaveBeenCalledWith(
-        payload.firstName,
-        payload.lastName,
+        payload.first_name,
+        payload.last_name,
         payload.email,
         payload.password,
         payload.is_worker_active,
