@@ -8,6 +8,7 @@ import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Review } from '@/modules/review/models/review.model';
+import { Address } from '@/modules/publication/models/address.model';
 import { BadRequestException } from '@nestjs/common';
 import { Op } from 'sequelize';
 
@@ -88,11 +89,13 @@ describe('PlanningService', () => {
         include: [
           {
             model: WorkerProfile,
+            as: 'workerProfile',
             where: { user_id: userId },
             required: true,
           },
           {
             model: Publication,
+            as: 'publication',
             required: true,
             where: {
               starting_date: {
@@ -104,15 +107,23 @@ describe('PlanningService', () => {
             },
             include: [
               {
+                model: Address,
+                as: 'address',
+                required: false,
+              },
+              {
                 model: Company,
+                as: 'company',
                 required: false,
               },
               {
                 model: User,
+                as: 'creator',
                 required: false,
                 include: [
                   {
                     model: Review,
+                    as: 'reviews',
                     required: false,
                   },
                 ],
@@ -135,11 +146,13 @@ describe('PlanningService', () => {
         include: [
           {
             model: WorkerProfile,
+            as: 'workerProfile',
             where: { user_id: userId },
             required: true,
           },
           {
             model: Publication,
+            as: 'publication',
             required: true,
             where: {
               starting_date: {
@@ -151,15 +164,23 @@ describe('PlanningService', () => {
             },
             include: [
               {
+                model: Address,
+                as: 'address',
+                required: false,
+              },
+              {
                 model: Company,
+                as: 'company',
                 required: false,
               },
               {
                 model: User,
+                as: 'creator',
                 required: false,
                 include: [
                   {
                     model: Review,
+                    as: 'reviews',
                     required: false,
                   },
                 ],
@@ -250,6 +271,8 @@ describe('PlanningService', () => {
           companyRatingCount: 2,
           companyLogo: 'http://example.com/pic.jpg',
           applicationStatus: 'PENDING',
+          city: null,
+          zip: null,
         },
         {
           publicationId: 20,
@@ -262,6 +285,8 @@ describe('PlanningService', () => {
           companyRatingCount: 0,
           companyLogo: null,
           applicationStatus: 'ACCEPTED',
+          city: null,
+          zip: null,
         },
       ]);
     });
