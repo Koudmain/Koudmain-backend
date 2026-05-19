@@ -8,7 +8,7 @@ import {
   BelongsTo,
 } from 'sequelize-typescript';
 import { CompanyMember } from './company-member.model';
-import { Address } from '@/modules/adress/adress.model';
+import { Address } from '@/modules/address/address.model';
 
 @Table({ tableName: 'company', timestamps: false })
 export class Company extends Model {

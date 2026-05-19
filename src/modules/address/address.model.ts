@@ -37,23 +37,36 @@ export class Address extends Model {
 
   @BeforeSave
   static async handleGeocoding(instance: Address) {
+    if (instance.latitude && instance.longitude) {
+      instance.geom = {
+        type: 'Point',
+        coordinates: [Number(instance.longitude), Number(instance.latitude)],
+      };
+      return;
+    }
+
     if (
       instance.changed('street_name') ||
       instance.changed('city') ||
       instance.changed('zip_code')
     ) {
       const geoService = new GeocodingService();
-      const fullAddress = `${instance.street_number} ${instance.street_name}, ${instance.zip_code} ${instance.city}`;
+      const fullAddress = `${instance.street_number || ''} ${instance.street_name}, ${instance.zip_code} ${instance.city}`;
 
-      const coords = await geoService.getCoordsFromAddress(fullAddress);
-
-      if (coords) {
-        instance.latitude = coords.latitude;
-        instance.longitude = coords.longitude;
-        instance.geom = {
-          type: 'Point',
-          coordinates: [coords.longitude, coords.latitude],
-        };
+      try {
+        const coords = await geoService.getCoordsFromAddress(fullAddress);
+        if (coords) {
+          instance.latitude = coords.latitude;
+          instance.longitude = coords.longitude;
+          instance.geom = {
+            type: 'Point',
+            coordinates: [coords.longitude, coords.latitude],
+          };
+        }
+      } catch (error) {
+        throw new Error(`Géocodage impossible pour cette adresse (Rate limit ou API down)`, {
+          cause: error,
+        });
       }
     }
   }

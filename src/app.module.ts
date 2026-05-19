@@ -14,6 +14,7 @@ import { SkillCategoryModule } from './modules/skill-category/skill-category.mod
 import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { WorkersModule } from './modules/workers/workers.module';
+import { AddressModule } from './modules/address/address.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { WorkersModule } from './modules/workers/workers.module';
     MailerModule,
     ChatModule,
     WorkersModule,
+    AddressModule,
   ],
   controllers: [AppController],
   providers: [AppService],
