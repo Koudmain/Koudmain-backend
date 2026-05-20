@@ -6,20 +6,7 @@ import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
 import { MailerController } from '@/modules/mailer/controllers/mailer.controller';
 import { MailerService } from '@/modules/mailer/services/mailer.service';
 
-type MailjetClient = {
-  post: (
-    resource: 'send',
-    options: { version: 'v3.1' },
-  ) => {
-    request: (payload: { Messages: Array<Record<string, unknown>> }) => Promise<void>;
-  };
-};
-
-type MailjetFactory = {
-  apiConnect: (apiKey: string, apiSecret: string) => MailjetClient;
-};
-
-const MailjetClientFactory = Mailjet as unknown as MailjetFactory;
+type MailjetClient = ReturnType<(typeof Mailjet)['apiConnect']>;
 
 @Module({
   controllers: [MailerController],
@@ -38,7 +25,7 @@ const MailjetClientFactory = Mailjet as unknown as MailjetFactory;
           throw new Error('Missing MAILJET_SECRET_KEY');
         }
 
-        return MailjetClientFactory.apiConnect(apiKey, apiSecret);
+        return Mailjet.apiConnect(apiKey, apiSecret);
       },
     },
     MailerService,
