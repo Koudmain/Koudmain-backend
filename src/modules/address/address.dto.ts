@@ -51,3 +51,25 @@ export class CreateAddressDto {
   @IsOptional()
   longitude: number;
 }
+
+export class GetMapAddressesDto {
+  @IsString()
+  @IsNotEmpty()
+  min_lat: string;
+
+  @IsString()
+  @IsNotEmpty()
+  max_lat: string;
+
+  @IsString()
+  @IsNotEmpty()
+  min_lng: string;
+
+  @IsString()
+  @IsNotEmpty()
+  max_lng: string;
+
+  // @IsString()
+  // @IsNotEmpty()
+  // lat_delta: string;
+}
