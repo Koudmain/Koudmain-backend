@@ -61,6 +61,7 @@ describe('AppController (e2e)', () => {
   afterAll(async () => {
     await sequelize.query('TRUNCATE TABLE "user" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
+    await sequelize.query('TRUNCATE TABLE "publication_skill" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "skill" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "skill_category" RESTART IDENTITY CASCADE;');
     await app.close();
@@ -91,7 +92,14 @@ describe('AppController (e2e)', () => {
     accessToken = authBody.access_token;
   });
 
-  it('should create a publication without any foreign Key constraint field', async () => {
+  it('should create a publication with associated skills', async () => {
+    await sequelize.query(
+      `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
+    );
+    await sequelize.query(
+      `INSERT INTO "skill" (id, name, category_id) VALUES (999, 'Skill E2E Publication Test', 1) ON CONFLICT DO NOTHING;`,
+    );
+
     const response = await request(app.getHttpServer())
       .post('/publication/create')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -101,6 +109,7 @@ describe('AppController (e2e)', () => {
         hourly_rate: 25.5,
         starting_date: new Date(),
         ending_date: new Date(),
+        skills: [999],
       });
 
     expect(response.status).toBe(201);
@@ -110,6 +119,11 @@ describe('AppController (e2e)', () => {
     );
     expect(dbCheck[0].length).toBe(1);
     expect((dbCheck[0][0] as any).description).toBe("This shouldn't be mocked!");
+
+    const relCheck = await sequelize.query(
+      `SELECT * FROM "publication_skill" WHERE publication_id = 1;`,
+    );
+    expect(relCheck[0].length).toBe(1);
   });
 
   it('should get all publication previously added by the test', async () => {
@@ -126,20 +140,28 @@ describe('AppController (e2e)', () => {
 
     if (first_pub) {
       expect(first_pub.id).toBe(1);
+      expect(first_pub.skills).toBeInstanceOf(Array);
+      expect(first_pub.skills[0].id).toBe(999);
+      expect(first_pub.skills[0].name).toBe('Skill E2E Publication Test');
     }
   });
 
-  it('should edit the title of the first publication previously added by the test', async () => {
+  it('should edit the title and skills of the first publication previously added by the test', async () => {
     const response = await request(app.getHttpServer())
       .put('/publication/update/1')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ title: 'Updated Title' });
+      .send({ title: 'Updated Title', skills: [] });
 
     expect(response.status).toBe(200);
 
     const dbCheck = await sequelize.query(`SELECT * FROM "publication" WHERE id = 1;`);
     expect(dbCheck[0].length).toBe(1);
     expect((dbCheck[0][0] as any).title).toBe('Updated Title');
+
+    const skillCheck = await sequelize.query(
+      `SELECT * FROM "publication_skill" WHERE publication_id = 1;`,
+    );
+    expect(skillCheck[0].length).toBe(0);
   });
 
   it('should delete the first publication previously added by the test', async () => {
@@ -152,6 +174,10 @@ describe('AppController (e2e)', () => {
 
     const dbCheck = await sequelize.query(`SELECT * FROM "publication" WHERE id = 1;`);
     expect(dbCheck[0].length).toBe(0);
+
+    // Clean up pre-inserted skill and category so downstream skill tests run on a pristine state
+    await sequelize.query('TRUNCATE TABLE "skill" RESTART IDENTITY CASCADE;');
+    await sequelize.query('TRUNCATE TABLE "skill_category" RESTART IDENTITY CASCADE;');
   });
 
   it('should create a skill without any foreign Key constraint field', async () => {

@@ -48,6 +48,7 @@ describe('PublicationController', () => {
         hourly_rate: 35.0,
         starting_date: new Date(),
         ending_date: new Date(),
+        skills: [1, 2],
       };
 
       const expectedServiceResult: PostPublicationResponseDto = {

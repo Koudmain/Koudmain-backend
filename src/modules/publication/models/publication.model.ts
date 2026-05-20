@@ -1,7 +1,17 @@
-import { Column, Model, Table, DataType, BelongsTo, HasMany } from 'sequelize-typescript';
+import {
+  Column,
+  Model,
+  Table,
+  DataType,
+  BelongsTo,
+  HasMany,
+  BelongsToMany,
+} from 'sequelize-typescript';
 import { Company } from '@/modules/companies/models/company.model';
 import { User } from '@/modules/users/models/user.model';
 import { Application } from '@/modules/application/models/application.model';
+import { Skill } from '@/modules/skill/models/skill.model';
+import { PublicationSkill } from './publication-skill.model';
 
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
@@ -22,6 +32,9 @@ export class Publication extends Model {
 
   @HasMany(() => Application, 'publication_id')
   declare applications: Application[];
+
+  @BelongsToMany(() => Skill, () => PublicationSkill)
+  declare skills?: Skill[];
 
   @Column({ type: DataType.INTEGER })
   declare address_id: number;
@@ -66,6 +79,7 @@ export class PostPublicationDto {
   declare hourly_rate: number;
   declare starting_date: Date;
   declare ending_date: Date;
+  declare skills?: number[];
 }
 
 export class PostPublicationResponseDto {

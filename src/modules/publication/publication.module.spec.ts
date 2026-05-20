@@ -4,6 +4,7 @@ import { PublicationService } from './services/publication.service';
 import { PublicationModule } from './publication.module';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
 import { Publication } from './models/publication.model';
+import { PublicationSkill } from './models/publication-skill.model';
 
 describe('PublicationModule', () => {
   let module: TestingModule;
@@ -15,6 +16,8 @@ describe('PublicationModule', () => {
       .overrideProvider(getConnectionToken())
       .useValue({ query: jest.fn() })
       .overrideProvider(getModelToken(Publication))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(PublicationSkill))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .compile();
   });

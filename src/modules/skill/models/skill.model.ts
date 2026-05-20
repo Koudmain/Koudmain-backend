@@ -1,5 +1,15 @@
-import { Column, Model, Table, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import {
+  Column,
+  Model,
+  Table,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  BelongsToMany,
+} from 'sequelize-typescript';
 import { SkillCategory } from '../../skill-category/models/skill-category.model';
+import { Publication } from '../../publication/models/publication.model';
+import { PublicationSkill } from '../../publication/models/publication-skill.model';
 
 @Table({ tableName: 'skill', timestamps: false })
 export class Skill extends Model {
@@ -15,6 +25,9 @@ export class Skill extends Model {
 
   @BelongsTo(() => SkillCategory)
   declare category?: SkillCategory | null;
+
+  @BelongsToMany(() => Publication, () => PublicationSkill)
+  declare publications?: Publication[];
 }
 
 export class PostSkillDto {
