@@ -25,23 +25,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.client.quit();
   }
 
-  /**
-   * Stocke une valeur avec un TTL en secondes.
-   */
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
     await this.client.set(key, value, 'EX', ttlSeconds);
   }
 
-  /**
-   * Récupère une valeur. Retourne null si absente ou expirée.
-   */
   async get(key: string): Promise<string | null> {
     return this.client.get(key);
   }
 
-  /**
-   * Supprime une clé.
-   */
   async del(key: string): Promise<void> {
     await this.client.del(key);
   }
