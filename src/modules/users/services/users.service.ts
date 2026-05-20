@@ -59,4 +59,8 @@ export class UsersService {
       returning: true,
     });
   }
+
+  async markEmailAsVerified(userId: number): Promise<void> {
+    await this.userModel.update({ email_verified_at: new Date() }, { where: { id: userId } });
+  }
 }

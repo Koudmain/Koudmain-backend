@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RefreshSessionService } from './refresh-session.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
+import { EmailVerificationService } from './email-verification.service';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
@@ -18,6 +19,7 @@ describe('AuthService', () => {
 
   const mockUsersService = {
     findOneByEmail: jest.fn(),
+    findOneById: jest.fn(),
     create: jest.fn(),
   };
 
@@ -42,6 +44,10 @@ describe('AuthService', () => {
     createCompanyWithOwner: jest.fn(),
   };
 
+  const mockEmailVerificationService = {
+    sendVerificationCode: jest.fn(),
+  };
+
   beforeEach(async () => {
     // Reset env vars
     process.env.JWT_ACCESS_SECRET = 'access_secret';
@@ -57,6 +63,7 @@ describe('AuthService', () => {
         { provide: RefreshSessionService, useValue: mockRefreshSessionService },
         { provide: WorkersService, useValue: mockWorkersService },
         { provide: CompaniesService, useValue: mockCompaniesService },
+        { provide: EmailVerificationService, useValue: mockEmailVerificationService },
       ],
     }).compile();
 
@@ -177,7 +184,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('should hash password, create user and return tokens', async () => {
+    it('should hash password, create user, send verification email and return userId + message', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
       mockUsersService.create.mockResolvedValue({
@@ -186,10 +193,7 @@ describe('AuthService', () => {
         last_name: 'Doe',
         email: 'new@test.com',
       });
-
-      mockJwtService.signAsync
-        .mockResolvedValueOnce('access_token_mock')
-        .mockResolvedValueOnce('refresh_token_mock');
+      mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
 
       const result = await service.register('John', 'Doe', 'new@test.com', 'password', true, false);
 
@@ -204,9 +208,14 @@ describe('AuthService', () => {
       });
       expect(mockWorkersService.create).toHaveBeenCalledWith({ user_id: 2 });
       expect(mockCompaniesService.createCompanyWithOwner).not.toHaveBeenCalled();
+      expect(mockEmailVerificationService.sendVerificationCode).toHaveBeenCalledWith(
+        2,
+        'new@test.com',
+        'John',
+      );
       expect(result).toEqual({
-        access_token: 'access_token_mock',
-        refresh_token: 'refresh_token_mock',
+        userId: 2,
+        message: 'Un code de vérification a été envoyé à votre adresse email.',
       });
     });
 
@@ -219,9 +228,7 @@ describe('AuthService', () => {
         last_name: 'Smith',
         email: 'employer@test.com',
       });
-      mockJwtService.signAsync
-        .mockResolvedValueOnce('access_token_mock')
-        .mockResolvedValueOnce('refresh_token_mock');
+      mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
 
       await service.register(
         'Jane',
@@ -246,9 +253,7 @@ describe('AuthService', () => {
         last_name: 'Martin',
         email: 'employer2@test.com',
       });
-      mockJwtService.signAsync
-        .mockResolvedValueOnce('access_token_mock')
-        .mockResolvedValueOnce('refresh_token_mock');
+      mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
 
       await service.register('Paul', 'Martin', 'employer2@test.com', 'password', false, true);
 

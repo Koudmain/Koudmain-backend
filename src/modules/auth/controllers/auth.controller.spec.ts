@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from '../services/auth.service';
+import { EmailVerificationService } from '../services/email-verification.service';
 
 const mockAuthService = {
   signIn: jest.fn(),
@@ -8,6 +9,13 @@ const mockAuthService = {
   refresh: jest.fn(),
   logout: jest.fn(),
   logoutAll: jest.fn(),
+  generateTokensForUser: jest.fn(),
+  getUserForVerification: jest.fn(),
+};
+
+const mockEmailVerificationService = {
+  verifyCode: jest.fn(),
+  sendVerificationCode: jest.fn(),
 };
 
 describe('AuthController', () => {
@@ -20,6 +28,10 @@ describe('AuthController', () => {
         {
           provide: AuthService,
           useValue: mockAuthService,
+        },
+        {
+          provide: EmailVerificationService,
+          useValue: mockEmailVerificationService,
         },
       ],
     }).compile();
@@ -57,9 +69,12 @@ describe('AuthController', () => {
   });
 
   describe('signUp', () => {
-    it('should call authService.register and return tokens', async () => {
-      const mockTokens = { access_token: 'acc_token', refresh_token: 'ref_token' };
-      mockAuthService.register.mockResolvedValue(mockTokens);
+    it('should call authService.register and return userId + message', async () => {
+      const mockResponse = {
+        userId: 1,
+        message: 'Un code de vérification a été envoyé à votre adresse email.',
+      };
+      mockAuthService.register.mockResolvedValue(mockResponse);
 
       const payload = {
         first_name: 'John',
@@ -81,7 +96,7 @@ describe('AuthController', () => {
         payload.is_worker_active,
         payload.is_employer_active,
       );
-      expect(result).toEqual(mockTokens);
+      expect(result).toEqual(mockResponse);
     });
   });
 

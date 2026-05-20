@@ -3,6 +3,7 @@ import { UsersService } from '@/modules/users/services/users.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { RefreshSessionService } from './refresh-session.service';
+import { EmailVerificationService } from './email-verification.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
 
@@ -14,6 +15,7 @@ export class AuthService {
     private refreshSessionService: RefreshSessionService,
     private workersService: WorkersService,
     private companiesService: CompaniesService,
+    private emailVerificationService: EmailVerificationService,
   ) {}
 
   private async generateTokens(
@@ -129,6 +131,29 @@ export class AuthService {
     return { message: 'All sessions revoked successfully' };
   }
 
+  /**
+   * Génère les tokens JWT pour un userId donné.
+   * Appelé par /auth/verify-email une fois le code OTP validé.
+   */
+  async generateTokensForUser(
+    userId: number,
+  ): Promise<{ access_token: string; refresh_token: string }> {
+    const user = await this.usersService.findOneById(userId);
+    if (!user) throw new UnauthorizedException('Utilisateur introuvable.');
+    const payload = { sub: user.id, email: user.email };
+    return this.generateTokens(payload, user.id);
+  }
+
+  /**
+   * Récupère un utilisateur pour le resend de code.
+   * Retourne l'utilisateur ou lève une UnauthorizedException s'il n'existe pas.
+   */
+  async getUserForVerification(userId: number) {
+    const user = await this.usersService.findOneById(userId);
+    if (!user) throw new UnauthorizedException('Utilisateur introuvable.');
+    return user;
+  }
+
   async register(
     first_name: string,
     last_name: string,
@@ -137,7 +162,7 @@ export class AuthService {
     is_worker_active = false,
     is_employer_active = false,
     company_name?: string,
-  ): Promise<{ access_token: string; refresh_token: string }> {
+  ): Promise<{ userId: number; message: string }> {
     const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) throw new ConflictException('Email already exists');
     const hashedPassword = await hash(password, 10);
@@ -150,6 +175,7 @@ export class AuthService {
       is_worker_active,
       is_employer_active,
     });
+
     if (is_worker_active) {
       await this.workersService.create({
         user_id: newUser.id,
@@ -163,7 +189,15 @@ export class AuthService {
       );
     }
 
-    const payload = { sub: newUser.id, email: newUser.email };
-    return this.generateTokens(payload, newUser.id);
+    await this.emailVerificationService.sendVerificationCode(
+      newUser.id,
+      newUser.email,
+      newUser.first_name,
+    );
+
+    return {
+      userId: newUser.id,
+      message: 'Un code de vérification a été envoyé à votre adresse email.',
+    };
   }
 }

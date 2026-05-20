@@ -2,6 +2,7 @@ import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import { IsEmail, IsOptional, IsString } from 'class-validator';
 import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
+import { buildEmailVerificationHtml } from '@/modules/mailer/templates/email-verification.template';
 
 type MailjetSendMessage = {
   From: { Email: string; Name?: string };
@@ -112,5 +113,14 @@ export class MailerService {
       console.error('Mailjet send error:', error);
       throw new InternalServerErrorException('Failed to send email');
     }
+  }
+
+  async sendVerificationEmail(toEmail: string, firstName: string, code: string): Promise<void> {
+    await this.sendEmail({
+      toEmail,
+      toName: firstName,
+      subject: `${code} — Votre code de vérification Koudmain`,
+      html: buildEmailVerificationHtml(firstName, code),
+    });
   }
 }
