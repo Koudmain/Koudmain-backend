@@ -17,6 +17,9 @@ CREATE TABLE "user" (
   "profile_picture_url" varchar(255),
   "email" varchar UNIQUE,
   "password" varchar,
+  "phone_number" varchar(20),
+  "email_verified_at" timestamp,
+  "birth_date" date,
   "is_worker_active" boolean DEFAULT false,
   "is_employer_active" boolean DEFAULT false,
   "created_at" timestamp DEFAULT (now())
@@ -42,7 +45,10 @@ CREATE TABLE "worker_profile" (
   "id" serial PRIMARY KEY,
   "user_id" integer,
   "address_id" integer,
-  "max_distance_km" integer DEFAULT 20,
+  "bio" text,
+  "workplace_latitude" numeric(9,6),
+  "workplace_longitude" numeric(9,6),
+  "work_radius" integer DEFAULT 20,
   "skills_description" text,
   "identity_verified" boolean DEFAULT false,
   "iban" varchar,
@@ -253,7 +259,11 @@ COMMENT ON COLUMN "user"."is_worker_active" IS 'Accès à l''App Worker';
 
 COMMENT ON COLUMN "user"."is_employer_active" IS 'Accès à l''App Enterprise';
 
-COMMENT ON COLUMN "worker_profile"."max_distance_km" IS 'Rayon de recherche';
+COMMENT ON COLUMN "worker_profile"."work_radius" IS 'Rayon de recherche (km)';
+COMMENT ON COLUMN "worker_profile"."birth_date" IS 'Date de naissance pour KYC et légalité';
+COMMENT ON COLUMN "worker_profile"."bio" IS 'Description/Biographie du worker';
+COMMENT ON COLUMN "worker_profile"."workplace_latitude" IS 'Latitude du lieu de travail souhaité';
+COMMENT ON COLUMN "worker_profile"."workplace_longitude" IS 'Longitude du lieu de travail souhaité';
 
 COMMENT ON COLUMN "wallet"."balance" IS 'Solde disponible pour virement';
 

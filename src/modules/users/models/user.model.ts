@@ -30,6 +30,15 @@ export class User extends Model {
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   declare is_employer_active: boolean;
 
+  @Column({ field: 'phone_number', type: DataType.STRING, unique: false })
+  declare phone_number: string;
+
+  @Column({ field: 'birth_date', type: DataType.DATEONLY })
+  declare birth_date: string;
+
+  @Column({ field: 'email_verified_at', type: DataType.DATE })
+  declare email_verified_at: Date;
+
   @Column({ field: 'created_at', type: DataType.DATE })
   declare createdAt: Date;
 }
