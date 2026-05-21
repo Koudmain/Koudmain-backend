@@ -1,24 +1,20 @@
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString, IsNumber, IsObject } from 'class-validator';
 import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
-import { buildEmailVerificationHtml } from '@/modules/mailer/templates/email-verification.template';
 
 type MailjetSendMessage = {
   From: { Email: string; Name?: string };
   To: Array<{ Email: string; Name?: string }>;
-  Subject: string;
+  Subject?: string;
   TextPart?: string;
   HTMLPart?: string;
+  TemplateID?: number;
+  TemplateLanguage?: boolean;
+  Variables?: Record<string, any>;
+  TemplateErrorReporting?: { Email: string; Name?: string };
+  TemplateErrorDeliver?: boolean;
   ReplyTo?: { Email: string; Name?: string };
-  InlinedAttachments?: Array<{
-    ContentType: string;
-    Filename: string;
-    ContentID: string;
-    Base64Content: string;
-  }>;
 };
 
 type MailjetSendPayload = {
@@ -42,8 +38,9 @@ export class SendEmailInput {
   @IsString()
   toName?: string;
 
+  @IsOptional()
   @IsString()
-  subject!: string;
+  subject?: string;
 
   @IsOptional()
   @IsString()
@@ -60,6 +57,14 @@ export class SendEmailInput {
   @IsOptional()
   @IsString()
   replyToName?: string;
+
+  @IsOptional()
+  @IsNumber()
+  templateId?: number;
+
+  @IsOptional()
+  @IsObject()
+  variables?: Record<string, any>;
 }
 
 @Injectable()
@@ -82,26 +87,11 @@ export class MailerService {
     this.fromName = fromName;
   }
 
-  private getLogoBase64(): string {
-    let logoPath = join(__dirname, 'templates', 'logo_black_transparant.png');
-    if (!existsSync(logoPath)) {
-      const fallbackPath = join(__dirname.replace(join('dist', 'src'), 'dist'), 'templates', 'logo_black_transparant.png');
-      if (existsSync(fallbackPath)) {
-        logoPath = fallbackPath;
-      }
-    }
-    if (existsSync(logoPath)) {
-      return readFileSync(logoPath).toString('base64');
-    }
-    return '';
-  }
-
   async sendEmail(input: SendEmailInput): Promise<void> {
-    if (!input.text && !input.html) {
-      throw new InternalServerErrorException('Email content is empty (text/html)');
+    if (!input.text && !input.html && !input.templateId) {
+      throw new InternalServerErrorException('Email content is empty (text/html/templateId)');
     }
 
-    const logoBase64 = this.getLogoBase64();
     const message: MailjetSendMessage = {
       From: {
         Email: this.fromEmail,
@@ -113,9 +103,7 @@ export class MailerService {
           ...(input.toName ? { Name: input.toName } : {}),
         },
       ],
-      Subject: input.subject,
-      ...(input.text ? { TextPart: input.text } : {}),
-      ...(input.html ? { HTMLPart: input.html } : {}),
+      ...(input.subject ? { Subject: input.subject } : {}),
       ...(input.replyToEmail
         ? {
             ReplyTo: {
@@ -126,15 +114,20 @@ export class MailerService {
         : {}),
     };
 
-    if (logoBase64 && input.html && input.html.includes('cid:logo')) {
-      message.InlinedAttachments = [
-        {
-          ContentType: 'image/png',
-          Filename: 'logo_black_transparant.png',
-          ContentID: 'logo',
-          Base64Content: logoBase64,
-        },
-      ];
+    if (input.templateId) {
+      message.TemplateID = input.templateId;
+      message.TemplateLanguage = true;
+      if (input.variables) {
+        message.Variables = input.variables;
+      }
+      message.TemplateErrorReporting = {
+        Email: this.fromEmail,
+        Name: this.fromName || 'Koudmain',
+      };
+      message.TemplateErrorDeliver = true;
+    } else {
+      if (input.text) message.TextPart = input.text;
+      if (input.html) message.HTMLPart = input.html;
     }
 
     const payload: MailjetSendPayload = {
@@ -150,11 +143,40 @@ export class MailerService {
   }
 
   async sendVerificationEmail(toEmail: string, firstName: string, code: string): Promise<void> {
+    const contentHtml = `
+<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px 24px; margin: 0 auto 32px; display: inline-block; width: 100%; text-align: center;">
+  <p style="font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #f97316; margin-bottom: 16px; margin-top: 0; font-family: 'Inter', Arial, sans-serif;">
+    Votre code de vérification
+  </p>
+  <p style="font-size: 44px; font-weight: 800; letter-spacing: 12px; color: #0f172a; margin: 0; font-family: 'Plus Jakarta Sans', 'Inter', Arial, sans-serif; text-shadow: 0 0 10px rgba(216, 74, 34, 0.1); font-variant-numeric: tabular-nums;">
+    ${code}
+  </p>
+  <p style="font-size: 13px; color: #64748b; margin-top: 12px; margin-bottom: 0; font-family: 'Inter', Arial, sans-serif;">
+    Valide pendant <strong>15 minutes</strong>
+  </p>
+</div>
+`;
+
+    const warningHtml = `
+<div class="warning">
+  Si vous n'avez pas créé de compte sur Koudmain, ignorez cet email. Votre adresse ne sera pas enregistrée.
+</div>
+`;
+
     await this.sendEmail({
       toEmail,
       toName: firstName,
       subject: `${code} — Votre code de vérification Koudmain`,
-      html: buildEmailVerificationHtml(firstName, code),
+      templateId: 8041377,
+      variables: {
+        preHeader: `${code} est votre code de vérification Koudmain`,
+        title: 'Confirmez votre adresse email',
+        leadText: `Bonjour ${firstName},<br />Utilisez le code ci-dessous pour finaliser votre inscription sur Koudmain.`,
+        contentHtml,
+        warningHtml,
+        signature: 'Cordialement,<br />L’équipe Koudmain',
+        year: new Date().getFullYear().toString(),
+      },
     });
   }
 }

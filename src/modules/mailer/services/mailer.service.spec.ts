@@ -42,7 +42,7 @@ describe('MailerService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should send an email via Mailjet', async () => {
+  it('should send an email via Mailjet using text/html', async () => {
     requestMock.mockResolvedValue(undefined);
 
     await service.sendEmail({
@@ -63,5 +63,76 @@ describe('MailerService', () => {
         },
       ],
     });
+  });
+
+  it('should send an email via Mailjet using a template', async () => {
+    requestMock.mockResolvedValue(undefined);
+
+    await service.sendEmail({
+      toEmail: 'user@test.com',
+      toName: 'User',
+      subject: 'Hello',
+      templateId: 123456,
+      variables: { name: 'John' },
+    });
+
+    expect(postMock).toHaveBeenCalledWith('send', { version: 'v3.1' });
+    expect(requestMock).toHaveBeenCalledWith({
+      Messages: [
+        {
+          From: { Email: 'noreply@test.com', Name: 'Koudmain' },
+          To: [{ Email: 'user@test.com', Name: 'User' }],
+          Subject: 'Hello',
+          TemplateID: 123456,
+          TemplateLanguage: true,
+          Variables: { name: 'John' },
+          TemplateErrorReporting: { Email: 'noreply@test.com', Name: 'Koudmain' },
+          TemplateErrorDeliver: true,
+        },
+      ],
+    });
+  });
+
+  it('should send verification email using template 8041377', async () => {
+    requestMock.mockResolvedValue(undefined);
+
+    await service.sendVerificationEmail('user@test.com', 'Jean', '123456');
+
+    expect(postMock).toHaveBeenCalledWith('send', { version: 'v3.1' });
+    expect(requestMock).toHaveBeenCalled();
+
+    const calls = requestMock.mock.calls as unknown as unknown[][];
+    const payload = calls[0][0] as {
+      Messages: Array<{
+        From: { Email: string; Name?: string };
+        To: Array<{ Email: string; Name?: string }>;
+        Subject?: string;
+        TemplateID?: number;
+        TemplateLanguage?: boolean;
+        TemplateErrorReporting?: { Email: string; Name?: string };
+        TemplateErrorDeliver?: boolean;
+        Variables?: Record<string, string>;
+      }>;
+    };
+    const message = payload.Messages[0];
+
+    expect(message.From).toEqual({ Email: 'noreply@test.com', Name: 'Koudmain' });
+    expect(message.To).toEqual([{ Email: 'user@test.com', Name: 'Jean' }]);
+    expect(message.Subject).toBe('123456 — Votre code de vérification Koudmain');
+    expect(message.TemplateID).toBe(8041377);
+    expect(message.TemplateLanguage).toBe(true);
+    expect(message.TemplateErrorReporting).toEqual({ Email: 'noreply@test.com', Name: 'Koudmain' });
+    expect(message.TemplateErrorDeliver).toBe(true);
+
+    expect(message.Variables).toBeDefined();
+    const variables = message.Variables!;
+    expect(variables.preHeader).toBe('123456 est votre code de vérification Koudmain');
+    expect(variables.title).toBe('Confirmez votre adresse email');
+    expect(variables.leadText).toBe(
+      'Bonjour Jean,<br />Utilisez le code ci-dessous pour finaliser votre inscription sur Koudmain.',
+    );
+    expect(variables.contentHtml).toContain('123456');
+    expect(variables.warningHtml).toContain("Si vous n'avez pas créé de compte");
+    expect(variables.signature).toBe('Cordialement,<br />L’équipe Koudmain');
   });
 });
