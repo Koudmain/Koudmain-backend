@@ -24,46 +24,51 @@ export class PlanningService {
   ) {}
 
   async getPlanning(
-    userId: number,
-    appContext?: string,
-    startDate?: string,
-    endDate?: string,
-    activeCompanyId?: number,
+    user_id: number,
+    app_context?: string,
+    start_date?: string,
+    end_date?: string,
+    active_company_id?: number,
   ) {
-    let filterStartDate: Date;
-    let filterEndDate: Date;
+    let filter_start_date: Date;
+    let filter_end_date: Date;
 
-    if (startDate && endDate) {
-      filterStartDate = new Date(startDate);
-      filterEndDate = new Date(endDate);
+    if (start_date && end_date) {
+      filter_start_date = new Date(start_date);
+      filter_end_date = new Date(end_date);
 
-      if (isNaN(filterStartDate.getTime()) || isNaN(filterEndDate.getTime())) {
+      if (isNaN(filter_start_date.getTime()) || isNaN(filter_end_date.getTime())) {
         throw new BadRequestException('startDate et endDate doivent être des dates valides');
       }
 
-      if (filterStartDate > filterEndDate) {
+      if (filter_start_date > filter_end_date) {
         throw new BadRequestException('startDate doit être antérieure ou égale à endDate');
       }
-    } else if (!startDate && !endDate) {
+    } else if (!start_date && !end_date) {
       const now = new Date();
-      filterStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      filterEndDate = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59, 999);
+      filter_start_date = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      filter_end_date = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59, 999);
     } else {
       throw new BadRequestException(
         'Les paramètres startDate et endDate doivent être fournis ensemble',
       );
     }
 
-    const user = await this.userModel.findByPk(userId);
+    const user = await this.userModel.findByPk(user_id);
 
     if (!user) {
       throw new BadRequestException('Utilisateur non trouvé');
     }
 
-    if (appContext === 'worker') {
-      return this.getWorkerPlanning(userId, filterStartDate, filterEndDate);
-    } else if (appContext === 'employer') {
-      return this.getEmployerPlanning(userId, filterStartDate, filterEndDate, activeCompanyId);
+    if (app_context === 'worker') {
+      return this.getWorkerPlanning(user_id, filter_start_date, filter_end_date);
+    } else if (app_context === 'employer') {
+      return this.getEmployerPlanning(
+        user_id,
+        filter_start_date,
+        filter_end_date,
+        active_company_id,
+      );
     } else {
       throw new BadRequestException(
         "L'utilisateur doit avoir un app_context valide dans le token (worker ou employer)",
@@ -72,19 +77,19 @@ export class PlanningService {
   }
 
   private async getEmployerPlanning(
-    userId: number,
-    filterStartDate: Date,
-    filterEndDate: Date,
-    activeCompanyId?: number,
+    user_id: number,
+    filter_start_date: Date,
+    filter_end_date: Date,
+    active_company_id?: number,
   ) {
-    if (!activeCompanyId) {
+    if (!active_company_id) {
       throw new BadRequestException(
         'activeCompanyId est obligatoire pour consulter le planning employer',
       );
     }
 
     const membership = await this.companyMemberModel.findOne({
-      where: { user_id: userId, company_id: activeCompanyId },
+      where: { user_id: user_id, company_id: active_company_id },
     });
 
     if (!membership) {
@@ -98,12 +103,12 @@ export class PlanningService {
           as: 'publication',
           required: true,
           where: {
-            company_id: activeCompanyId,
+            company_id: active_company_id,
             starting_date: {
-              [Op.lte]: filterEndDate,
+              [Op.lte]: filter_end_date,
             },
             ending_date: {
-              [Op.gte]: filterStartDate,
+              [Op.gte]: filter_start_date,
             },
           },
           include: [
@@ -146,30 +151,30 @@ export class PlanningService {
       const pub = app.publication;
       const worker = app.workerProfile?.user;
       const reviews = worker?.reviews || [];
-      const totalRating = reviews.reduce((sum: number, r: Review) => sum + r.rating, 0);
-      const workerRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+      const total_rating = reviews.reduce((sum: number, r: Review) => sum + r.rating, 0);
+      const worker_rating = reviews.length > 0 ? total_rating / reviews.length : 0;
 
       return {
-        publicationId: pub.id,
+        publication_id: pub.id,
         title: pub.title,
         salary: pub.hourly_rate,
-        startingDate: pub.starting_date,
-        endingDate: pub.ending_date,
-        workerName: worker ? `${worker.first_name} ${worker.last_name}` : null,
-        workerProfilePicture: worker?.profile_picture_url || null,
-        workerRating: Number(workerRating.toFixed(2)),
-        workerRatingCount: reviews.length,
+        starting_date: pub.starting_date,
+        ending_date: pub.ending_date,
+        worker_name: worker ? `${worker.first_name} ${worker.last_name}` : null,
+        worker_profile_picture: worker?.profile_picture_url || null,
+        worker_rating: Number(worker_rating.toFixed(2)),
+        worker_rating_count: reviews.length,
       };
     });
   }
 
-  private async getWorkerPlanning(userId: number, filterStartDate: Date, filterEndDate: Date) {
+  private async getWorkerPlanning(user_id: number, filter_start_date: Date, filter_end_date: Date) {
     const applications = await this.applicationModel.findAll({
       include: [
         {
           model: WorkerProfile,
           as: 'workerProfile',
-          where: { user_id: userId },
+          where: { user_id: user_id },
           required: true,
         },
         {
@@ -178,10 +183,10 @@ export class PlanningService {
           required: true,
           where: {
             starting_date: {
-              [Op.lte]: filterEndDate,
+              [Op.lte]: filter_end_date,
             },
             ending_date: {
-              [Op.gte]: filterStartDate,
+              [Op.gte]: filter_start_date,
             },
           },
           include: [
@@ -216,20 +221,20 @@ export class PlanningService {
     return applications.map((app) => {
       const pub = app.publication;
       const reviews = pub?.creator?.reviews || [];
-      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
-      const companyRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+      const total_rating = reviews.reduce((sum, r) => sum + r.rating, 0);
+      const company_rating = reviews.length > 0 ? total_rating / reviews.length : 0;
 
       return {
-        publicationId: pub.id,
+        publication_id: pub.id,
         title: pub.title,
         salary: pub.hourly_rate,
-        startingDate: pub.starting_date,
-        endingDate: pub.ending_date,
-        companyName: pub.company?.name || null,
-        companyRating: Number(companyRating.toFixed(2)),
-        companyRatingCount: reviews.length,
-        companyLogo: pub.creator?.profile_picture_url || null,
-        applicationStatus: app.status,
+        starting_date: pub.starting_date,
+        ending_date: pub.ending_date,
+        company_name: pub.company?.name || null,
+        company_rating: Number(company_rating.toFixed(2)),
+        company_rating_count: reviews.length,
+        company_logo: pub.creator?.profile_picture_url || null,
+        application_status: app.status,
         city: pub.address?.city || null,
         zip: pub.address?.zip_code || null,
       };

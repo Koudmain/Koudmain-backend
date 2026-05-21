@@ -17,37 +17,37 @@ export class PlanningController {
   @HttpCode(HttpStatus.OK)
   @Get()
   async getPlanning(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('activeCompanyId') activeCompanyId?: number,
+    @Query('startDate') start_date?: string,
+    @Query('endDate') end_date?: string,
+    @Query('activeCompanyId') active_company_id?: number,
     @Req() request?: Request,
   ) {
     if (request && request.query) {
-      const allowedKeys = ['startDate', 'endDate', 'activeCompanyId'];
-      const queryKeys = Object.keys(request.query);
-      const hasExtraParams = queryKeys.some((key) => !allowedKeys.includes(key));
+      const allowed_keys = ['startDate', 'endDate', 'activeCompanyId'];
+      const query_keys = Object.keys(request.query);
+      const has_extra_params = query_keys.some((key) => !allowed_keys.includes(key));
 
-      if (hasExtraParams) {
+      if (has_extra_params) {
         throw new BadRequestException(
           'Seuls les paramètres startDate, endDate et activeCompanyId sont autorisés.',
         );
       }
     }
 
-    const customReq = request as unknown as { user?: { sub?: number; app_context?: string } };
-    const userId = customReq?.user?.sub;
-    const appContext = customReq?.user?.app_context;
+    const custom_req = request as unknown as { user?: { sub?: number; app_context?: string } };
+    const user_id = custom_req?.user?.sub;
+    const app_context = custom_req?.user?.app_context;
 
-    if (!userId) {
+    if (!user_id) {
       throw new BadRequestException('Utilisateur non authentifié');
     }
 
     return this.planningService.getPlanning(
-      Number(userId),
-      appContext,
-      startDate,
-      endDate,
-      activeCompanyId,
+      Number(user_id),
+      app_context,
+      start_date,
+      end_date,
+      active_company_id,
     );
   }
 }

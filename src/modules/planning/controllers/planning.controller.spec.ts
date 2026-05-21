@@ -34,32 +34,35 @@ describe('PlanningController', () => {
   });
 
   describe('getPlanning', () => {
-    const mockRequest = { user: { sub: 123, app_context: 'worker' }, query: {} };
+    const mock_request = { user: { sub: 123, app_context: 'worker' }, query: {} };
 
     it('should call getPlanning service method with correct parameters', async () => {
-      const startDate = '2026-05-01';
-      const endDate = '2026-05-15';
-      const activeCompanyId = 10;
-      const requestWithDates = { ...mockRequest, query: { startDate, endDate, activeCompanyId } };
+      const start_date = '2026-05-01';
+      const end_date = '2026-05-15';
+      const active_company_id = 10;
+      const request_with_dates = {
+        ...mock_request,
+        query: { startDate: start_date, endDate: end_date, activeCompanyId: active_company_id },
+      };
 
       await controller.getPlanning(
-        startDate,
-        endDate,
-        activeCompanyId,
-        requestWithDates as unknown as Request,
+        start_date,
+        end_date,
+        active_company_id,
+        request_with_dates as unknown as Request,
       );
 
       expect(mockPlanningService.getPlanning).toHaveBeenCalledWith(
         123,
         'worker',
-        startDate,
-        endDate,
+        start_date,
+        end_date,
         10,
       );
     });
 
     it('should throw BadRequestException if unknown parameters are passed', async () => {
-      const invalidRequest = {
+      const invalid_request = {
         query: { unknownParam: 'true' },
         user: { sub: 123, app_context: 'worker' },
       };
@@ -68,30 +71,30 @@ describe('PlanningController', () => {
           undefined,
           undefined,
           undefined,
-          invalidRequest as unknown as Request,
+          invalid_request as unknown as Request,
         ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if user.sub is missing', async () => {
-      const requestWithoutSub = { user: { id: 456, app_context: 'worker' }, query: {} };
+      const request_without_sub = { user: { id: 456, app_context: 'worker' }, query: {} };
       await expect(() =>
         controller.getPlanning(
           undefined,
           undefined,
           undefined,
-          requestWithoutSub as unknown as Request,
+          request_without_sub as unknown as Request,
         ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should handle request without query', async () => {
-      const requestWithoutQuery = { user: { sub: 123, app_context: 'worker' } };
+      const request_without_query = { user: { sub: 123, app_context: 'worker' } };
       await controller.getPlanning(
         undefined,
         undefined,
         undefined,
-        requestWithoutQuery as unknown as Request,
+        request_without_query as unknown as Request,
       );
       expect(mockPlanningService.getPlanning).toHaveBeenCalledWith(
         123,
