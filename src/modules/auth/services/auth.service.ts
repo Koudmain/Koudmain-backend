@@ -6,6 +6,7 @@ import { RefreshSessionService } from './refresh-session.service';
 import { EmailVerificationService } from './email-verification.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
+import { UserRole } from '@/modules/users/models/user.model';
 
 @Injectable()
 export class AuthService {
@@ -80,10 +81,10 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    if (targetApp === 'worker' && !user.is_worker_active) {
+    if (targetApp === 'worker' && user.role !== UserRole.WORKER) {
       throw new UnauthorizedException("Vous n'avez pas de profil worker actif");
     }
-    if (targetApp === 'employer' && !user.is_employer_active) {
+    if (targetApp === 'employer' && user.role !== UserRole.EMPLOYER) {
       throw new UnauthorizedException("Vous n'avez pas de profil employeur actif");
     }
 
@@ -159,8 +160,7 @@ export class AuthService {
     last_name: string,
     email: string,
     password: string,
-    is_worker_active = false,
-    is_employer_active = false,
+    role: UserRole,
     company_name?: string,
   ): Promise<{ userId: number; message: string }> {
     const existingUser = await this.usersService.findOneByEmail(email);
@@ -172,17 +172,16 @@ export class AuthService {
       last_name,
       email,
       password: hashedPassword,
-      is_worker_active,
-      is_employer_active,
+      role,
     });
 
-    if (is_worker_active) {
+    if (role === UserRole.WORKER) {
       await this.workersService.create({
         user_id: newUser.id,
       });
     }
 
-    if (is_employer_active) {
+    if (role === UserRole.EMPLOYER) {
       await this.companiesService.createCompanyWithOwner(
         company_name || `Entreprise de ${newUser.last_name}`,
         newUser.id,

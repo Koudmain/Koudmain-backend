@@ -7,6 +7,7 @@ import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { EmailVerificationService } from './email-verification.service';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import { UserRole } from '@/modules/users/models/user.model';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt', () => ({
@@ -92,8 +93,7 @@ describe('AuthService', () => {
         id: 1,
         email: 'test@test.com',
         password: 'hashed',
-        is_worker_active: true,
-        is_employer_active: true,
+        role: UserRole.WORKER,
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
@@ -107,8 +107,7 @@ describe('AuthService', () => {
         id: 1,
         email: 'test@test.com',
         password: 'hashed',
-        is_worker_active: false,
-        is_employer_active: true,
+        role: UserRole.EMPLOYER,
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -122,8 +121,7 @@ describe('AuthService', () => {
         id: 1,
         email: 'test@test.com',
         password: 'hashed',
-        is_worker_active: true,
-        is_employer_active: false,
+        role: UserRole.WORKER,
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -137,8 +135,7 @@ describe('AuthService', () => {
         id: 1,
         email: 'test@test.com',
         password: 'hashed',
-        is_worker_active: true,
-        is_employer_active: false,
+        role: UserRole.WORKER,
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -179,7 +176,7 @@ describe('AuthService', () => {
     it('should throw ConflictException if email exists', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue({ id: 1 });
 
-      await expect(service.register('John', 'Doe', 'exist@test.com', 'password')).rejects.toThrow(
+      await expect(service.register('John', 'Doe', 'exist@test.com', 'password', UserRole.WORKER)).rejects.toThrow(
         ConflictException,
       );
     });
@@ -195,7 +192,7 @@ describe('AuthService', () => {
       });
       mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
 
-      const result = await service.register('John', 'Doe', 'new@test.com', 'password', true, false);
+      const result = await service.register('John', 'Doe', 'new@test.com', 'password', UserRole.WORKER);
 
       expect(bcrypt.hash).toHaveBeenCalledWith('password', 10);
       expect(mockUsersService.create).toHaveBeenCalledWith({
@@ -203,8 +200,7 @@ describe('AuthService', () => {
         last_name: 'Doe',
         email: 'new@test.com',
         password: 'hashed_password',
-        is_worker_active: true,
-        is_employer_active: false,
+        role: UserRole.WORKER,
       });
       expect(mockWorkersService.create).toHaveBeenCalledWith({ user_id: 2 });
       expect(mockCompaniesService.createCompanyWithOwner).not.toHaveBeenCalled();
@@ -235,8 +231,7 @@ describe('AuthService', () => {
         'Smith',
         'employer@test.com',
         'password',
-        false,
-        true,
+        UserRole.EMPLOYER,
         'Acme Corp',
       );
 
@@ -255,7 +250,7 @@ describe('AuthService', () => {
       });
       mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await service.register('Paul', 'Martin', 'employer2@test.com', 'password', false, true);
+      await service.register('Paul', 'Martin', 'employer2@test.com', 'password', UserRole.EMPLOYER);
 
       expect(mockCompaniesService.createCompanyWithOwner).toHaveBeenCalledWith(
         'Entreprise de Martin',

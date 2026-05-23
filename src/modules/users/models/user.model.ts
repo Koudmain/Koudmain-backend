@@ -1,6 +1,11 @@
 import { Column, Model, Table, DataType, HasMany } from 'sequelize-typescript';
 import { Review } from '@/modules/review/models/review.model';
 
+export enum UserRole {
+  WORKER = 'WORKER',
+  EMPLOYER = 'EMPLOYER',
+}
+
 @Table({ tableName: 'user', timestamps: false })
 export class User extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true })
@@ -24,11 +29,11 @@ export class User extends Model {
   @Column(DataType.STRING)
   declare password: string;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: false })
-  declare is_worker_active: boolean;
-
-  @Column({ type: DataType.BOOLEAN, defaultValue: false })
-  declare is_employer_active: boolean;
+  @Column({
+    type: DataType.ENUM(UserRole.WORKER, UserRole.EMPLOYER),
+    allowNull: false,
+  })
+  declare role: UserRole;
 
   @Column({ field: 'phone_number', type: DataType.STRING, unique: false })
   declare phone_number: string;

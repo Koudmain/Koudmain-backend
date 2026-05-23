@@ -73,8 +73,7 @@ describe('AppController (e2e)', () => {
       last_name: 'E2E',
       email: 'test.e2e@example.com',
       password: 'password123',
-      is_worker_active: true,
-      is_employer_active: true,
+      role: 'EMPLOYER',
     });
 
     // Login

@@ -84,7 +84,7 @@ describe('Chat System (e2e)', () => {
       last_name: 'E2E',
       email: 'test.e2e@example.com',
       password: 'password123',
-      is_employer_active: true,
+      role: 'EMPLOYER',
     });
 
     // Login
@@ -104,14 +104,19 @@ describe('Chat System (e2e)', () => {
   it('PRE-REQUIS : Créer un worker, une entreprise et une publication', async () => {
     const server = app.getHttpServer();
 
-    const workerRes = await request(server).post('/auth/register').send({
+    await request(server).post('/auth/register').send({
       email: 'worker_test@gmail.com',
       password: 'Password123!',
       first_name: 'Worker',
       last_name: 'Test',
-      is_worker_active: true,
+      role: 'WORKER',
     });
-    const authBodyWorker = workerRes.body as AuthResponse;
+    const loginRes = await request(server).post('/auth/login').send({
+      email: 'worker_test@gmail.com',
+      password: 'Password123!',
+      targetApp: 'worker',
+    });
+    const authBodyWorker = loginRes.body as AuthResponse;
     const tokenWorker = authBodyWorker.access_token;
     const workerProfileRes = await request(server)
       .get('/workers')

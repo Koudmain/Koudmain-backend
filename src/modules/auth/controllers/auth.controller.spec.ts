@@ -76,13 +76,12 @@ describe('AuthController', () => {
       };
       mockAuthService.register.mockResolvedValue(mockResponse);
 
-      const payload = {
+      const payload: any = {
         first_name: 'John',
         last_name: 'Doe',
         email: 'john@example.com',
         password: 'password123',
-        is_worker_active: true,
-        is_employer_active: false,
+        role: 'WORKER',
       };
 
       const result = await controller.signUp(payload);
@@ -93,8 +92,7 @@ describe('AuthController', () => {
         payload.last_name,
         payload.email,
         payload.password,
-        payload.is_worker_active,
-        payload.is_employer_active,
+        payload.role,
       );
       expect(result).toEqual(mockResponse);
     });

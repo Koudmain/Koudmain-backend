@@ -3,6 +3,7 @@ import type { Request as ExpressRequest } from 'express';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { Public } from '@/decorators/public.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 
 type JwtPayload = {
   sub: number;
@@ -21,8 +22,7 @@ type SignUpBody = {
   last_name: string;
   email: string;
   password: string;
-  is_worker_active: boolean;
-  is_employer_active: boolean;
+  role: UserRole;
 };
 
 type AuthTokenResponse = {
@@ -65,8 +65,7 @@ export class AuthController {
       body.last_name,
       body.email,
       body.password,
-      body.is_worker_active,
-      body.is_employer_active,
+      body.role,
     );
   }
 

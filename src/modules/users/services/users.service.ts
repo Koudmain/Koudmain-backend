@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { User } from '../models/user.model';
+import { User, UserRole } from '../models/user.model';
 import { hash } from 'bcrypt';
 
 @Injectable()
@@ -33,8 +33,7 @@ export class UsersService {
       last_name: `doe_${Date.now()}`,
       email: `fake_${Date.now()}@test.com`,
       password: hashedPassword,
-      is_worker_active: false,
-      is_employer_active: false,
+      role: UserRole.WORKER,
     });
   }
 

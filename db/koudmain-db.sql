@@ -10,6 +10,8 @@ CREATE TABLE "address" (
   "full_address" text
 );
 
+CREATE TYPE "user_role" AS ENUM ('WORKER', 'EMPLOYER');
+
 CREATE TABLE "user" (
   "id" serial PRIMARY KEY,
   "first_name" varchar(255),
@@ -20,8 +22,7 @@ CREATE TABLE "user" (
   "phone_number" varchar(20),
   "email_verified_at" timestamp,
   "birth_date" date,
-  "is_worker_active" boolean DEFAULT false,
-  "is_employer_active" boolean DEFAULT false,
+  "role" "user_role" NOT NULL,
   "created_at" timestamp DEFAULT (now())
 );
 
@@ -255,12 +256,10 @@ COMMENT ON COLUMN "address"."latitude" IS 'Essentiel pour le matching';
 
 COMMENT ON COLUMN "address"."longitude" IS 'Essentiel pour le matching';
 
-COMMENT ON COLUMN "user"."is_worker_active" IS 'Accès à l''App Worker';
-
-COMMENT ON COLUMN "user"."is_employer_active" IS 'Accès à l''App Enterprise';
+COMMENT ON COLUMN "user"."role" IS 'Rôle exclusif de l''utilisateur (WORKER ou EMPLOYER)';
 
 COMMENT ON COLUMN "worker_profile"."work_radius" IS 'Rayon de recherche (km)';
-COMMENT ON COLUMN "worker_profile"."birth_date" IS 'Date de naissance pour KYC et légalité';
+COMMENT ON COLUMN "user"."birth_date" IS 'Date de naissance pour KYC et légalité';
 COMMENT ON COLUMN "worker_profile"."bio" IS 'Description/Biographie du worker';
 COMMENT ON COLUMN "worker_profile"."workplace_latitude" IS 'Latitude du lieu de travail souhaité';
 COMMENT ON COLUMN "worker_profile"."workplace_longitude" IS 'Longitude du lieu de travail souhaité';

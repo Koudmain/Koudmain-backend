@@ -21,7 +21,7 @@ describe('PlanningService', () => {
   };
 
   const mockUserModel = {
-    findByPk: jest.fn().mockResolvedValue({ id: 1, is_worker_active: true }),
+    findByPk: jest.fn().mockResolvedValue({ id: 1, role: 'WORKER' }),
   };
 
   beforeEach(async () => {
@@ -78,11 +78,13 @@ describe('PlanningService', () => {
       expect(mockApplicationModel.findAll).toHaveBeenCalledWith({
         include: [
           {
+            as: 'workerProfile',
             model: WorkerProfile,
             where: { user_id: userId },
             required: true,
           },
           {
+            as: 'publication',
             model: Publication,
             required: true,
             where: {
@@ -95,14 +97,17 @@ describe('PlanningService', () => {
             },
             include: [
               {
+                as: 'company',
                 model: Company,
                 required: false,
               },
               {
+                as: 'creator',
                 model: User,
                 required: false,
                 include: [
                   {
+                    as: 'reviews',
                     model: Review,
                     required: false,
                   },
@@ -125,11 +130,13 @@ describe('PlanningService', () => {
       expect(mockApplicationModel.findAll).toHaveBeenCalledWith({
         include: [
           {
+            as: 'workerProfile',
             model: WorkerProfile,
             where: { user_id: userId },
             required: true,
           },
           {
+            as: 'publication',
             model: Publication,
             required: true,
             where: {
@@ -142,14 +149,17 @@ describe('PlanningService', () => {
             },
             include: [
               {
+                as: 'company',
                 model: Company,
                 required: false,
               },
               {
+                as: 'creator',
                 model: User,
                 required: false,
                 include: [
                   {
+                    as: 'reviews',
                     model: Review,
                     required: false,
                   },
