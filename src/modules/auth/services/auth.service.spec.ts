@@ -176,9 +176,9 @@ describe('AuthService', () => {
     it('should throw ConflictException if email exists', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue({ id: 1 });
 
-      await expect(service.register('John', 'Doe', 'exist@test.com', 'password', UserRole.WORKER)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.register('John', 'Doe', 'exist@test.com', 'password', UserRole.WORKER),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('should hash password, create user, send verification email and return userId + message', async () => {
@@ -192,7 +192,13 @@ describe('AuthService', () => {
       });
       mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
 
-      const result = await service.register('John', 'Doe', 'new@test.com', 'password', UserRole.WORKER);
+      const result = await service.register(
+        'John',
+        'Doe',
+        'new@test.com',
+        'password',
+        UserRole.WORKER,
+      );
 
       expect(bcrypt.hash).toHaveBeenCalledWith('password', 10);
       expect(mockUsersService.create).toHaveBeenCalledWith({
