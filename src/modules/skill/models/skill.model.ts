@@ -10,6 +10,7 @@ import {
 import { SkillCategory } from '@/modules/skill-category/models/skill-category.model';
 import { Publication } from '@/modules/publication/models/publication.model';
 import { PublicationSkill } from '@/modules/publication/models/publication-skill.model';
+import { IsOptional, IsString } from 'class-validator';
 
 @Table({ tableName: 'skill', timestamps: false })
 export class Skill extends Model {
@@ -31,7 +32,10 @@ export class Skill extends Model {
 }
 
 export class PostSkillDto {
+  @IsString()
   name: string;
+
+  @IsOptional()
   category_id?: number | null;
 }
 

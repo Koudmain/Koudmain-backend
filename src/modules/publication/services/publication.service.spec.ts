@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { PublicationService } from './publication.service';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
-import { Publication } from '../models/publication.model';
+import { PostPublicationDto, Publication } from '@/modules/publication/models/publication.model';
 
 describe('PublicationService', () => {
   let service: PublicationService;
@@ -50,9 +50,11 @@ describe('PublicationService', () => {
       return Promise.resolve(instance);
     });
 
-    const publicationData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
+    const publicationData: PostPublicationDto = {
       title: 'Test Publication',
-      description: 'Test Description',
+      hourly_rate: 20.0,
+      starting_date: new Date().toISOString(),
+      ending_date: new Date().toISOString(),
     };
 
     // Act
@@ -61,7 +63,6 @@ describe('PublicationService', () => {
     // Assert
     expect(result.id).toEqual(6);
     expect(result.title).toEqual('Test Publication');
-    expect(result.description).toEqual('Test Description');
 
     expect(mockPublicationModel.create).toHaveBeenCalledWith(expect.objectContaining({ id: 6 }));
   });
@@ -78,8 +79,11 @@ describe('PublicationService', () => {
       return Promise.resolve(instance);
     });
 
-    const publicationData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
+    const publicationData: PostPublicationDto = {
       title: 'Skill Test',
+      hourly_rate: 20.0,
+      starting_date: new Date().toISOString(),
+      ending_date: new Date().toISOString(),
       skills: [1, 2],
     };
 
@@ -100,20 +104,20 @@ describe('PublicationService', () => {
     });
 
     const customDate = new Date('2024-01-01');
-    const publicationData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
+    const publicationData: PostPublicationDto = {
       title: 'Test Publication',
-      createdAt: customDate,
-      starting_date: customDate,
-      ending_date: customDate,
+      hourly_rate: 20.0,
+      starting_date: customDate.toISOString(),
+      ending_date: customDate.toISOString(),
     };
 
     // Act
     const result = await service.create(publicationData);
 
     // Assert
-    expect(result.createdAt).toEqual(customDate);
-    expect(result.starting_date).toEqual(customDate);
-    expect(result.ending_date).toEqual(customDate);
+    expect(result.createdAt).toEqual(expect.any(Date));
+    expect(result.starting_date).toEqual(customDate.toISOString());
+    expect(result.ending_date).toEqual(customDate.toISOString());
   });
 
   it('should get all publications', async () => {

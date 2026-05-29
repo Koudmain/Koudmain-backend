@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Get, Param } from '@nestjs/common';
-import { SkillService } from '../services/skill.service';
-import { PostSkillResponseDto, Skill } from '../models/skill.model';
+import { SkillService } from '@/modules/skill/services/skill.service';
+import { PostSkillDto, PostSkillResponseDto, Skill } from '@/modules/skill/models/skill.model';
 
 @Controller('skill')
 export class SkillController {
@@ -8,7 +8,7 @@ export class SkillController {
 
   @HttpCode(HttpStatus.CREATED)
   @Post('create')
-  async create(@Body() createDto: Record<string, any>) {
+  async create(@Body() createDto: PostSkillDto) {
     const skill: Skill = await this.skillService.create(createDto);
 
     const res: PostSkillResponseDto = {
