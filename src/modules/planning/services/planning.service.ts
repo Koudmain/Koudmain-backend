@@ -13,8 +13,6 @@ import { Address } from '@/modules/publication/models/address.model';
 @Injectable()
 export class PlanningService {
   constructor(
-    @InjectModel(Publication)
-    private readonly publicationModel: typeof Publication,
     @InjectModel(User)
     private readonly userModel: typeof User,
     @InjectModel(Application)
