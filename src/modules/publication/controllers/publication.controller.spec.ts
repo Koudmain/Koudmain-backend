@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PublicationController } from './publication.controller';
-import { PublicationService } from '../services/publication.service';
-import { PostPublicationDto, PostPublicationResponseDto } from '../models/publication.model';
+import { PublicationService } from '@/modules/publication/services/publication.service';
+import {
+  PostPublicationDto,
+  PostPublicationResponseDto,
+} from '@/modules/publication/models/publication.model';
 
 const mockPublicationService = {
   create: jest.fn(),

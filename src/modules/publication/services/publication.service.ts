@@ -1,22 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Publication } from '@/modules/publication/models/publication.model';
+import { PostPublicationDto, Publication } from '@/modules/publication/models/publication.model';
 import { Skill } from '@/modules/skill/models/skill.model';
 
 @Injectable()
 export class PublicationService {
   constructor(@InjectModel(Publication) private publicationModel: typeof Publication) {}
 
-  async create(publication: Omit<Partial<Publication>, 'skills'> & { skills?: number[] }) {
+  async create(publication: PostPublicationDto) {
     const maxId = await this.publicationModel.max('id');
-    const nextId = publication.id ?? (typeof maxId === 'number' ? maxId : 0) + 1;
+    const nextId = (typeof maxId === 'number' ? maxId : 0) + 1;
 
     const { skills, ...pubData } = publication;
 
     const created = await this.publicationModel.create({
       ...pubData,
       id: nextId,
-      createdAt: publication.createdAt ?? new Date(),
+      createdAt: new Date(),
       starting_date: publication.starting_date ?? new Date(),
       ending_date: publication.ending_date ?? new Date(),
     });

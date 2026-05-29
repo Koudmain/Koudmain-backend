@@ -12,6 +12,7 @@ import { User } from '@/modules/users/models/user.model';
 import { Application } from '@/modules/application/models/application.model';
 import { Skill } from '@/modules/skill/models/skill.model';
 import { PublicationSkill } from './publication-skill.model';
+import { IsArray, IsNumber, IsOptional, IsString, IsBoolean } from 'class-validator';
 
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
@@ -71,15 +72,45 @@ export class Publication extends Model {
 }
 
 export class PostPublicationDto {
-  declare company_id: number;
-  declare created_by_user_id: number;
-  declare address_id: number;
+  @IsOptional()
+  @IsNumber()
+  declare company_id?: number;
+
+  @IsOptional()
+  @IsNumber()
+  declare created_by_user_id?: number;
+
+  @IsOptional()
+  @IsNumber()
+  declare address_id?: number;
+
+  @IsString()
   declare title: string;
+
+  @IsString()
   declare description: string;
+
+  @IsNumber()
   declare hourly_rate: number;
-  declare starting_date: Date;
-  declare ending_date: Date;
+
+  @IsString()
+  declare starting_date: string;
+
+  @IsString()
+  declare ending_date: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
   declare skills?: number[];
+
+  @IsOptional()
+  @IsBoolean()
+  declare autoAccept?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  declare highlight?: boolean;
 }
 
 export class PostPublicationResponseDto {
