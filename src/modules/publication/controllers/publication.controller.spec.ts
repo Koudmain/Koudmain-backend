@@ -49,8 +49,8 @@ describe('PublicationController', () => {
         title: 'Server (H/F)',
         description: "Besoin d'un serveur pour une missions.",
         hourly_rate: 35.0,
-        starting_date: new Date(),
-        ending_date: new Date(),
+        starting_date: new Date().toISOString(),
+        ending_date: new Date().toISOString(),
         skills: [1, 2],
       };
 

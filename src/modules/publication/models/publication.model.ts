@@ -87,8 +87,9 @@ export class PostPublicationDto {
   @IsString()
   declare title: string;
 
+  @IsOptional()
   @IsString()
-  declare description: string;
+  declare description?: string;
 
   @IsNumber()
   declare hourly_rate: number;

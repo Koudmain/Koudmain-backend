@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PublicationController } from './controllers/publication.controller';
 import { PublicationService } from './services/publication.service';
-import { PublicationModule } from './publication.module';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
 import { Publication } from './models/publication.model';
 import { PublicationSkill } from './models/publication-skill.model';
+import { Skill } from '@/modules/skill/models/skill.model';
+import { PublicationModule } from './publication.module';
 
 describe('PublicationModule', () => {
   let module: TestingModule;
@@ -19,6 +20,8 @@ describe('PublicationModule', () => {
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .overrideProvider(getModelToken(PublicationSkill))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(Skill))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
       .compile();
   });
 
@@ -29,5 +32,8 @@ describe('PublicationModule', () => {
   it('should have Publication components', () => {
     expect(module.get(PublicationController)).toBeInstanceOf(PublicationController);
     expect(module.get(PublicationService)).toBeInstanceOf(PublicationService);
+    expect(module.get(getModelToken(Publication))).toBeDefined();
+    expect(module.get(getModelToken(PublicationSkill))).toBeDefined();
+    expect(module.get(getModelToken(Skill))).toBeDefined();
   });
 });
