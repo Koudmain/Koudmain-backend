@@ -44,13 +44,13 @@ describe('PublicationService', () => {
   it('should create a publication with auto-incremented id', async () => {
     // Arrange
     mockPublicationModel.max.mockResolvedValue(5);
-    mockPublicationModel.create.mockImplementation((data) => {
+    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
       const instance = { ...data, $set: jest.fn().mockResolvedValue(undefined) };
       mockPublicationModel.findByPk.mockResolvedValue(instance);
       return Promise.resolve(instance);
     });
 
-    const publicationData: Partial<Publication> = {
+    const publicationData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
       title: 'Test Publication',
       description: 'Test Description',
     };
@@ -69,7 +69,7 @@ describe('PublicationService', () => {
   it('should create a publication and set its skills', async () => {
     // Arrange
     const $setSpy = jest.fn().mockResolvedValue(undefined);
-    mockPublicationModel.create.mockImplementation((data) => {
+    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
       const instance = {
         ...data,
         $set: $setSpy,
@@ -78,7 +78,7 @@ describe('PublicationService', () => {
       return Promise.resolve(instance);
     });
 
-    const publicationData = {
+    const publicationData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
       title: 'Skill Test',
       skills: [1, 2],
     };
@@ -93,14 +93,14 @@ describe('PublicationService', () => {
 
   it('should use provided dates when creating publication', async () => {
     // Arrange
-    mockPublicationModel.create.mockImplementation((data) => {
+    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
       const instance = { ...data, $set: jest.fn().mockResolvedValue(undefined) };
       mockPublicationModel.findByPk.mockResolvedValue(instance);
       return Promise.resolve(instance);
     });
 
     const customDate = new Date('2024-01-01');
-    const publicationData: Partial<Publication> = {
+    const publicationData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
       title: 'Test Publication',
       createdAt: customDate,
       starting_date: customDate,
@@ -144,7 +144,9 @@ describe('PublicationService', () => {
 
   it('should update a publication and return the updated publication', async () => {
     // Arrange
-    const updatedData: Partial<Publication> = { title: 'Updated Title' };
+    const updatedData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
+      title: 'Updated Title',
+    };
     const expectedResult = { id: 1, title: 'Updated Title' };
 
     mockPublicationModel.update.mockResolvedValue([1]);
@@ -170,7 +172,7 @@ describe('PublicationService', () => {
     mockPublicationModel.update.mockResolvedValue([1]);
     mockPublicationModel.findByPk.mockResolvedValue(mockInstance);
 
-    const updatedData = {
+    const updatedData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
       title: 'Updated Title',
       skills: [3, 4],
     };

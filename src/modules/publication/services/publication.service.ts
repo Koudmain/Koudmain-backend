@@ -7,7 +7,7 @@ import { Skill } from '@/modules/skill/models/skill.model';
 export class PublicationService {
   constructor(@InjectModel(Publication) private publicationModel: typeof Publication) {}
 
-  async create(publication: Partial<Publication> & { skills?: number[] }) {
+  async create(publication: Omit<Partial<Publication>, 'skills'> & { skills?: number[] }) {
     const maxId = await this.publicationModel.max('id');
     const nextId = publication.id ?? (typeof maxId === 'number' ? maxId : 0) + 1;
 
@@ -16,7 +16,7 @@ export class PublicationService {
     const created = await this.publicationModel.create({
       ...pubData,
       id: nextId,
-      create_at: publication.createdAt ?? new Date(),
+      createdAt: publication.createdAt ?? new Date(),
       starting_date: publication.starting_date ?? new Date(),
       ending_date: publication.ending_date ?? new Date(),
     });
@@ -40,7 +40,10 @@ export class PublicationService {
     });
   }
 
-  async update(id: number, publication: Partial<Publication> & { skills?: number[] }) {
+  async update(
+    id: number,
+    publication: Omit<Partial<Publication>, 'skills'> & { skills?: number[] },
+  ) {
     const { skills, ...pubData } = publication;
 
     await this.publicationModel.update(pubData, { where: { id } });
