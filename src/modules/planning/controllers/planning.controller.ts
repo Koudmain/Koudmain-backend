@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { PlanningService } from '@/modules/planning/services/planning.service';
+import { CurrentUser } from '@/decorators/current-user.decorator';
+import type { JwtPayload } from '@/decorators/current-user.decorator';
 
 @Controller('planning')
 export class PlanningController {
@@ -20,6 +22,7 @@ export class PlanningController {
     @Query('startDate') start_date?: string,
     @Query('endDate') end_date?: string,
     @Query('activeCompanyId') active_company_id?: number,
+    @CurrentUser() user?: JwtPayload,
     @Req() request?: Request,
   ) {
     if (request && request.query) {
@@ -34,17 +37,13 @@ export class PlanningController {
       }
     }
 
-    const custom_req = request as unknown as { user?: { sub?: number; app_context?: string } };
-    const user_id = custom_req?.user?.sub;
-    const app_context = custom_req?.user?.app_context;
-
-    if (!user_id) {
+    if (!user?.sub) {
       throw new BadRequestException('Utilisateur non authentifié');
     }
 
     return this.planningService.getPlanning(
-      Number(user_id),
-      app_context,
+      Number(user.sub),
+      user.app_context,
       start_date,
       end_date,
       active_company_id,
