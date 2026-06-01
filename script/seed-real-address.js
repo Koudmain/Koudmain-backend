@@ -1,3 +1,4 @@
+/* trunk-ignore-all(eslint) */
 const axios = require('axios');
 
 const API_URL = 'http://localhost:3000/address';
