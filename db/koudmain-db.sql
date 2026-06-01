@@ -162,12 +162,13 @@ CREATE TABLE "conversation" (
 );
 
 CREATE TABLE "conversation_settings" (
-  "id" serial PRIMARY KEY,
-  "user_id" integer not null,
-  "conversation_id" integer not null,
+  "user_id" integer NOT NULL,
+  "conversation_id" integer NOT NULL,
   "is_pinned" boolean DEFAULT false,
   "is_deleted" boolean DEFAULT false,
-  UNIQUE ("user_id", "conversation_id")
+  PRIMARY KEY ("user_id", "conversation_id"),
+  FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE,
+  FOREIGN KEY ("conversation_id") REFERENCES "conversation" ("id") ON DELETE CASCADE
 );
 
 CREATE INDEX idx_conv_settings_user_id ON "conversation_settings"("user_id");
