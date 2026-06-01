@@ -35,6 +35,7 @@ export class UsersService {
       password: hashedPassword,
       is_worker_active: false,
       is_employer_active: false,
+      is_admin_active: false,
     });
   }
 

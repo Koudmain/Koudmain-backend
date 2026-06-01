@@ -12,7 +12,7 @@ type AuthenticatedRequest = ExpressRequest & { user: JwtPayload };
 type SignInBody = {
   email: string;
   password: string;
-  targetApp: 'worker' | 'employer';
+  targetApp: 'worker' | 'employer' | 'admin';
 };
 
 type SignUpBody = {
@@ -22,6 +22,7 @@ type SignUpBody = {
   password: string;
   is_worker_active: boolean;
   is_employer_active: boolean;
+  is_admin_active: boolean;
 };
 
 type AuthTokenResponse = {
@@ -54,6 +55,7 @@ export class AuthController {
       body.password,
       body.is_worker_active,
       body.is_employer_active,
+      body.is_admin_active,
     );
   }
 

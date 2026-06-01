@@ -30,6 +30,9 @@ export class User extends Model {
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   declare is_employer_active: boolean;
 
+  @Column({ type: DataType.BOOLEAN, defaultValue: false })
+  declare is_admin_active: boolean;
+
   @Column({ field: 'created_at', type: DataType.DATE })
   declare createdAt: Date;
 }

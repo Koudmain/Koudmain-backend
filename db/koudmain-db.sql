@@ -22,6 +22,7 @@ CREATE TABLE "user" (
   "password" varchar,
   "is_worker_active" boolean DEFAULT false,
   "is_employer_active" boolean DEFAULT false,
+  "is_admin_active" boolean DEFAULT false,
   "created_at" timestamp DEFAULT (now())
 );
 
@@ -40,6 +41,15 @@ WHERE "revoked_at" IS NULL;
 CREATE INDEX ON "refresh_session" ("user_id");
 
 CREATE INDEX ON "refresh_session" ("expires_at");
+
+CREATE TYPE admin_role_type AS ENUM ('SUPER_ADMIN', 'ADMIN');
+
+CREATE TABLE "admin_profile" (
+  "id" serial PRIMARY KEY,
+  "user_id" integer UNIQUE NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
+  "role" admin_role_type NOT NULL DEFAULT 'ADMIN',
+  "created_at" timestamp DEFAULT (now())
+);
 
 CREATE TABLE "worker_profile" (
   "id" serial PRIMARY KEY,
@@ -396,3 +406,5 @@ ALTER TABLE "skill" ADD FOREIGN KEY ("category_id") REFERENCES "skill_category" 
 ALTER TABLE "address" ADD COLUMN IF NOT EXISTS "geom" geography(Point, 4326);
 
 CREATE INDEX IF NOT EXISTS "idx_address_geom" ON "address" USING GIST ("geom");
+
+CREATE INDEX idx_admin_profile_user_id ON "admin_profile" ("user_id");

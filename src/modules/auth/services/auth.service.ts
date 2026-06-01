@@ -5,6 +5,7 @@ import { CompaniesService } from '@/modules/companies/services/companies.service
 import { RefreshSessionService } from './refresh-session.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
+import { AdminService } from '@/modules/admin/services/admin.service';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +15,7 @@ export class AuthService {
     private refreshSessionService: RefreshSessionService,
     private workersService: WorkersService,
     private companiesService: CompaniesService,
+    private adminService: AdminService,
   ) {}
 
   private async generateTokens(
@@ -66,7 +68,7 @@ export class AuthService {
   async signIn(
     email: string,
     pass: string,
-    targetApp: 'worker' | 'employer',
+    targetApp: 'worker' | 'employer' | 'admin',
   ): Promise<{ access_token: string; refresh_token: string }> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) {
@@ -83,6 +85,9 @@ export class AuthService {
     }
     if (targetApp === 'employer' && !user.is_employer_active) {
       throw new UnauthorizedException("Vous n'avez pas de profil employeur actif");
+    }
+    if (targetApp === 'admin' && !user.is_admin_active) {
+      throw new UnauthorizedException("Vous n'avez pas de profil admin actif");
     }
 
     const payload = {
@@ -136,6 +141,7 @@ export class AuthService {
     password: string,
     is_worker_active = false,
     is_employer_active = false,
+    is_admin_active = false,
     company_name?: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
     const existingUser = await this.usersService.findOneByEmail(email);
@@ -149,18 +155,21 @@ export class AuthService {
       password: hashedPassword,
       is_worker_active,
       is_employer_active,
+      is_admin_active,
     });
     if (is_worker_active) {
       await this.workersService.create({
         user_id: newUser.id,
       });
-    }
-
-    if (is_employer_active) {
+    } else if (is_employer_active) {
       await this.companiesService.createCompanyWithOwner(
         company_name || `Entreprise de ${newUser.last_name}`,
         newUser.id,
       );
+    } else if (is_admin_active) {
+      await this.adminService.create({
+        user_id: newUser.id,
+      });
     }
 
     const payload = { sub: newUser.id, email: newUser.email };
