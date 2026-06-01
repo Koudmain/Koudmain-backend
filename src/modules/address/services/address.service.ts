@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Address } from './address.model';
-import { CreateAddressDto, GetMapAddressesDto } from './address.dto';
+import { Address } from '@/modules/address/address.model';
+import { CreateAddressDto, GetMapAddressesDto } from '@/modules/address/address.dto';
 import { Sequelize } from 'sequelize-typescript';
 
 @Injectable()

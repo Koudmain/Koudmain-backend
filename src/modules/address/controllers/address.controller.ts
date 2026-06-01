@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Post, Query, Request } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
-import { AddressService } from '../address.service';
-import { CreateAddressDto, GetMapAddressesDto } from '../address.dto';
+import { AddressService } from '@/modules/address/services/address.service';
+import { CreateAddressDto, GetMapAddressesDto } from '@/modules/address/address.dto';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
