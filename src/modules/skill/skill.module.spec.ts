@@ -4,7 +4,7 @@ import { SkillService } from './services/skill.service';
 import { SkillModule } from './skill.module';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
 import { Skill } from './models/skill.model';
-import { SkillCategory } from '../skill-category/models/skill-category.model';
+import { SkillCategory } from '@/modules/skill-category/models/skill-category.model';
 
 describe('SkillModule', () => {
   let module: TestingModule;
