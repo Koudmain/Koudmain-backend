@@ -10,6 +10,7 @@ import {
 import { Company } from '@/modules/companies/models/company.model';
 import { User } from '@/modules/users/models/user.model';
 import { Application } from '@/modules/application/models/application.model';
+import { Address } from './address.model';
 import { Skill } from '@/modules/skill/models/skill.model';
 import { PublicationSkill } from './publication-skill.model';
 import { IsArray, IsNumber, IsOptional, IsString, IsBoolean } from 'class-validator';
@@ -39,6 +40,9 @@ export class Publication extends Model {
 
   @Column({ type: DataType.INTEGER })
   declare address_id: number;
+
+  @BelongsTo(() => Address, 'address_id')
+  declare address: Address;
 
   @Column({ type: DataType.STRING })
   declare title: string;

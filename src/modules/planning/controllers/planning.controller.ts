@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { PlanningService } from '@/modules/planning/services/planning.service';
+import { CurrentUser } from '@/decorators/current-user.decorator';
+import type { JwtPayload } from '@/decorators/current-user.decorator';
 
 @Controller('planning')
 export class PlanningController {
@@ -17,28 +19,34 @@ export class PlanningController {
   @HttpCode(HttpStatus.OK)
   @Get()
   async getPlanning(
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
+    @Query('startDate') start_date?: string,
+    @Query('endDate') end_date?: string,
+    @Query('activeCompanyId') active_company_id?: number,
+    @CurrentUser() user?: JwtPayload,
     @Req() request?: Request,
   ) {
     if (request && request.query) {
-      const allowedKeys = ['startDate', 'endDate'];
-      const queryKeys = Object.keys(request.query);
-      const hasExtraParams = queryKeys.some((key) => !allowedKeys.includes(key));
+      const allowed_keys = ['startDate', 'endDate', 'activeCompanyId'];
+      const query_keys = Object.keys(request.query);
+      const has_extra_params = query_keys.some((key) => !allowed_keys.includes(key));
 
-      if (hasExtraParams) {
-        throw new BadRequestException('Seuls les paramètres startDate et endDate sont autorisés.');
+      if (has_extra_params) {
+        throw new BadRequestException(
+          'Seuls les paramètres startDate, endDate et activeCompanyId sont autorisés.',
+        );
       }
     }
 
-    const customReq = request as unknown as { user?: { sub?: number; app_context?: string } };
-    const userId = customReq?.user?.sub;
-    const appContext = customReq?.user?.app_context;
-
-    if (!userId) {
+    if (!user?.sub) {
       throw new BadRequestException('Utilisateur non authentifié');
     }
 
-    return this.planningService.getPlanning(Number(userId), appContext, startDate, endDate);
+    return this.planningService.getPlanning(
+      Number(user.sub),
+      user.app_context,
+      start_date,
+      end_date,
+      active_company_id,
+    );
   }
 }

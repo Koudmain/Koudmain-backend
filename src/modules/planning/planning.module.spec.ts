@@ -7,6 +7,8 @@ import { Company } from '@/modules/companies/models/company.model';
 import { Application } from '@/modules/application/models/application.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Review } from '@/modules/review/models/review.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { Address } from '@/modules/publication/models/address.model';
 import { PlanningController } from '@/modules/planning/controllers/planning.controller';
 import { PlanningService } from '@/modules/planning/services/planning.service';
 
@@ -30,6 +32,10 @@ describe('PlanningModule', () => {
       .overrideProvider(getModelToken(WorkerProfile))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .overrideProvider(getModelToken(Review))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(CompanyMember))
+      .useValue({ create: jest.fn(), findAll: jest.fn(), findOne: jest.fn() })
+      .overrideProvider(getModelToken(Address))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .compile();
   });
