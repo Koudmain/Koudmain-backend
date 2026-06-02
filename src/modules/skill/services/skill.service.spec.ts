@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { SkillService } from './skill.service';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
-import { Skill } from '../models/skill.model';
+import { Skill } from '@/modules/skill/models/skill.model';
 
 describe('SkillService', () => {
   let service: SkillService;
