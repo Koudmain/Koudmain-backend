@@ -4,6 +4,7 @@ import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
 import { GetMapAddressesDto, CreateAddressDto } from '@/modules/address/address.dto';
+import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 
 describe('AddressService', () => {
   let service: AddressService;
@@ -16,12 +17,17 @@ describe('AddressService', () => {
     query: jest.fn(),
   };
 
+  const mockGeocodingService = {
+    getCoordsFromAddress: jest.fn(),
+  };
+
   beforeAll(async () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
         AddressService,
         { provide: getModelToken(Address), useValue: mockAddressModel },
         { provide: getConnectionToken(), useValue: mockSequelize },
+        { provide: GeocodingService, useValue: mockGeocodingService }, // Ajout du mock ici !
       ],
     }).compile();
 
@@ -37,33 +43,39 @@ describe('AddressService', () => {
   });
 
   describe('createAddress', () => {
-    it('should build complete_address and call model.create', async () => {
-      const userId = 42;
+    it('should build full_address, fetch coordinates, and call model.create', async () => {
       const body = {
         street_number: '10',
         street_name: 'Rue de Test',
         zip_code: '75000',
         city: 'Paris',
         country: 'France',
-        latitude: 48.85,
-        longitude: 2.35,
       } as CreateAddressDto;
+
+      const mockCoords = { latitude: 48.85, longitude: 2.35 };
+      mockGeocodingService.getCoordsFromAddress.mockResolvedValue(mockCoords);
+
+      const expectedFullAddress = '10 Rue de Test, 75000 Paris, France';
 
       const created = {
         id: 1,
         ...body,
-        user_id: userId,
-        complete_address: '10 Rue de Test, 75000 Paris, France',
+        full_address: expectedFullAddress,
+        latitude: mockCoords.latitude,
+        longitude: mockCoords.longitude,
       };
       mockAddressModel.create.mockResolvedValue(created);
 
-      const result = await service.createAddress(userId, body);
+      const result = await service.createAddress(body);
+
+      expect(mockGeocodingService.getCoordsFromAddress).toHaveBeenCalledWith(expectedFullAddress);
 
       expect(mockAddressModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...body,
-          user_id: userId,
-          complete_address: `${body.street_number} ${body.street_name}, ${body.zip_code} ${body.city}, ${body.country}`,
+          full_address: expectedFullAddress,
+          latitude: mockCoords.latitude,
+          longitude: mockCoords.longitude,
         }),
       );
       expect(result).toEqual(created);
