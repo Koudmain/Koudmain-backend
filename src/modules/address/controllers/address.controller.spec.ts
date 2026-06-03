@@ -39,7 +39,7 @@ describe('AddressController', () => {
   });
 
   describe('createAddress', () => {
-    it('doit appeler addressService.createAddress avec userId', async () => {
+    it('doit appeler addressService.createAddress avec le DTO', async () => {
       const userId = 7;
       const dto: CreateAddressDto = {
         street_number: '1',
@@ -52,12 +52,13 @@ describe('AddressController', () => {
       } as CreateAddressDto;
 
       const mockReq = { user: { sub: userId, email: 'a@b.c' } } as RequestWithUser;
-      const created = { id: 123, ...dto, user_id: userId };
+
+      const created = { id: 123, ...dto };
       mockAddressService.createAddress.mockResolvedValue(created);
 
       const result = await controller.createAddress(mockReq, dto);
 
-      expect(mockAddressService.createAddress).toHaveBeenCalledWith(userId, dto);
+      expect(mockAddressService.createAddress).toHaveBeenCalledWith(dto);
       expect(result).toBe(created);
     });
   });

@@ -9,7 +9,7 @@ import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { CreationAttributes } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
-import { GeocodingService } from '@/common/utils/geocoding.service';
+import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { Address } from '@/modules/address/address.model';
 
 @Injectable()

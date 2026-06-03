@@ -6,7 +6,7 @@ import { CompaniesService } from './services/companies.service';
 import { CompaniesController } from './controllers/companies.controller';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { Address } from '@/modules/address/address.model';
-import { GeocodingService } from '@/common/utils/geocoding.service';
+import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 
 @Module({
   imports: [

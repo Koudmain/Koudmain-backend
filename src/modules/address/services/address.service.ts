@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Address } from '@/modules/address/address.model';
 import { CreateAddressDto, GetMapAddressesDto } from '@/modules/address/address.dto';
 import { Sequelize } from 'sequelize-typescript';
-import { GeocodingService } from '@/common/utils/geocoding.service';
+import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 
 @Injectable()
 export class AddressService {
