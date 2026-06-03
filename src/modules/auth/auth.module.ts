@@ -3,7 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AuthService } from './services/auth.service';
 import { RefreshSessionService } from './services/refresh-session.service';
-import { AuthGuard } from './auth.guard';
+import { AuthGuard } from './guards/auth.guard';
 import { AuthController } from './controllers/auth.controller';
 import { RefreshSession } from './models/refresh-session.model';
 import { UsersModule } from '@/modules/users/users.module';
