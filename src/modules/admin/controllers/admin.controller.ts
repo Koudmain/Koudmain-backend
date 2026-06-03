@@ -13,21 +13,4 @@ export class AdminController {
     const req = context as AdminAuthenticatedRequest;
     return req.adminProfile;
   }
-
-  // @Put('users/:id/depanner')
-  // depannerUser(@Param('id') id: string) {
-  //   return { message: `Dépannage de l'utilisateur ${id} (accessible ADMIN et SUPER_ADMIN)` };
-  // }
-
-  // @Delete('users/:id/delete')
-  // @RolesAdmin('SUPER_ADMIN')
-  // deleteUserPermanently(@Param('id') id: string) {
-  //   return { message: `Destruction définitive de l'utilisateur ${id} (Réservé au Super Admin)` };
-  // }
-
-  // @Get('logs/security')
-  // @RolesAdmin('SUPER_ADMIN')
-  // getSecurityLogs() {
-  //   return { message: 'Logs critiques visibles uniquement par le Super Admin' };
-  // }
 }
