@@ -178,6 +178,9 @@ dist
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
+### Zed ###
+.zed/*
+
 # Local History for Visual Studio Code
 .history/
 
@@ -188,5 +191,9 @@ dist
 # Ignore all local history of files
 .history
 .ionide
+
+### Database
+# Backup files
+backup_*
 
 # End of https://www.toptal.com/developers/gitignore/api/node,visualstudiocode,go
