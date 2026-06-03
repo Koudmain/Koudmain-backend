@@ -12,6 +12,7 @@ CREATE TABLE "address" (
   "full_address" text,
   "geom" geography(Point, 4326)
 );
+
 CREATE TABLE "user" (
   "id" serial PRIMARY KEY,
   "first_name" varchar(255),

@@ -16,9 +16,7 @@ export class AddressController {
 
   @Post('/')
   async createAddress(@Request() req: RequestWithUser, @Body() body: CreateAddressDto) {
-    const userId = req.user.sub;
-
-    return this.addressService.createAddress(userId, body);
+    return this.addressService.createAddress(body);
   }
 
   @Get('/map')

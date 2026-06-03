@@ -53,6 +53,7 @@ export class CompaniesService {
         id: companyData?.id,
         name: companyData?.name,
         role: m.role,
+        address: companyData?.address,
       };
     });
   }
@@ -60,77 +61,55 @@ export class CompaniesService {
   async updateCompanyAddress(
     userId: number,
     companyId: number,
-    update_adress_dto: UpdateCompanyAddressDto,
+    updateAddressDto: UpdateCompanyAddressDto,
   ) {
-    try {
-      const membership = await this.memberModel.findOne({
-        where: { user_id: userId, company_id: companyId },
-      });
+    const membership = await this.memberModel.findOne({
+      where: { user_id: userId, company_id: companyId },
+    });
 
-      if (!membership || membership.role !== 'Owner') {
-        throw new ForbiddenException("Vous n'avez pas les droits pour modifier cette entreprise");
-      }
-
-      const company = await this.companyModel.findByPk(companyId, {
-        include: ['address'],
-      });
-
-      if (!company) {
-        throw new NotFoundException('Entreprise introuvable');
-      }
-
-      const { street_number, street_name, zip_code, city, country } = update_adress_dto;
-      const fullAddressString = `${street_number} ${street_name}, ${zip_code} ${city}, ${country}`;
-      const coords = await this.geocodingService.getCoordsFromAddress(fullAddressString);
-
-      const addressData = {
-        street_number,
-        street_name,
-        zip_code,
-        city,
-        country: country || 'France',
-        latitude: coords?.latitude || null,
-        longitude: coords?.longitude || null,
-        full_address: fullAddressString,
-        geom: coords
-          ? {
-              type: 'Point',
-              coordinates: [coords.longitude, coords.latitude],
-            }
-          : null,
-      };
-
-      const existingAddress = await this.addressModel.findOne({
-        where: {
-          street_number,
-          street_name,
-          zip_code,
-          city,
-          country: country || 'France',
-        },
-      });
-
-      if (existingAddress) {
-        company.set('addressId', existingAddress.id);
-        await company.save();
-      } else {
-        const newAddress = await this.addressModel.create(addressData);
-        company.set('addressId', newAddress.id);
-        await company.save();
-      }
-
-      return await this.companyModel.findByPk(company.id, {
-        include: ['address'],
-      });
-    } catch (error) {
-      if (error instanceof ForbiddenException || error instanceof NotFoundException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        "Erreur lors de la mise à jour de l'adresse",
-        error instanceof Error ? error.message : 'Unknown error',
-      );
+    if (!membership || membership.role !== 'Owner') {
+      throw new ForbiddenException("Vous n'avez pas les droits pour modifier cette entreprise");
     }
+
+    const company = await this.companyModel.findByPk(companyId, {
+      include: ['address'],
+    });
+
+    if (!company) {
+      throw new NotFoundException('Entreprise introuvable');
+    }
+
+    const country = updateAddressDto.country || 'France';
+    const fullAddressString =
+      `${updateAddressDto.street_number || ''} ${updateAddressDto.street_name}, ${updateAddressDto.zip_code} ${updateAddressDto.city}, ${country}`.trim();
+
+    let coords = null;
+    try {
+      coords = await this.geocodingService.getCoordsFromAddress(fullAddressString);
+    } catch (error) {
+      throw new InternalServerErrorException("Erreur lors du géocodage de l'adresse", {
+        cause: error,
+      });
+    }
+
+    const addressPayload = {
+      ...updateAddressDto,
+      country,
+      full_address: fullAddressString,
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
+    };
+
+    if (company.address) {
+      await company.address.update(addressPayload);
+    } else {
+      const newAddress = await this.addressModel.create(addressPayload);
+      company.set('addressId', newAddress.id);
+      await company.save();
+    }
+
+    return this.companyModel.findByPk(companyId, {
+      include: ['address'],
+    });
   }
 }
