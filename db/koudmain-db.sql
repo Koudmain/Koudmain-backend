@@ -12,6 +12,7 @@ CREATE TABLE "address" (
   "full_address" text,
   "geom" geography(Point, 4326)
 );
+
 CREATE TABLE "user" (
   "id" serial PRIMARY KEY,
   "first_name" varchar(255),
@@ -168,7 +169,7 @@ CREATE TABLE "conversation_settings" (
   "conversation_id" integer NOT NULL,
   "is_pinned" boolean DEFAULT false,
   "is_deleted" boolean DEFAULT false,
-  PRIMARY KEY ("user_id", "conversation_id")
+  PRIMARY KEY ("user_id", "conversation_id"),
   FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE,
   FOREIGN KEY ("conversation_id") REFERENCES "conversation" ("id") ON DELETE CASCADE
 );
