@@ -15,6 +15,7 @@ import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { WorkersModule } from './modules/workers/workers.module';
 import { AddressModule } from './modules/address/address.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AddressModule } from './modules/address/address.module';
       database: process.env.DB_NAME,
       autoLoadModels: true,
       synchronize: true,
+      sync: { alter: true },
     }),
     UsersModule,
     AuthModule,
@@ -41,6 +43,7 @@ import { AddressModule } from './modules/address/address.module';
     ChatModule,
     WorkersModule,
     AddressModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

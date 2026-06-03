@@ -1,11 +1,12 @@
 import { User } from '@/modules/users/models/user.model';
-import { BelongsTo, Column, Model, Table } from 'sequelize-typescript';
+import { BelongsTo, Column, ForeignKey, Model, Table, DataType } from 'sequelize-typescript';
 
 @Table({ tableName: 'admin_profile', timestamps: false })
 export class AdminProfile extends Model {
   @Column({ type: 'INTEGER', primaryKey: true, autoIncrement: true })
   declare id: number;
 
+  @ForeignKey(() => User)
   @Column({
     type: 'INTEGER',
     unique: true,
@@ -14,7 +15,10 @@ export class AdminProfile extends Model {
   })
   declare user_id: number;
 
-  @Column({ type: 'ENUM', values: ['SUPER_ADMIN', 'ADMIN'], defaultValue: 'ADMIN' })
+  @Column({
+    type: DataType.ENUM('SUPER_ADMIN', 'ADMIN'),
+    defaultValue: 'ADMIN',
+  })
   declare role: 'SUPER_ADMIN' | 'ADMIN';
 
   @Column({ field: 'created_at', type: 'TIMESTAMP', defaultValue: () => new Date() })

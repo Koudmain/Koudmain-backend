@@ -11,12 +11,14 @@ import { WorkersModule } from '@/modules/workers/workers.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
     UsersModule,
     WorkersModule,
     forwardRef(() => CompaniesModule),
+    forwardRef(() => AdminModule),
     SequelizeModule.forFeature([RefreshSession]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
