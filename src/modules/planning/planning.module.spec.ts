@@ -8,7 +8,7 @@ import { Application } from '@/modules/application/models/application.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Review } from '@/modules/review/models/review.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
-import { Address } from '@/modules/publication/models/address.model';
+import { Address } from '@/modules/address/address.model';
 import { PlanningController } from '@/modules/planning/controllers/planning.controller';
 import { PlanningService } from '@/modules/planning/services/planning.service';
 

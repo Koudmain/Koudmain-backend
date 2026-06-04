@@ -21,4 +21,3 @@ export class ConversationSetting extends Model {
   @BelongsTo(() => Conversation)
   declare conversation: Conversation;
 }
- 
