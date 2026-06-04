@@ -1,14 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { CreationAttributes } from 'sequelize';
+import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
+import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { Address } from '@/modules/address/address.model';
 
 @Injectable()
 export class CompaniesService {
   constructor(
     @InjectModel(Company) private companyModel: typeof Company,
     @InjectModel(CompanyMember) private memberModel: typeof CompanyMember,
+    @InjectModel(Address) private addressModel: typeof Address,
+    private geocodingService: GeocodingService,
   ) {}
 
   async createCompanyWithOwner(name: string, userId: number): Promise<Company> {
@@ -31,6 +41,7 @@ export class CompaniesService {
           model: Company,
           as: 'company',
           attributes: ['id', 'name'],
+          include: ['address'],
         },
       ],
     });
@@ -42,7 +53,63 @@ export class CompaniesService {
         id: companyData?.id,
         name: companyData?.name,
         role: m.role,
+        address: companyData?.address,
       };
+    });
+  }
+
+  async updateCompanyAddress(
+    userId: number,
+    companyId: number,
+    updateAddressDto: UpdateCompanyAddressDto,
+  ) {
+    const membership = await this.memberModel.findOne({
+      where: { user_id: userId, company_id: companyId },
+    });
+
+    if (!membership || membership.role !== 'Owner') {
+      throw new ForbiddenException("Vous n'avez pas les droits pour modifier cette entreprise");
+    }
+
+    const company = await this.companyModel.findByPk(companyId, {
+      include: ['address'],
+    });
+
+    if (!company) {
+      throw new NotFoundException('Entreprise introuvable');
+    }
+
+    const country = updateAddressDto.country || 'France';
+    const fullAddressString =
+      `${updateAddressDto.street_number || ''} ${updateAddressDto.street_name}, ${updateAddressDto.zip_code} ${updateAddressDto.city}, ${country}`.trim();
+
+    let coords = null;
+    try {
+      coords = await this.geocodingService.getCoordsFromAddress(fullAddressString);
+    } catch (error) {
+      throw new InternalServerErrorException("Erreur lors du géocodage de l'adresse", {
+        cause: error,
+      });
+    }
+
+    const addressPayload = {
+      ...updateAddressDto,
+      country,
+      full_address: fullAddressString,
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
+    };
+
+    if (company.address) {
+      await company.address.update(addressPayload);
+    } else {
+      const newAddress = await this.addressModel.create(addressPayload);
+      company.set('addressId', newAddress.id);
+      await company.save();
+    }
+
+    return this.companyModel.findByPk(companyId, {
+      include: ['address'],
     });
   }
 }
