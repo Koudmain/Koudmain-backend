@@ -1,44 +1,75 @@
-/* trunk-ignore-all(eslint) */
 const axios = require('axios');
 
 const API_URL = 'http://localhost:3000/address';
-const BEARER_TOKEN = 'BearerTokenExample1234567890'; // Remplacez par votre token réel
+const BEARER_TOKEN = 'your_bearer_token_here'; // Remplacez par votre token réel
 
+const TOTAL_A_PRENDRE = 20;
 const BELLECOUR_LAT = 45.7578;
 const BELLECOUR_LNG = 4.8321;
 
-async function fetchRealAddressesFromBAN() {
-  console.log("Récupération d'adresses réelles autour de Bellecour via l'API Nationale...");
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
 
+async function fetchAddresses() {
+  console.log("Récupération de 100 adresses sur la BAN...");
   try {
     const response = await axios.get('https://api-adresse.data.gouv.fr/search/', {
       params: {
-        q: 'Lyon',
+        q: 'Lyon, France',
         lat: BELLECOUR_LAT,
         lon: BELLECOUR_LNG,
-        limit: 20
+        limit: 50
       }
     });
-
-    return response.data.features;
+    return response.data?.features || [];
   } catch (error) {
-    console.error("Impossible de joindre l'API Nationale Adresse :", error.message);
+    console.error("Échec de la récupération BAN :", error.message);
     return [];
   }
 }
 
 async function seedData() {
-  const features = await fetchRealAddressesFromBAN();
+  const features = await fetchAddresses();
 
   if (features.length === 0) {
-    console.log("Aucune adresse récupérée. Abandon du script.");
+    console.log("Aucune adresse récupérée. Fin du script.");
     return;
   }
 
   for (let i = 0; i < features.length; i++) {
-    console.log(features[i]);
-    const properties = features[i].properties;
-    const [longitude, latitude] = features[i].geometry.coordinates;
+    const props = features[i].properties;
+    const coords = features[i].geometry?.coordinates;
+    console.log(`[${i + 1}/${features.length}] ${props.housenumber || ""} ${props.street || props.name}, ${props.postcode} ${props.city} - Coords: ${coords ? coords.join(', ') : 'N/A'}`);
+  }
+  const validFeatures = features.filter(feature => {
+    const props = feature.properties;
+    const coords = feature.geometry?.coordinates;
+
+    if (!coords || coords.length < 2 || isNaN(coords[0]) || isNaN(coords[1])) {
+      return false;
+    }
+
+    if (!props.postcode || !props.postcode.startsWith('69')) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const shuffledFeatures = shuffleArray(validFeatures);
+
+  const finalFeatures = shuffledFeatures.slice(0, TOTAL_A_PRENDRE);
+
+  console.log(`Après filtrage et mélange : ${finalFeatures.length} adresses prêtes à l'envoi.`);
+
+  for (let i = 0; i < finalFeatures.length; i++) {
+    const properties = finalFeatures[i].properties;
+    const [longitude, latitude] = finalFeatures[i].geometry.coordinates;
 
     const payload = {
       street_number: properties.housenumber || "",
@@ -57,15 +88,15 @@ async function seedData() {
           'Content-Type': 'application/json'
         }
       });
-      console.log(`Succès: [${i + 1}/${features.length}] Envoyé : ${payload.street_number} ${payload.street_name}, ${payload.zip_code} ${payload.city}`);
+      console.log(`[${i + 1}/${finalFeatures.length}] Envoyé : ${payload.street_number} ${payload.street_name}, ${payload.zip_code} ${payload.city}`);
     } catch (error) {
-      console.error(`Erreur: [${i + 1}/${features.length}] Échec de l'envoi pour [${payload.street_name}] :`, error.response?.data || error.message);
+      console.error(`[${i + 1}/${finalFeatures.length}] Échec pour [${payload.street_name}] :`, error.response?.data || error.message);
     }
 
     await new Promise(resolve => setTimeout(resolve, 50));
   }
 
-  console.log('Peuplement terminé avec de vraies adresses géolocalisées !');
+  console.log('Peuplement terminé !');
 }
 
 seedData();
