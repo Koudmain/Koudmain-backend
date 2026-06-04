@@ -9,7 +9,7 @@ import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Application } from '@/modules/application/models/application.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Review } from '@/modules/review/models/review.model';
-import { Address } from '@/modules/publication/models/address.model';
+import { Address } from '@/modules/address/address.model';
 
 @Module({
   imports: [

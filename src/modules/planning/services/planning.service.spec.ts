@@ -8,7 +8,7 @@ import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Review } from '@/modules/review/models/review.model';
-import { Address } from '@/modules/publication/models/address.model';
+import { Address } from '@/modules/address/address.model';
 import { BadRequestException } from '@nestjs/common';
 import { Op } from 'sequelize';
 
