@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User, UserRole } from '../models/user.model';
 import { hash } from 'bcrypt';
+import { Transaction } from 'sequelize';
 
 @Injectable()
 export class UsersService {
@@ -37,15 +38,18 @@ export class UsersService {
     });
   }
 
-  async create(user: Partial<User>) {
+  async create(user: Partial<User>, options?: { transaction?: Transaction }) {
     const maxId = await this.userModel.max('id');
     const nextId = user.id ?? (typeof maxId === 'number' ? maxId : 0) + 1;
 
-    return this.userModel.create({
-      ...user,
-      id: nextId,
-      updatedAt: user.updatedAt ?? new Date(),
-    });
+    return this.userModel.create(
+      {
+        ...user,
+        id: nextId,
+        updatedAt: user.updatedAt ?? new Date(),
+      },
+      { transaction: options?.transaction },
+    );
   }
 
   async updateProfilePicture(id: number, url: string) {

@@ -7,6 +7,11 @@ import { EmailVerificationService } from './email-verification.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
 import { UserRole } from '@/modules/users/models/user.model';
+import { InjectModel } from '@nestjs/sequelize';
+import { Sequelize } from 'sequelize-typescript';
+import { Address } from '@/modules/address/address.model';
+import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { RegisterDto } from '@/modules/auth/dto/register.dto';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +22,9 @@ export class AuthService {
     private workersService: WorkersService,
     private companiesService: CompaniesService,
     private emailVerificationService: EmailVerificationService,
+    private geocodingService: GeocodingService,
+    private sequelize: Sequelize,
+    @InjectModel(Address) private addressModel: typeof Address,
   ) {}
 
   private async generateTokens(
@@ -64,6 +72,27 @@ export class AuthService {
       d: 24 * 60 * 60 * 1000,
     };
     return val * (units[unit] || 1000);
+  }
+
+  /** Géocode une adresse avant la transaction */
+  private async geocodeAddress(
+    addr: NonNullable<RegisterDto['workerProfile']>['address'],
+  ): Promise<{ fullAddress: string; latitude: number | null; longitude: number | null }> {
+    if (!addr) return { fullAddress: '', latitude: null, longitude: null };
+    const country = addr.country || 'France';
+    const fullAddress =
+      `${addr.street_number || ''} ${addr.street_name}, ${addr.zip_code} ${addr.city}, ${country}`.trim();
+    try {
+      const coords = await this.geocodingService.getCoordsFromAddress(fullAddress);
+      return {
+        fullAddress,
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
+      };
+    } catch {
+      // on ne bloque pas l'inscription
+      return { fullAddress, latitude: null, longitude: null };
+    }
   }
 
   async signIn(
@@ -155,47 +184,104 @@ export class AuthService {
     return user;
   }
 
-  async register(
-    first_name: string,
-    last_name: string,
-    email: string,
-    password: string,
-    role: UserRole,
-    company_name?: string,
-  ): Promise<{ userId: number; message: string }> {
-    const existingUser = await this.usersService.findOneByEmail(email);
+  async register(dto: RegisterDto): Promise<{ userId: number; message: string }> {
+    const existingUser = await this.usersService.findOneByEmail(dto.email);
     if (existingUser) throw new ConflictException('Email already exists');
-    const hashedPassword = await hash(password, 10);
 
-    const newUser = await this.usersService.create({
-      first_name,
-      last_name,
-      email,
-      password: hashedPassword,
-      role,
+    const hashedPassword = await hash(dto.password, 10);
+    const workerGeo =
+      dto.role === UserRole.WORKER ? await this.geocodeAddress(dto.workerProfile?.address) : null;
+    const employerGeo =
+      dto.role === UserRole.EMPLOYER
+        ? await this.geocodeAddress(dto.employerProfile?.address)
+        : null;
+
+    let newUserId!: number;
+
+    await this.sequelize.transaction(async (t) => {
+      // a. Créer l'utilisateur
+      const newUser = await this.usersService.create(
+        {
+          first_name: dto.first_name,
+          last_name: dto.last_name,
+          email: dto.email,
+          password: hashedPassword,
+          role: dto.role,
+          phone_number: dto.phone_number,
+          birth_date: dto.birth_date,
+        },
+        { transaction: t },
+      );
+      newUserId = newUser.id;
+
+      if (dto.role === UserRole.WORKER && dto.workerProfile) {
+        // WORKER
+        let addressId: number | undefined;
+        if (dto.workerProfile.address && workerGeo) {
+          const newAddr = await this.addressModel.create(
+            {
+              ...dto.workerProfile.address,
+              country: dto.workerProfile.address.country || 'France',
+              full_address: workerGeo.fullAddress,
+              latitude: workerGeo.latitude,
+              longitude: workerGeo.longitude,
+            },
+            { transaction: t },
+          );
+          addressId = newAddr.id;
+        }
+
+        await this.workersService.create(
+          {
+            userId: newUser.id,
+            skillCategoryId: dto.workerProfile.skill_category_id,
+            bio: dto.workerProfile.bio,
+            workRadius: dto.workerProfile.work_radius ?? 20,
+            ...(addressId !== undefined && { addressId }),
+          },
+          { transaction: t },
+        );
+      }
+
+      if (dto.role === UserRole.EMPLOYER && dto.employerProfile) {
+        // EMPLOYER
+        let addressId: number | undefined;
+        if (dto.employerProfile.address && employerGeo) {
+          const newAddr = await this.addressModel.create(
+            {
+              ...dto.employerProfile.address,
+              country: dto.employerProfile.address.country || 'France',
+              full_address: employerGeo.fullAddress,
+              latitude: employerGeo.latitude,
+              longitude: employerGeo.longitude,
+            },
+            { transaction: t },
+          );
+          addressId = newAddr.id;
+        }
+
+        await this.companiesService.createCompanyWithOwner(
+          {
+            name: dto.employerProfile.company_name,
+            ownerPosition: dto.employerProfile.owner_position,
+            desiredTradeIds: dto.employerProfile.desired_trade_ids,
+            ...(addressId !== undefined && { addressId: addressId }),
+          },
+          newUser.id,
+          t,
+        );
+      }
     });
 
-    if (role === UserRole.WORKER) {
-      await this.workersService.create({
-        user_id: newUser.id,
-      });
-    }
-
-    if (role === UserRole.EMPLOYER) {
-      await this.companiesService.createCompanyWithOwner(
-        company_name || `Entreprise de ${newUser.last_name}`,
-        newUser.id,
-      );
-    }
-
+    const createdUser = await this.usersService.findOneById(newUserId);
     await this.emailVerificationService.sendVerificationCode(
-      newUser.id,
-      newUser.email,
-      newUser.first_name,
+      newUserId,
+      createdUser!.email,
+      createdUser!.first_name,
     );
 
     return {
-      userId: newUser.id,
+      userId: newUserId,
       message: 'Un code de vérification a été envoyé à votre adresse email.',
     };
   }

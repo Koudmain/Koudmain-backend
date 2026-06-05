@@ -7,7 +7,8 @@ import {
 import { InjectModel } from '@nestjs/sequelize';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
-import { CreationAttributes } from 'sequelize';
+import { CompanyTrade } from '@/modules/companies/models/company-trade.model';
+import { CreationAttributes, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { Address } from '@/modules/address/address.model';
@@ -17,19 +18,43 @@ export class CompaniesService {
   constructor(
     @InjectModel(Company) private companyModel: typeof Company,
     @InjectModel(CompanyMember) private memberModel: typeof CompanyMember,
+    @InjectModel(CompanyTrade) private companyTradeModel: typeof CompanyTrade,
     @InjectModel(Address) private addressModel: typeof Address,
     private geocodingService: GeocodingService,
   ) {}
 
-  async createCompanyWithOwner(name: string, userId: number): Promise<Company> {
-    const companyData: CreationAttributes<Company> = { name };
-    const company = await this.companyModel.create(companyData);
+  async createCompanyWithOwner(
+    data: {
+      name: string;
+      ownerPosition: string;
+      desiredTradeIds: number[];
+      addressId?: number;
+    },
+    userId: number,
+    transaction?: Transaction,
+  ): Promise<Company> {
+    const companyData: CreationAttributes<Company> = {
+      name: data.name,
+      ownerPosition: data.ownerPosition,
+      ...(data.addressId !== undefined && { addressId: data.addressId }),
+    };
+    const company = await this.companyModel.create(companyData, { transaction });
+
     const memberData: CreationAttributes<CompanyMember> = {
       company_id: company.id,
       user_id: userId,
       role: 'Owner',
     };
-    await this.memberModel.create(memberData);
+    await this.memberModel.create(memberData, { transaction });
+
+    if (data.desiredTradeIds.length > 0) {
+      const tradeRows = data.desiredTradeIds.map((skillCategoryId) => ({
+        companyId: company.id,
+        skillCategoryId,
+      }));
+      await this.companyTradeModel.bulkCreate(tradeRows, { transaction });
+    }
+
     return company;
   }
 

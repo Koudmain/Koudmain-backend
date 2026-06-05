@@ -3,7 +3,7 @@ import type { Request as ExpressRequest } from 'express';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { Public } from '@/decorators/public.decorator';
-import { UserRole } from '@/modules/users/models/user.model';
+import { RegisterDto } from '@/modules/auth/dto/register.dto';
 
 type JwtPayload = {
   sub: number;
@@ -15,14 +15,6 @@ type SignInBody = {
   email: string;
   password: string;
   targetApp: 'worker' | 'employer';
-};
-
-export type SignUpBody = {
-  first_name: string;
-  last_name: string;
-  email: string;
-  password: string;
-  role: UserRole;
 };
 
 type AuthTokenResponse = {
@@ -59,14 +51,8 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  signUp(@Body() body: SignUpBody): Promise<{ userId: number; message: string }> {
-    return this.authService.register(
-      body.first_name,
-      body.last_name,
-      body.email,
-      body.password,
-      body.role,
-    );
+  signUp(@Body() dto: RegisterDto): Promise<{ userId: number; message: string }> {
+    return this.authService.register(dto);
   }
 
   @Public()

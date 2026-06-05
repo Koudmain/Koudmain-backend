@@ -232,7 +232,9 @@ describe('MailerService', () => {
           toEmail: 'user@test.com',
           subject: 'Hello',
         }),
-      ).rejects.toThrow(new InternalServerErrorException('Email content is empty (text/html)'));
+      ).rejects.toThrow(
+        new InternalServerErrorException('Email content is empty (text/html/templateId)'),
+      );
     });
 
     it('should throw InternalServerErrorException and log if Mailjet client fails', async () => {

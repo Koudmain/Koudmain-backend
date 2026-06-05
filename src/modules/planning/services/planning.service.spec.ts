@@ -90,7 +90,7 @@ describe('PlanningService', () => {
           {
             model: WorkerProfile,
             as: 'workerProfile',
-            where: { user_id: user_id },
+            where: { userId: user_id },
             required: true,
           },
           {
@@ -147,7 +147,7 @@ describe('PlanningService', () => {
           {
             model: WorkerProfile,
             as: 'workerProfile',
-            where: { user_id: user_id },
+            where: { userId: user_id },
             required: true,
           },
           {

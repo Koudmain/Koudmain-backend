@@ -82,7 +82,7 @@ describe('ChatService', () => {
       const mockMsg = { id: 1, toJSON: () => ({ id: 1, content_text: 'Hello' }) };
       const mockConv = {
         id: 1,
-        worker: { user_id: 10 },
+        worker: { userId: 10 },
         company: { members: [{ user_id: 20 }] },
       };
 
@@ -115,7 +115,7 @@ describe('ChatService', () => {
 
       serviceMocks.workerModel.findByPk.mockResolvedValue({
         id: 1,
-        user_id: 100,
+        userId: 100,
       });
 
       conversationModel.findOrCreate.mockResolvedValue([{ id: 50 }, true]);

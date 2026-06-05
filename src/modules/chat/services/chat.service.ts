@@ -52,12 +52,12 @@ export class ChatService {
 
     const targetUserIds = new Set<number>();
 
-    if (userId === conv.worker.user_id) {
+    if (userId === conv.worker.userId) {
       conv.company.members.forEach((member) => {
         targetUserIds.add(member.user_id);
       });
     } else {
-      targetUserIds.add(conv.worker.user_id);
+      targetUserIds.add(conv.worker.userId);
     }
 
     const messageData = message.toJSON<MessageAttributes>();
@@ -187,7 +187,7 @@ export class ChatService {
 
       if (workerProfile) {
         settingsToCreate.push({
-          user_id: workerProfile.user_id,
+          user_id: workerProfile.userId,
           conversation_id: conversation.id,
         });
       }

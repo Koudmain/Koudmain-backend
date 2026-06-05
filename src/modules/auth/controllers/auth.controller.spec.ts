@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthController, SignUpBody } from './auth.controller';
+import { AuthController } from './auth.controller';
 import { AuthService } from '../services/auth.service';
 import { EmailVerificationService } from '../services/email-verification.service';
 import { UserRole } from '@/modules/users/models/user.model';
+import { RegisterDto, WorkerProfileDto } from '@/modules/auth/dto/register.dto';
 
 const mockAuthService = {
   signIn: jest.fn(),
@@ -26,14 +27,8 @@ describe('AuthController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        {
-          provide: AuthService,
-          useValue: mockAuthService,
-        },
-        {
-          provide: EmailVerificationService,
-          useValue: mockEmailVerificationService,
-        },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: EmailVerificationService, useValue: mockEmailVerificationService },
       ],
     }).compile();
 
@@ -70,31 +65,30 @@ describe('AuthController', () => {
   });
 
   describe('signUp', () => {
-    it('should call authService.register and return userId + message', async () => {
+    it('should pass the full RegisterDto to authService.register and return userId + message', async () => {
       const mockResponse = {
         userId: 1,
         message: 'Un code de vérification a été envoyé à votre adresse email.',
       };
       mockAuthService.register.mockResolvedValue(mockResponse);
 
-      const payload: SignUpBody = {
+      const dto: RegisterDto = {
         first_name: 'John',
         last_name: 'Doe',
         email: 'john@example.com',
         password: 'password123',
+        phone_number: '0600000000',
+        birth_date: '1990-01-01',
         role: UserRole.WORKER,
+        workerProfile: {
+          skill_category_id: 1,
+        } as WorkerProfileDto,
       };
 
-      const result = await controller.signUp(payload);
+      const result = await controller.signUp(dto);
 
       expect(mockAuthService.register).toHaveBeenCalledTimes(1);
-      expect(mockAuthService.register).toHaveBeenCalledWith(
-        payload.first_name,
-        payload.last_name,
-        payload.email,
-        payload.password,
-        payload.role,
-      );
+      expect(mockAuthService.register).toHaveBeenCalledWith(dto);
       expect(result).toEqual(mockResponse);
     });
   });
@@ -131,9 +125,9 @@ describe('AuthController', () => {
       const mockResponse = { message: 'All sessions revoked successfully' };
       mockAuthService.logoutAll.mockResolvedValue(mockResponse);
 
-      const mockReq = { user: { sub: 123 } } as unknown as Parameters<
-        AuthController['logoutAll']
-      >[0];
+      const mockReq = {
+        user: { sub: 123 },
+      } as unknown as Parameters<AuthController['logoutAll']>[0];
       const result = await controller.logoutAll(mockReq);
 
       expect(mockAuthService.logoutAll).toHaveBeenCalledTimes(1);

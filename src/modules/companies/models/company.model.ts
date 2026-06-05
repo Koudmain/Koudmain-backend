@@ -18,6 +18,9 @@ export class Company extends Model {
   @Column(DataType.STRING)
   declare name: string;
 
+  @Column({ field: 'owner_position', type: DataType.STRING(100) })
+  declare ownerPosition: string;
+
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   declare is_premium: boolean;
 

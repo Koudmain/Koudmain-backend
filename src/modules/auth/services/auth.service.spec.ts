@@ -6,8 +6,13 @@ import { RefreshSessionService } from './refresh-session.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { EmailVerificationService } from './email-verification.service';
+import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { getModelToken } from '@nestjs/sequelize';
+import { Address } from '@/modules/address/address.model';
+import { Sequelize } from 'sequelize-typescript';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import { UserRole } from '@/modules/users/models/user.model';
+import { RegisterDto, WorkerProfileDto, EmployerProfileDto } from '@/modules/auth/dto/register.dto';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt', () => ({
@@ -49,6 +54,24 @@ describe('AuthService', () => {
     sendVerificationCode: jest.fn(),
   };
 
+  const mockGeocodingService = {
+    getCoordsFromAddress: jest.fn(),
+  };
+
+  const mockAddressModel = {
+    create: jest.fn(),
+  };
+
+  /** Simule une transaction Sequelize : exécute le callback et expose commit/rollback */
+  const mockTransaction = { commit: jest.fn(), rollback: jest.fn() };
+  const mockSequelize = {
+    transaction: jest.fn().mockImplementation(async (cb: (t: unknown) => Promise<void>) => {
+      return cb(mockTransaction);
+    }),
+  };
+
+  // ─── Setup ───────────────────────────────────────────────────────────────
+
   beforeEach(async () => {
     // Reset env vars
     process.env.JWT_ACCESS_SECRET = 'access_secret';
@@ -65,6 +88,9 @@ describe('AuthService', () => {
         { provide: WorkersService, useValue: mockWorkersService },
         { provide: CompaniesService, useValue: mockCompaniesService },
         { provide: EmailVerificationService, useValue: mockEmailVerificationService },
+        { provide: GeocodingService, useValue: mockGeocodingService },
+        { provide: Sequelize, useValue: mockSequelize },
+        { provide: getModelToken(Address), useValue: mockAddressModel },
       ],
     }).compile();
 
@@ -173,46 +199,87 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('should throw ConflictException if email exists', async () => {
+    const baseWorkerDto: RegisterDto = {
+      first_name: 'John',
+      last_name: 'Doe',
+      email: 'worker@test.com',
+      password: 'password123',
+      phone_number: '0600000000',
+      birth_date: '1990-01-01',
+      role: UserRole.WORKER,
+      workerProfile: {
+        skill_category_id: 1,
+        bio: 'Plombier expérimenté',
+        work_radius: 30,
+      } as WorkerProfileDto,
+    };
+
+    const baseEmployerDto: RegisterDto = {
+      first_name: 'Jane',
+      last_name: 'Smith',
+      email: 'employer@test.com',
+      password: 'password123',
+      phone_number: '0611111111',
+      birth_date: '1985-05-05',
+      role: UserRole.EMPLOYER,
+      employerProfile: {
+        company_name: 'Acme Corp',
+        owner_position: 'HR', // OwnerPosition enum value
+        desired_trade_ids: [1, 2],
+      } as EmployerProfileDto,
+    };
+
+    it('should throw ConflictException if email already exists', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue({ id: 1 });
 
-      await expect(
-        service.register('John', 'Doe', 'exist@test.com', 'password', UserRole.WORKER),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.register(baseWorkerDto)).rejects.toThrow(ConflictException);
+      expect(mockSequelize.transaction).not.toHaveBeenCalled();
     });
 
-    it('should hash password, create user, send verification email and return userId + message', async () => {
+    it('should create WORKER: hash password, run transaction, create user + worker profile, send email', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
       mockUsersService.create.mockResolvedValue({
         id: 2,
         first_name: 'John',
         last_name: 'Doe',
-        email: 'new@test.com',
+        email: 'worker@test.com',
+      });
+      mockWorkersService.create.mockResolvedValue({});
+      mockUsersService.findOneById.mockResolvedValue({
+        id: 2,
+        email: 'worker@test.com',
+        first_name: 'John',
       });
       mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
 
-      const result = await service.register(
-        'John',
-        'Doe',
-        'new@test.com',
-        'password',
-        UserRole.WORKER,
-      );
+      const result = await service.register(baseWorkerDto);
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('password', 10);
-      expect(mockUsersService.create).toHaveBeenCalledWith({
-        first_name: 'John',
-        last_name: 'Doe',
-        email: 'new@test.com',
-        password: 'hashed_password',
-        role: UserRole.WORKER,
-      });
-      expect(mockWorkersService.create).toHaveBeenCalledWith({ user_id: 2 });
+      expect(bcrypt.hash).toHaveBeenCalledWith('password123', 10);
+      expect(mockSequelize.transaction).toHaveBeenCalledTimes(1);
+      expect(mockUsersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          first_name: 'John',
+          email: 'worker@test.com',
+          password: 'hashed_password',
+          role: UserRole.WORKER,
+          phone_number: '0600000000',
+          birth_date: '1990-01-01',
+        }),
+        expect.objectContaining({ transaction: mockTransaction }),
+      );
+      expect(mockWorkersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 2,
+          skillCategoryId: 1,
+          workRadius: 30,
+        }),
+        expect.objectContaining({ transaction: mockTransaction }),
+      );
       expect(mockCompaniesService.createCompanyWithOwner).not.toHaveBeenCalled();
       expect(mockEmailVerificationService.sendVerificationCode).toHaveBeenCalledWith(
         2,
-        'new@test.com',
+        'worker@test.com',
         'John',
       );
       expect(result).toEqual({
@@ -221,7 +288,7 @@ describe('AuthService', () => {
       });
     });
 
-    it('should create company when employer profile is active', async () => {
+    it('should create EMPLOYER: hash password, run transaction, create user + company + trades, send email', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
       mockUsersService.create.mockResolvedValue({
@@ -230,38 +297,54 @@ describe('AuthService', () => {
         last_name: 'Smith',
         email: 'employer@test.com',
       });
-      mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
-
-      await service.register(
-        'Jane',
-        'Smith',
-        'employer@test.com',
-        'password',
-        UserRole.EMPLOYER,
-        'Acme Corp',
-      );
-
-      expect(mockWorkersService.create).not.toHaveBeenCalled();
-      expect(mockCompaniesService.createCompanyWithOwner).toHaveBeenCalledWith('Acme Corp', 3);
-    });
-
-    it('should create company with default name when employer profile is active and no company name is provided', async () => {
-      mockUsersService.findOneByEmail.mockResolvedValue(null);
-      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
-      mockUsersService.create.mockResolvedValue({
-        id: 4,
-        first_name: 'Paul',
-        last_name: 'Martin',
-        email: 'employer2@test.com',
+      mockCompaniesService.createCompanyWithOwner.mockResolvedValue({ id: 10 });
+      mockUsersService.findOneById.mockResolvedValue({
+        id: 3,
+        email: 'employer@test.com',
+        first_name: 'Jane',
       });
       mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await service.register('Paul', 'Martin', 'employer2@test.com', 'password', UserRole.EMPLOYER);
+      await service.register(baseEmployerDto);
 
+      expect(mockWorkersService.create).not.toHaveBeenCalled();
       expect(mockCompaniesService.createCompanyWithOwner).toHaveBeenCalledWith(
-        'Entreprise de Martin',
-        4,
+        expect.objectContaining({
+          name: 'Acme Corp',
+          ownerPosition: 'HR',
+          desiredTradeIds: [1, 2],
+        }),
+        3,
+        mockTransaction,
       );
+    });
+
+    it('should ROLLBACK and not persist user if workerProfile creation fails', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      mockUsersService.create.mockResolvedValue({
+        id: 99,
+        email: 'fail@test.com',
+        first_name: 'X',
+      });
+      mockWorkersService.create.mockRejectedValue(new Error('DB constraint violated'));
+
+      await expect(service.register(baseWorkerDto)).rejects.toThrow('DB constraint violated');
+      expect(mockEmailVerificationService.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    it('should ROLLBACK and not persist user if company creation fails', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      mockUsersService.create.mockResolvedValue({
+        id: 88,
+        email: 'fail@test.com',
+        first_name: 'Y',
+      });
+      mockCompaniesService.createCompanyWithOwner.mockRejectedValue(new Error('Company error'));
+
+      await expect(service.register(baseEmployerDto)).rejects.toThrow('Company error');
+      expect(mockEmailVerificationService.sendVerificationCode).not.toHaveBeenCalled();
     });
   });
 

@@ -14,6 +14,9 @@ import { MailerModule } from '@/modules/mailer/mailer.module';
 import { RedisModule } from '@/shared/redis/redis.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Address } from '@/modules/address/address.model';
+import { CompanyTrade } from '@/modules/companies/models/company-trade.model';
+import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 
 @Module({
   imports: [
@@ -22,7 +25,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     forwardRef(() => CompaniesModule),
     MailerModule,
     RedisModule,
-    SequelizeModule.forFeature([RefreshSession]),
+    SequelizeModule.forFeature([RefreshSession, Address, CompanyTrade]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -36,6 +39,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     AuthService,
     RefreshSessionService,
     EmailVerificationService,
+    GeocodingService,
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
