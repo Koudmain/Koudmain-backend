@@ -57,7 +57,7 @@ module.exports = {
       users.push({
         first_name: faker.person.firstName(),
         last_name: faker.person.lastName(),
-        email: `worker${i + 1}@koudmain.com`,
+        email: `worker${i + 1}@koudmain.fr`,
         password: dummyHashedPassword,
         role: 'WORKER',
         phone_number: faker.string.numeric(10),
@@ -71,7 +71,7 @@ module.exports = {
       users.push({
         first_name: faker.person.firstName(),
         last_name: faker.person.lastName(),
-        email: `employer${i + 1}@koudmain.com`,
+        email: `employer${i + 1}@koudmain.fr`,
         password: dummyHashedPassword,
         role: 'EMPLOYER',
         phone_number: faker.string.numeric(10),
