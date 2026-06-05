@@ -5,11 +5,11 @@ import { Conversation } from './conversation.model';
 @Table({ tableName: 'conversation_settings' })
 export class ConversationSetting extends Model {
   @ForeignKey(() => User)
-  @Column
+  @Column({ primaryKey: true })
   declare user_id: number;
 
   @ForeignKey(() => Conversation)
-  @Column
+  @Column({ primaryKey: true })
   declare conversation_id: number;
 
   @Column({ defaultValue: false })

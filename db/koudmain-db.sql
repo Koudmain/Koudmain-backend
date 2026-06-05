@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 CREATE TABLE "address" (
   "id" serial PRIMARY KEY,
   "street_number" varchar(10),
@@ -7,7 +9,8 @@ CREATE TABLE "address" (
   "country" varchar(100) DEFAULT 'France',
   "latitude" numeric(9,6),
   "longitude" numeric(9,6),
-  "full_address" text
+  "full_address" text,
+  "geom" geography(Point, 4326)
 );
 
 CREATE TYPE "user_role" AS ENUM ('WORKER', 'EMPLOYER');
@@ -169,12 +172,13 @@ CREATE TABLE "conversation" (
 );
 
 CREATE TABLE "conversation_settings" (
-  "id" serial PRIMARY KEY,
-  "user_id" integer not null,
-  "conversation_id" integer not null,
+  "user_id" integer NOT NULL,
+  "conversation_id" integer NOT NULL,
   "is_pinned" boolean DEFAULT false,
   "is_deleted" boolean DEFAULT false,
   PRIMARY KEY ("user_id", "conversation_id"),
+  FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE,
+  FOREIGN KEY ("conversation_id") REFERENCES "conversation" ("id") ON DELETE CASCADE
 );
 
 CREATE INDEX idx_conv_settings_user_id ON "conversation_settings"("user_id");
@@ -397,3 +401,7 @@ ALTER TABLE "contract" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id"
 ALTER TABLE "invoice" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "skill" ADD FOREIGN KEY ("category_id") REFERENCES "skill_category" ("id") DEFERRABLE INITIALLY IMMEDIATE;
+
+ALTER TABLE "address" ADD COLUMN IF NOT EXISTS "geom" geography(Point, 4326);
+
+CREATE INDEX IF NOT EXISTS "idx_address_geom" ON "address" USING GIST ("geom");

@@ -41,7 +41,7 @@ describe('Chat System (e2e)', () => {
             password: process.env.DB_TEST_PASSWORD || 'postgres',
             database: process.env.DB_TEST_NAME || 'koudmain_test',
             autoLoadModels: true,
-            synchronize: true,
+            synchronize: false,
             retryAttempts: 3,
             retryDelay: 2000,
           }),

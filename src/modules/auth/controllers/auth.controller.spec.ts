@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthController } from './auth.controller';
+import { AuthController, SignUpBody } from './auth.controller';
 import { AuthService } from '../services/auth.service';
 import { EmailVerificationService } from '../services/email-verification.service';
+import { UserRole } from '@/modules/users/models/user.model';
 
 const mockAuthService = {
   signIn: jest.fn(),
@@ -76,12 +77,12 @@ describe('AuthController', () => {
       };
       mockAuthService.register.mockResolvedValue(mockResponse);
 
-      const payload: any = {
+      const payload: SignUpBody = {
         first_name: 'John',
         last_name: 'Doe',
         email: 'john@example.com',
         password: 'password123',
-        role: 'WORKER',
+        role: UserRole.WORKER,
       };
 
       const result = await controller.signUp(payload);

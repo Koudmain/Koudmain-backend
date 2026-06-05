@@ -10,8 +10,12 @@ import {
   Delete,
   BadRequestException,
 } from '@nestjs/common';
-import { PublicationService } from '../services/publication.service';
-import { PostPublicationResponseDto, Publication } from '../models/publication.model';
+import { PublicationService } from '@/modules/publication/services/publication.service';
+import {
+  PostPublicationDto,
+  Publication,
+  PostPublicationResponseDto,
+} from '@/modules/publication/models/publication.model';
 
 @Controller('publication')
 export class PublicationController {
@@ -19,7 +23,7 @@ export class PublicationController {
 
   @HttpCode(HttpStatus.CREATED)
   @Post('create')
-  async create(@Body() createDto: Record<string, any>) {
+  async create(@Body() createDto: PostPublicationDto) {
     const publication: Publication = await this.publicationService.create(createDto);
 
     const res: PostPublicationResponseDto = {

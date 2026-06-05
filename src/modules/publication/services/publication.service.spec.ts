@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { PublicationService } from './publication.service';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
-import { Publication } from '../models/publication.model';
+import { PostPublicationDto, Publication } from '@/modules/publication/models/publication.model';
 
 describe('PublicationService', () => {
   let service: PublicationService;
@@ -37,14 +37,24 @@ describe('PublicationService', () => {
     service = moduleRef.get<PublicationService>(PublicationService);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should create a publication with auto-incremented id', async () => {
     // Arrange
     mockPublicationModel.max.mockResolvedValue(5);
-    mockPublicationModel.create.mockImplementation((data) => Promise.resolve(data));
+    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
+      const instance = { ...data, $set: jest.fn().mockResolvedValue(undefined) };
+      mockPublicationModel.findByPk.mockResolvedValue(instance);
+      return Promise.resolve(instance);
+    });
 
-    const publicationData: Partial<Publication> = {
+    const publicationData: PostPublicationDto = {
       title: 'Test Publication',
-      description: 'Test Description',
+      hourly_rate: 20.0,
+      starting_date: new Date().toISOString(),
+      ending_date: new Date().toISOString(),
     };
 
     // Act
@@ -53,30 +63,61 @@ describe('PublicationService', () => {
     // Assert
     expect(result.id).toEqual(6);
     expect(result.title).toEqual('Test Publication');
-    expect(result.description).toEqual('Test Description');
 
     expect(mockPublicationModel.create).toHaveBeenCalledWith(expect.objectContaining({ id: 6 }));
   });
 
-  it('should use provided dates when creating publication', async () => {
+  it('should create a publication and set its skills', async () => {
     // Arrange
-    mockPublicationModel.create.mockImplementation((data) => Promise.resolve(data));
+    const $setSpy = jest.fn().mockResolvedValue(undefined);
+    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
+      const instance = {
+        ...data,
+        $set: $setSpy,
+      };
+      mockPublicationModel.findByPk.mockResolvedValue(instance);
+      return Promise.resolve(instance);
+    });
 
-    const customDate = new Date('2024-01-01');
-    const publicationData: Partial<Publication> = {
-      title: 'Test Publication',
-      createdAt: customDate,
-      starting_date: customDate,
-      ending_date: customDate,
+    const publicationData: PostPublicationDto = {
+      title: 'Skill Test',
+      hourly_rate: 20.0,
+      starting_date: new Date().toISOString(),
+      ending_date: new Date().toISOString(),
+      skills: [1, 2],
     };
 
     // Act
     const result = await service.create(publicationData);
 
     // Assert
-    expect(result.createdAt).toEqual(customDate);
-    expect(result.starting_date).toEqual(customDate);
-    expect(result.ending_date).toEqual(customDate);
+    expect(result.title).toEqual('Skill Test');
+    expect($setSpy).toHaveBeenCalledWith('skills', [1, 2]);
+  });
+
+  it('should use provided dates when creating publication', async () => {
+    // Arrange
+    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
+      const instance = { ...data, $set: jest.fn().mockResolvedValue(undefined) };
+      mockPublicationModel.findByPk.mockResolvedValue(instance);
+      return Promise.resolve(instance);
+    });
+
+    const customDate = new Date('2024-01-01');
+    const publicationData: PostPublicationDto = {
+      title: 'Test Publication',
+      hourly_rate: 20.0,
+      starting_date: customDate.toISOString(),
+      ending_date: customDate.toISOString(),
+    };
+
+    // Act
+    const result = await service.create(publicationData);
+
+    // Assert
+    expect(result.createdAt).toEqual(expect.any(Date));
+    expect(result.starting_date).toEqual(customDate.toISOString());
+    expect(result.ending_date).toEqual(customDate.toISOString());
   });
 
   it('should get all publications', async () => {
@@ -107,7 +148,9 @@ describe('PublicationService', () => {
 
   it('should update a publication and return the updated publication', async () => {
     // Arrange
-    const updatedData: Partial<Publication> = { title: 'Updated Title' };
+    const updatedData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
+      title: 'Updated Title',
+    };
     const expectedResult = { id: 1, title: 'Updated Title' };
 
     mockPublicationModel.update.mockResolvedValue([1]);
@@ -118,8 +161,36 @@ describe('PublicationService', () => {
 
     // Assert
     expect(mockPublicationModel.update).toHaveBeenCalledWith(updatedData, { where: { id: 1 } });
-    expect(mockPublicationModel.findByPk).toHaveBeenCalledWith(1);
+    expect(mockPublicationModel.findByPk).toHaveBeenCalledWith(1, expect.any(Object));
     expect(result).toEqual(expectedResult);
+  });
+
+  it('should update a publication and set its skills when provided', async () => {
+    // Arrange
+    const $setSpy = jest.fn().mockResolvedValue(undefined);
+    const mockInstance = {
+      id: 1,
+      title: 'Updated Title',
+      $set: $setSpy,
+    };
+    mockPublicationModel.update.mockResolvedValue([1]);
+    mockPublicationModel.findByPk.mockResolvedValue(mockInstance);
+
+    const updatedData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
+      title: 'Updated Title',
+      skills: [3, 4],
+    };
+
+    // Act
+    const result = await service.update(1, updatedData);
+
+    // Assert
+    expect(mockPublicationModel.update).toHaveBeenCalledWith(
+      { title: 'Updated Title' },
+      { where: { id: 1 } },
+    );
+    expect($setSpy).toHaveBeenCalledWith('skills', [3, 4]);
+    expect(result).toEqual(mockInstance);
   });
 
   it('should delete a publication by its ID', async () => {

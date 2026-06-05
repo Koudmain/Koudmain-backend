@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SkillController } from './skill.controller';
-import { SkillService } from '../services/skill.service';
-import { PostSkillDto, PostSkillResponseDto } from '../models/skill.model';
+import { SkillService } from '@/modules/skill/services/skill.service';
+import { PostSkillDto, PostSkillResponseDto } from '@/modules/skill/models/skill.model';
 
 const mockSkillService = {
   create: jest.fn(),

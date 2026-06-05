@@ -17,7 +17,7 @@ type SignInBody = {
   targetApp: 'worker' | 'employer';
 };
 
-type SignUpBody = {
+export type SignUpBody = {
   first_name: string;
   last_name: string;
   email: string;

@@ -1,4 +1,4 @@
-import { SkillCategory } from '../models/skill-category.model';
+import { SkillCategory } from '@/modules/skill-category/models/skill-category.model';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 

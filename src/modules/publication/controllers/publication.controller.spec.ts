@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PublicationController } from './publication.controller';
-import { PublicationService } from '../services/publication.service';
-import { PostPublicationDto, PostPublicationResponseDto } from '../models/publication.model';
+import { PublicationService } from '@/modules/publication/services/publication.service';
+import {
+  PostPublicationDto,
+  PostPublicationResponseDto,
+} from '@/modules/publication/models/publication.model';
 
 const mockPublicationService = {
   create: jest.fn(),
@@ -46,8 +49,9 @@ describe('PublicationController', () => {
         title: 'Server (H/F)',
         description: "Besoin d'un serveur pour une missions.",
         hourly_rate: 35.0,
-        starting_date: new Date(),
-        ending_date: new Date(),
+        starting_date: new Date().toISOString(),
+        ending_date: new Date().toISOString(),
+        skills: [1, 2],
       };
 
       const expectedServiceResult: PostPublicationResponseDto = {

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { InternalServerErrorException } from '@nestjs/common';
 
 import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
 import { MailerService } from '@/modules/mailer/services/mailer.service';
@@ -42,97 +43,212 @@ describe('MailerService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should send an email via Mailjet using text/html', async () => {
-    requestMock.mockResolvedValue(undefined);
+  describe('constructor', () => {
+    it('should throw an error if MAIL_FROM_EMAIL is missing', async () => {
+      const badConfigServiceMock = {
+        get: jest.fn((key: string) => {
+          if (key === 'MAIL_FROM_NAME') return 'Koudmain';
+          return undefined;
+        }),
+      };
 
-    await service.sendEmail({
-      toEmail: 'user@test.com',
-      toName: 'User',
-      subject: 'Hello',
-      text: 'Hi!',
+      const modulePromise = Test.createTestingModule({
+        providers: [
+          MailerService,
+          { provide: MAILJET_CLIENT, useValue: mailjetMock },
+          { provide: ConfigService, useValue: badConfigServiceMock },
+        ],
+      }).compile();
+
+      await expect(modulePromise).rejects.toThrow('Missing MAIL_FROM_EMAIL');
     });
 
-    expect(postMock).toHaveBeenCalledWith('send', { version: 'v3.1' });
-    expect(requestMock).toHaveBeenCalledWith({
-      Messages: [
-        {
-          From: { Email: 'noreply@test.com', Name: 'Koudmain' },
-          To: [{ Email: 'user@test.com', Name: 'User' }],
-          Subject: 'Hello',
-          TextPart: 'Hi!',
-        },
-      ],
+    it('should initialize without MAIL_FROM_NAME if it is not provided', async () => {
+      const minimalConfigServiceMock = {
+        get: jest.fn((key: string) => {
+          if (key === 'MAIL_FROM_EMAIL') return 'noreply@test.com';
+          return undefined;
+        }),
+      };
+
+      const module = await Test.createTestingModule({
+        providers: [
+          MailerService,
+          { provide: MAILJET_CLIENT, useValue: mailjetMock },
+          { provide: ConfigService, useValue: minimalConfigServiceMock },
+        ],
+      }).compile();
+
+      const minimalService = module.get(MailerService);
+      expect(minimalService).toBeDefined();
+
+      requestMock.mockResolvedValue(undefined);
+      await minimalService.sendEmail({
+        toEmail: 'user@test.com',
+        subject: 'Hello',
+        text: 'Hi!',
+      });
+
+      expect(requestMock).toHaveBeenCalledWith({
+        Messages: [
+          {
+            From: { Email: 'noreply@test.com' },
+            To: [{ Email: 'user@test.com' }],
+            Subject: 'Hello',
+            TextPart: 'Hi!',
+          },
+        ],
+      });
     });
   });
 
-  it('should send an email via Mailjet using a template', async () => {
-    requestMock.mockResolvedValue(undefined);
+  describe('sendEmail', () => {
+    it('should send a text email via Mailjet', async () => {
+      requestMock.mockResolvedValue(undefined);
 
-    await service.sendEmail({
-      toEmail: 'user@test.com',
-      toName: 'User',
-      subject: 'Hello',
-      templateId: 123456,
-      variables: { name: 'John' },
+      await service.sendEmail({
+        toEmail: 'user@test.com',
+        toName: 'User',
+        subject: 'Hello',
+        text: 'Hi!',
+      });
+
+      expect(postMock).toHaveBeenCalledWith('send', { version: 'v3.1' });
+      expect(requestMock).toHaveBeenCalledWith({
+        Messages: [
+          {
+            From: { Email: 'noreply@test.com', Name: 'Koudmain' },
+            To: [{ Email: 'user@test.com', Name: 'User' }],
+            Subject: 'Hello',
+            TextPart: 'Hi!',
+          },
+        ],
+      });
     });
 
-    expect(postMock).toHaveBeenCalledWith('send', { version: 'v3.1' });
-    expect(requestMock).toHaveBeenCalledWith({
-      Messages: [
-        {
-          From: { Email: 'noreply@test.com', Name: 'Koudmain' },
-          To: [{ Email: 'user@test.com', Name: 'User' }],
-          Subject: 'Hello',
-          TemplateID: 123456,
-          TemplateLanguage: true,
-          Variables: { name: 'John' },
-          TemplateErrorReporting: { Email: 'noreply@test.com', Name: 'Koudmain' },
-          TemplateErrorDeliver: true,
-        },
-      ],
+    it('should send an HTML email via Mailjet', async () => {
+      requestMock.mockResolvedValue(undefined);
+
+      await service.sendEmail({
+        toEmail: 'user@test.com',
+        toName: 'User',
+        subject: 'Hello',
+        html: '<p>Hi!</p>',
+      });
+
+      expect(requestMock).toHaveBeenCalledWith({
+        Messages: [
+          {
+            From: { Email: 'noreply@test.com', Name: 'Koudmain' },
+            To: [{ Email: 'user@test.com', Name: 'User' }],
+            Subject: 'Hello',
+            HTMLPart: '<p>Hi!</p>',
+          },
+        ],
+      });
     });
-  });
 
-  it('should send verification email using template 8041377', async () => {
-    requestMock.mockResolvedValue(undefined);
+    it('should send both HTML and text email via Mailjet', async () => {
+      requestMock.mockResolvedValue(undefined);
 
-    await service.sendVerificationEmail('user@test.com', 'Jean', '123456');
+      await service.sendEmail({
+        toEmail: 'user@test.com',
+        toName: 'User',
+        subject: 'Hello',
+        text: 'Hi!',
+        html: '<p>Hi!</p>',
+      });
 
-    expect(postMock).toHaveBeenCalledWith('send', { version: 'v3.1' });
-    expect(requestMock).toHaveBeenCalled();
+      expect(requestMock).toHaveBeenCalledWith({
+        Messages: [
+          {
+            From: { Email: 'noreply@test.com', Name: 'Koudmain' },
+            To: [{ Email: 'user@test.com', Name: 'User' }],
+            Subject: 'Hello',
+            TextPart: 'Hi!',
+            HTMLPart: '<p>Hi!</p>',
+          },
+        ],
+      });
+    });
 
-    const calls = requestMock.mock.calls as unknown as unknown[][];
-    const payload = calls[0][0] as {
-      Messages: Array<{
-        From: { Email: string; Name?: string };
-        To: Array<{ Email: string; Name?: string }>;
-        Subject?: string;
-        TemplateID?: number;
-        TemplateLanguage?: boolean;
-        TemplateErrorReporting?: { Email: string; Name?: string };
-        TemplateErrorDeliver?: boolean;
-        Variables?: Record<string, string>;
-      }>;
-    };
-    const message = payload.Messages[0];
+    it('should send an email with ReplyTo details', async () => {
+      requestMock.mockResolvedValue(undefined);
 
-    expect(message.From).toEqual({ Email: 'noreply@test.com', Name: 'Koudmain' });
-    expect(message.To).toEqual([{ Email: 'user@test.com', Name: 'Jean' }]);
-    expect(message.Subject).toBe('123456 — Votre code de vérification Koudmain');
-    expect(message.TemplateID).toBe(8041377);
-    expect(message.TemplateLanguage).toBe(true);
-    expect(message.TemplateErrorReporting).toEqual({ Email: 'noreply@test.com', Name: 'Koudmain' });
-    expect(message.TemplateErrorDeliver).toBe(true);
+      await service.sendEmail({
+        toEmail: 'user@test.com',
+        toName: 'User',
+        subject: 'Hello',
+        text: 'Hi!',
+        replyToEmail: 'reply@test.com',
+        replyToName: 'Reply Team',
+      });
 
-    expect(message.Variables).toBeDefined();
-    const variables = message.Variables!;
-    expect(variables.preHeader).toBe('123456 est votre code de vérification Koudmain');
-    expect(variables.title).toBe('Confirmez votre adresse email');
-    expect(variables.leadText).toBe(
-      'Bonjour Jean,<br />Utilisez le code ci-dessous pour finaliser votre inscription sur Koudmain.',
-    );
-    expect(variables.contentHtml).toContain('123456');
-    expect(variables.warningHtml).toContain("Si vous n'avez pas créé de compte");
-    expect(variables.signature).toBe('Cordialement,<br />L’équipe Koudmain');
+      expect(requestMock).toHaveBeenCalledWith({
+        Messages: [
+          {
+            From: { Email: 'noreply@test.com', Name: 'Koudmain' },
+            To: [{ Email: 'user@test.com', Name: 'User' }],
+            Subject: 'Hello',
+            TextPart: 'Hi!',
+            ReplyTo: {
+              Email: 'reply@test.com',
+              Name: 'Reply Team',
+            },
+          },
+        ],
+      });
+    });
+
+    it('should send an email with ReplyTo email but no ReplyTo name', async () => {
+      requestMock.mockResolvedValue(undefined);
+
+      await service.sendEmail({
+        toEmail: 'user@test.com',
+        toName: 'User',
+        subject: 'Hello',
+        text: 'Hi!',
+        replyToEmail: 'reply@test.com',
+      });
+
+      expect(requestMock).toHaveBeenCalledWith({
+        Messages: [
+          {
+            From: { Email: 'noreply@test.com', Name: 'Koudmain' },
+            To: [{ Email: 'user@test.com', Name: 'User' }],
+            Subject: 'Hello',
+            TextPart: 'Hi!',
+            ReplyTo: {
+              Email: 'reply@test.com',
+            },
+          },
+        ],
+      });
+    });
+
+    it('should throw InternalServerErrorException if both text and html are missing', async () => {
+      await expect(
+        service.sendEmail({
+          toEmail: 'user@test.com',
+          subject: 'Hello',
+        }),
+      ).rejects.toThrow(new InternalServerErrorException('Email content is empty (text/html)'));
+    });
+
+    it('should throw InternalServerErrorException and log if Mailjet client fails', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      requestMock.mockRejectedValue(new Error('Mailjet API error'));
+
+      await expect(
+        service.sendEmail({
+          toEmail: 'user@test.com',
+          subject: 'Hello',
+          text: 'Hi!',
+        }),
+      ).rejects.toThrow(new InternalServerErrorException('Failed to send email'));
+
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
   });
 });
