@@ -30,5 +30,6 @@ jobs:
     uses: Koudmain/.github/.github/workflows/orchestrator-ci.yml@main
     with:
       language: "node"
+      node-version: "24"
       run-quality: true
     secrets: inherit
