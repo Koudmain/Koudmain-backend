@@ -7,9 +7,8 @@ CREATE_SKILL_URL = f"{BASE_URL}/skill/create"
 
 # Identifiants
 login_data = {
-    "email": "pip@gmail.com",
-    "password": "azerty",
-    "targetApp": "employer"
+    "email": "employer1@koudmain.fr",
+    "password": "password123"
 }
 
 skills_to_create = [
