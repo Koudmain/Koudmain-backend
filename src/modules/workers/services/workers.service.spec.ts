@@ -36,7 +36,7 @@ describe('WorkersService', () => {
   describe('create', () => {
     it('doit créer et retourner un profil worker avec succès', async () => {
       const dto: CreationAttributes<WorkerProfile> = {
-        user_id: 1,
+        userId: 1,
         max_distance_km: 30,
         skills_description: 'Plomberie et Électricité',
       };
@@ -61,7 +61,7 @@ describe('WorkersService', () => {
       const result = await service.getWorkerIdByUserId(userId);
 
       expect(mockWorkerProfileModel.findOne).toHaveBeenCalledWith({
-        where: { user_id: userId },
+        where: { userId: userId },
         attributes: ['id'],
       });
       expect(result).toBe(10);
@@ -80,7 +80,7 @@ describe('WorkersService', () => {
     it('doit retourner le profil complet du worker si il existe', async () => {
       const mockFullWorker = {
         id: 10,
-        user_id: userId,
+        userId: userId,
         max_distance_km: 20,
         skills_description: 'Peinture',
       };
@@ -89,7 +89,7 @@ describe('WorkersService', () => {
       const result = await service.getWorkerByUserId(userId);
 
       expect(mockWorkerProfileModel.findOne).toHaveBeenCalledWith({
-        where: { user_id: userId },
+        where: { userId: userId },
       });
       expect(result).toEqual(mockFullWorker);
     });

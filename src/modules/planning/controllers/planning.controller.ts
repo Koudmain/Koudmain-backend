@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { PlanningService } from '@/modules/planning/services/planning.service';
-import { CurrentUser } from '@/decorators/current-user.decorator';
+import { currentUser } from '@/decorators/current-user.decorator';
 import type { JwtPayload } from '@/decorators/current-user.decorator';
 
 @Controller('planning')
@@ -19,18 +19,18 @@ export class PlanningController {
   @HttpCode(HttpStatus.OK)
   @Get()
   async getPlanning(
-    @Query('startDate') start_date?: string,
-    @Query('endDate') end_date?: string,
-    @Query('activeCompanyId') active_company_id?: number,
-    @CurrentUser() user?: JwtPayload,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('activeCompanyId') activeCompanyId?: number,
+    @currentUser() user?: JwtPayload,
     @Req() request?: Request,
   ) {
     if (request && request.query) {
-      const allowed_keys = ['startDate', 'endDate', 'activeCompanyId'];
-      const query_keys = Object.keys(request.query);
-      const has_extra_params = query_keys.some((key) => !allowed_keys.includes(key));
+      const allowedKeys = ['startDate', 'endDate', 'activeCompanyId'];
+      const queryKeys = Object.keys(request.query);
+      const hasExtraParams = queryKeys.some((key) => !allowedKeys.includes(key));
 
-      if (has_extra_params) {
+      if (hasExtraParams) {
         throw new BadRequestException(
           'Seuls les paramètres startDate, endDate et activeCompanyId sont autorisés.',
         );
@@ -44,9 +44,9 @@ export class PlanningController {
     return this.planningService.getPlanning(
       Number(user.sub),
       user.app_context,
-      start_date,
-      end_date,
-      active_company_id,
+      startDate,
+      endDate,
+      activeCompanyId,
     );
   }
 }

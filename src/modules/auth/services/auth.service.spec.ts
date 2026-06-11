@@ -142,8 +142,8 @@ describe('AuthService', () => {
       const result = await service.signIn('test@test.com', 'correct_pass', 'worker');
 
       expect(result).toEqual({
-        access_token: 'access_token_mock',
-        refresh_token: 'refresh_token_mock',
+        accessToken: 'access_token_mock',
+        refreshToken: 'refresh_token_mock',
       });
       expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
         1,
@@ -202,11 +202,11 @@ describe('AuthService', () => {
         is_worker_active: true,
         is_employer_active: false,
       });
-      expect(mockWorkersService.create).toHaveBeenCalledWith({ user_id: 2 });
+      expect(mockWorkersService.create).toHaveBeenCalledWith({ userId: 2 });
       expect(mockCompaniesService.createCompanyWithOwner).not.toHaveBeenCalled();
       expect(result).toEqual({
-        access_token: 'access_token_mock',
-        refresh_token: 'refresh_token_mock',
+        accessToken: 'access_token_mock',
+        refreshToken: 'refresh_token_mock',
       });
     });
 
@@ -303,8 +303,8 @@ describe('AuthService', () => {
 
       expect(mockRefreshSessionService.revokeSession).toHaveBeenCalledWith(99);
       expect(result).toEqual({
-        access_token: 'new_access_token',
-        refresh_token: 'new_refresh_token',
+        accessToken: 'new_access_token',
+        refreshToken: 'new_refresh_token',
       });
     });
   });

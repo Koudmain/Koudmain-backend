@@ -50,7 +50,7 @@ describe('WorkersController', () => {
 
       const mockProfile = {
         id: 1,
-        user_id: userId,
+        userId: userId,
         max_distance_km: 25,
         skills_description: 'Développeur NestJS',
       };

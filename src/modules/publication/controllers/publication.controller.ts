@@ -50,15 +50,15 @@ export class PublicationController {
   @HttpCode(HttpStatus.OK)
   @Put('/update/:id')
   async update(@Param('id') id: number, @Body() updateDto: Record<string, any>) {
-    const pub_id: Publication | null = await this.publicationService.update(id, updateDto);
+    const pubId: Publication | null = await this.publicationService.update(id, updateDto);
 
-    if (!pub_id) {
+    if (!pubId) {
       throw new BadRequestException('Publication non trouvée');
     }
 
     const res = {
       message: 'Publication éditée avec succès',
-      id: pub_id.id,
+      id: pubId.id,
     };
     return res;
   }

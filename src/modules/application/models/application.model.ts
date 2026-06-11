@@ -8,12 +8,12 @@ export class Application extends Model {
   declare id: number;
 
   @ForeignKey(() => Publication)
-  @Column({ type: DataType.INTEGER })
-  declare publication_id: number;
+  @Column({ type: DataType.INTEGER, field: 'publication_id' })
+  declare publicationId: number;
 
   @ForeignKey(() => WorkerProfile)
-  @Column({ type: DataType.INTEGER })
-  declare worker_id: number;
+  @Column({ type: DataType.INTEGER, field: 'worker_id' })
+  declare workerId: number;
 
   @Column({ type: DataType.STRING })
   declare status: string;

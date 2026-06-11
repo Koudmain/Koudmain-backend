@@ -5,12 +5,12 @@ import { Conversation } from './conversation.model';
 @Table({ tableName: 'conversation_settings' })
 export class ConversationSetting extends Model {
   @ForeignKey(() => User)
-  @Column({ primaryKey: true })
-  declare user_id: number;
+  @Column({ field: 'user_id', primaryKey: true })
+  declare userId: number;
 
   @ForeignKey(() => Conversation)
-  @Column({ primaryKey: true })
-  declare conversation_id: number;
+  @Column({ field: 'conversation_id', primaryKey: true })
+  declare conversationId: number;
 
   @Column({ defaultValue: false })
   declare is_pinned: boolean;

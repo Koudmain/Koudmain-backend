@@ -43,8 +43,8 @@ describe('PublicationController', () => {
     it('should call PublicationService.create and return the result', async () => {
       // Arrange
       const createDto: PostPublicationDto = {
-        company_id: 1,
-        created_by_user_id: 69,
+        companyId: 1,
+        createdByUserId: 69,
         address_id: 10,
         title: 'Server (H/F)',
         description: "Besoin d'un serveur pour une missions.",

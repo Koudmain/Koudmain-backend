@@ -8,15 +8,15 @@ export class CompanyMember extends Model {
   declare id: number;
 
   @ForeignKey(() => Company)
-  @Column({ type: DataType.INTEGER })
-  declare company_id: number;
+  @Column({ type: DataType.INTEGER, field: 'company_id' })
+  declare companyId: number;
 
   @BelongsTo(() => Company)
   declare company: Company;
 
   @ForeignKey(() => User)
-  @Column({ type: DataType.INTEGER })
-  declare user_id: number;
+  @Column({ type: DataType.INTEGER, field: 'user_id' })
+  declare userId: number;
 
   @BelongsTo(() => User)
   declare user: User;

@@ -48,7 +48,7 @@ describe('ChatController', () => {
 
   describe('createConversation', () => {
     it('devrait appeler findOrCreateConversation avec les bons paramètres', async () => {
-      const dto = { publication_id: 1, worker_id: 2, company_id: 3 };
+      const dto = { publicationId: 1, workerId: 2, companyId: 3 };
       await controller.createConversation(dto);
 
       expect(service.findOrCreateConversation.mock.calls).toEqual([[1, 2, 3]]);
@@ -66,7 +66,7 @@ describe('ChatController', () => {
 
   describe('send', () => {
     it('devrait envoyer un message avec l ID de l utilisateur authentifié', async () => {
-      const body = { conversation_id: 5, content: 'Hello' };
+      const body = { conversationId: 5, content: 'Hello' };
       await controller.send(mockRequest, body);
 
       expect(service.sendMessage.mock.calls).toEqual([[1, 5, 'Hello']]);

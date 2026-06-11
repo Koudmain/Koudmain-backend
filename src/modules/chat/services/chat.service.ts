@@ -27,7 +27,7 @@ export class ChatService {
 
   async sendMessage(
     userId: number,
-    conversation_id: number,
+    conversationId: number,
     content: string,
     type: string = 'TEXT',
   ) {
@@ -36,12 +36,12 @@ export class ChatService {
     }
     const message = await this.messageModel.create({
       sender_id: userId,
-      conversation_id: conversation_id,
+      conversationId: conversationId,
       content_text: content,
       message_type: type,
     });
 
-    const conv = await this.conversationModel.findByPk(conversation_id, {
+    const conv = await this.conversationModel.findByPk(conversationId, {
       include: [
         { model: WorkerProfile, as: 'worker' },
         { model: Company, as: 'company', include: ['members'] },
@@ -52,12 +52,12 @@ export class ChatService {
 
     const targetUserIds = new Set<number>();
 
-    if (userId === conv.worker.user_id) {
+    if (userId === conv.worker.userId) {
       conv.company.members.forEach((member) => {
-        targetUserIds.add(member.user_id);
+        targetUserIds.add(member.userId);
       });
     } else {
-      targetUserIds.add(conv.worker.user_id);
+      targetUserIds.add(conv.worker.userId);
     }
 
     const messageData = message.toJSON<MessageAttributes>();
@@ -74,20 +74,20 @@ export class ChatService {
   }
 
   async getConversationsForWorker(userId: number) {
-    const worker_id = await this.workersService.getWorkerIdByUserId(userId);
+    const workerId = await this.workersService.getWorkerIdByUserId(userId);
     return this.conversationModel.findAll({
-      where: { worker_id: worker_id },
+      where: { workerId: workerId },
       include: ['company', 'publication'],
       order: [['updated_at', 'DESC']],
     });
   }
 
-  async getConversationsForCompany(company_id: number, userId: number) {
-    const company = await this.companyModel.findByPk(company_id);
+  async getConversationsForCompany(companyId: number, userId: number) {
+    const company = await this.companyModel.findByPk(companyId);
 
-    if (!company) throw new NotFoundException(`L'entreprise ${company_id} n'existe pas.`);
+    if (!company) throw new NotFoundException(`L'entreprise ${companyId} n'existe pas.`);
     return this.conversationModel.findAll({
-      where: { company_id: company_id },
+      where: { companyId: companyId },
       include: [
         {
           model: WorkerProfile,
@@ -97,7 +97,7 @@ export class ChatService {
         {
           model: ConversationSetting,
           as: 'settings',
-          where: { user_id: userId },
+          where: { userId: userId },
           required: false,
         },
         'publication',
@@ -112,9 +112,9 @@ export class ChatService {
     });
   }
 
-  async getConversationDetailsForCompany(userId: number, conversation_id: number) {
+  async getConversationDetailsForCompany(userId: number, conversationId: number) {
     return this.conversationModel.findOne({
-      where: { id: conversation_id },
+      where: { id: conversationId },
       include: [
         {
           model: WorkerProfile,
@@ -124,7 +124,7 @@ export class ChatService {
         {
           model: ConversationSetting,
           as: 'settings',
-          where: { user_id: userId },
+          where: { userId: userId },
           required: false,
         },
         'publication',
@@ -132,38 +132,38 @@ export class ChatService {
     });
   }
 
-  async getMessagesByConversation(conversation_id: number, limit: number, offset: number) {
+  async getMessagesByConversation(conversationId: number, limit: number, offset: number) {
     return this.messageModel.findAll({
-      where: { conversation_id: conversation_id },
+      where: { conversationId: conversationId },
       order: [['created_at', 'DESC']],
       limit: limit,
       offset: offset,
     });
   }
 
-  async getConversationMessages(conversation_id: number) {
+  async getConversationMessages(conversationId: number) {
     return this.messageModel.findAll({
-      where: { conversation_id: conversation_id },
+      where: { conversationId: conversationId },
       order: [['created_at', 'ASC']],
     });
   }
 
-  async findOrCreateConversation(publication_id: number, worker_id: number, company_id: number) {
+  async findOrCreateConversation(publicationId: number, workerId: number, companyId: number) {
     const [publication, workerProfile, company] = await Promise.all([
-      this.publicationModel.findByPk(publication_id),
-      this.workerModel.findByPk(worker_id),
-      this.companyModel.findByPk(company_id),
+      this.publicationModel.findByPk(publicationId),
+      this.workerModel.findByPk(workerId),
+      this.companyModel.findByPk(companyId),
     ]);
 
-    if (!publication) throw new NotFoundException(`La publication ${publication_id} n'existe pas.`);
+    if (!publication) throw new NotFoundException(`La publication ${publicationId} n'existe pas.`);
     if (!workerProfile)
-      throw new NotFoundException(`Le profil travailleur ${worker_id} n'existe pas.`);
-    if (!company) throw new NotFoundException(`L'entreprise ${company_id} n'existe pas.`);
+      throw new NotFoundException(`Le profil travailleur ${workerId} n'existe pas.`);
+    if (!company) throw new NotFoundException(`L'entreprise ${companyId} n'existe pas.`);
     const [conversation, created] = await this.conversationModel.findOrCreate({
       where: {
-        publication_id: publication_id,
-        worker_id: worker_id,
-        company_id: company_id,
+        publicationId: publicationId,
+        workerId: workerId,
+        companyId: companyId,
       },
       defaults: {
         status: 'active',
@@ -172,10 +172,10 @@ export class ChatService {
     });
 
     if (created) {
-      const workerProfile = await this.workerModel.findByPk(worker_id);
+      const workerProfile = await this.workerModel.findByPk(workerId);
 
       const members = await this.companyMemberModel.findAll({
-        where: { company_id: company_id },
+        where: { companyId: companyId },
       });
       if (members.length === 0) {
         throw new BadRequestException(
@@ -187,15 +187,15 @@ export class ChatService {
 
       if (workerProfile) {
         settingsToCreate.push({
-          user_id: workerProfile.user_id,
-          conversation_id: conversation.id,
+          userId: workerProfile.userId,
+          conversationId: conversation.id,
         });
       }
 
       members.forEach((member) => {
         settingsToCreate.push({
-          user_id: member.user_id,
-          conversation_id: conversation.id,
+          userId: member.userId,
+          conversationId: conversation.id,
         });
       });
 
