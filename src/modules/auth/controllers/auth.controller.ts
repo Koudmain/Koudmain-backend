@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Request } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
 import { AuthService } from '@/modules/auth/services/auth.service';
-import { Public } from '@/decorators/public.decorator';
+import { publicRoute } from '@/decorators/public.decorator';
 
 type JwtPayload = {
   sub: number;
@@ -16,51 +16,51 @@ type SignInBody = {
 };
 
 type SignUpBody = {
-  first_name: string;
-  last_name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
-  is_worker_active: boolean;
-  is_employer_active: boolean;
+  isWorkerActive: boolean;
+  isEmployerActive: boolean;
 };
 
 type AuthTokenResponse = {
-  access_token: string;
-  refresh_token: string;
+  accessToken: string;
+  refreshToken: string;
 };
 
 type RefreshBody = {
-  refresh_token: string;
+  refreshToken: string;
 };
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Public()
+  @publicRoute()
   @HttpCode(HttpStatus.OK)
   @Post('login')
   signIn(@Body() body: SignInBody): Promise<AuthTokenResponse> {
     return this.authService.signIn(body.email, body.password, body.targetApp);
   }
 
-  @Public()
+  @publicRoute()
   @Post('register')
   signUp(@Body() body: SignUpBody): Promise<AuthTokenResponse> {
     return this.authService.register(
-      body.first_name,
-      body.last_name,
+      body.firstName,
+      body.lastName,
       body.email,
       body.password,
-      body.is_worker_active,
-      body.is_employer_active,
+      body.isWorkerActive,
+      body.isEmployerActive,
     );
   }
 
-  @Public()
+  @publicRoute()
   @Post('refresh')
   refresh(@Body() body: RefreshBody): Promise<AuthTokenResponse> {
-    return this.authService.refresh(body.refresh_token);
+    return this.authService.refresh(body.refreshToken);
   }
 
   @HttpCode(HttpStatus.OK)

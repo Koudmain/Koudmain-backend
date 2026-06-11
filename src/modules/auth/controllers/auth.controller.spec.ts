@@ -37,7 +37,7 @@ describe('AuthController', () => {
 
   describe('signIn', () => {
     it('should call authService.signIn and return tokens', async () => {
-      const mockTokens = { access_token: 'acc_token', refresh_token: 'ref_token' };
+      const mockTokens = { accessToken: 'acc_token', refreshToken: 'ref_token' };
       mockAuthService.signIn.mockResolvedValue(mockTokens);
 
       const result = await controller.signIn({
@@ -58,28 +58,28 @@ describe('AuthController', () => {
 
   describe('signUp', () => {
     it('should call authService.register and return tokens', async () => {
-      const mockTokens = { access_token: 'acc_token', refresh_token: 'ref_token' };
+      const mockTokens = { accessToken: 'acc_token', refreshToken: 'ref_token' };
       mockAuthService.register.mockResolvedValue(mockTokens);
 
       const payload = {
-        first_name: 'John',
-        last_name: 'Doe',
+        firstName: 'John',
+        lastName: 'Doe',
         email: 'john@example.com',
         password: 'password123',
-        is_worker_active: true,
-        is_employer_active: false,
+        isWorkerActive: true,
+        isEmployerActive: false,
       };
 
       const result = await controller.signUp(payload);
 
       expect(mockAuthService.register).toHaveBeenCalledTimes(1);
       expect(mockAuthService.register).toHaveBeenCalledWith(
-        payload.first_name,
-        payload.last_name,
+        payload.firstName,
+        payload.lastName,
         payload.email,
         payload.password,
-        payload.is_worker_active,
-        payload.is_employer_active,
+        payload.isWorkerActive,
+        payload.isEmployerActive,
       );
       expect(result).toEqual(mockTokens);
     });
@@ -87,10 +87,10 @@ describe('AuthController', () => {
 
   describe('refresh', () => {
     it('should call authService.refresh and return tokens', async () => {
-      const mockTokens = { access_token: 'new_acc', refresh_token: 'new_ref' };
+      const mockTokens = { accessToken: 'new_acc', refreshToken: 'new_ref' };
       mockAuthService.refresh.mockResolvedValue(mockTokens);
 
-      const result = await controller.refresh({ refresh_token: 'old_ref' });
+      const result = await controller.refresh({ refreshToken: 'old_ref' });
 
       expect(mockAuthService.refresh).toHaveBeenCalledTimes(1);
       expect(mockAuthService.refresh).toHaveBeenCalledWith('old_ref');

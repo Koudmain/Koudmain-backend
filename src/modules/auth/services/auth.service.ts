@@ -20,15 +20,15 @@ export class AuthService {
     payload: Record<string, unknown>,
     userId: number,
   ): Promise<{
-    access_token: string;
-    refresh_token: string;
+    accessToken: string;
+    refreshToken: string;
   }> {
     const accessSecret = process.env.JWT_ACCESS_SECRET;
     const refreshSecret = process.env.JWT_REFRESH_SECRET;
     const accessExpiresIn = process.env.JWT_ACCESS_EXPIRES_IN ?? '15m';
     const refreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN ?? '7d';
 
-    const [access_token, refresh_token] = await Promise.all([
+    const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: accessSecret ?? '',
         expiresIn: accessExpiresIn as JwtSignOptions['expiresIn'],
@@ -44,9 +44,9 @@ export class AuthService {
 
     const expiresAtMs = this.parseExpiresIn(refreshExpiresIn);
     const expiresAt = new Date(Date.now() + expiresAtMs);
-    await this.refreshSessionService.createSession(userId, refresh_token, expiresAt);
+    await this.refreshSessionService.createSession(userId, refreshToken, expiresAt);
 
-    return { access_token, refresh_token };
+    return { accessToken, refreshToken };
   }
 
   private parseExpiresIn(expiresIn: string): number {
@@ -67,7 +67,7 @@ export class AuthService {
     email: string,
     pass: string,
     targetApp: 'worker' | 'employer',
-  ): Promise<{ access_token: string; refresh_token: string }> {
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) {
       throw new UnauthorizedException();
@@ -93,7 +93,7 @@ export class AuthService {
     return this.generateTokens(payload, user.id);
   }
 
-  async refresh(token: string): Promise<{ access_token: string; refresh_token: string }> {
+  async refresh(token: string): Promise<{ accessToken: string; refreshToken: string }> {
     try {
       const refreshSecret = process.env.JWT_REFRESH_SECRET;
       const payload = await this.jwtService.verifyAsync<{
@@ -130,35 +130,35 @@ export class AuthService {
   }
 
   async register(
-    first_name: string,
-    last_name: string,
+    firstName: string,
+    lastName: string,
     email: string,
     password: string,
-    is_worker_active = false,
-    is_employer_active = false,
-    company_name?: string,
-  ): Promise<{ access_token: string; refresh_token: string }> {
+    isWorkerActive = false,
+    isEmployerActive = false,
+    companyName?: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const existingUser = await this.usersService.findOneByEmail(email);
     if (existingUser) throw new ConflictException('Email already exists');
     const hashedPassword = await hash(password, 10);
 
     const newUser = await this.usersService.create({
-      first_name,
-      last_name,
+      first_name: firstName,
+      last_name: lastName,
       email,
       password: hashedPassword,
-      is_worker_active,
-      is_employer_active,
+      is_worker_active: isWorkerActive,
+      is_employer_active: isEmployerActive,
     });
-    if (is_worker_active) {
+    if (isWorkerActive) {
       await this.workersService.create({
-        user_id: newUser.id,
+        userId: newUser.id,
       });
     }
 
-    if (is_employer_active) {
+    if (isEmployerActive) {
       await this.companiesService.createCompanyWithOwner(
-        company_name || `Entreprise de ${newUser.last_name}`,
+        companyName || `Entreprise de ${newUser.last_name}`,
         newUser.id,
       );
     }

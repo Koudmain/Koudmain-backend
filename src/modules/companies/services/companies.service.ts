@@ -25,8 +25,8 @@ export class CompaniesService {
     const companyData: CreationAttributes<Company> = { name };
     const company = await this.companyModel.create(companyData);
     const memberData: CreationAttributes<CompanyMember> = {
-      company_id: company.id,
-      user_id: userId,
+      companyId: company.id,
+      userId: userId,
       role: 'Owner',
     };
     await this.memberModel.create(memberData);
@@ -35,7 +35,7 @@ export class CompaniesService {
 
   async getUserCompanies(userId: number) {
     const memberships = await this.memberModel.findAll({
-      where: { user_id: userId },
+      where: { userId: userId },
       include: [
         {
           model: Company,
@@ -64,7 +64,7 @@ export class CompaniesService {
     updateAddressDto: UpdateCompanyAddressDto,
   ) {
     const membership = await this.memberModel.findOne({
-      where: { user_id: userId, company_id: companyId },
+      where: { userId: userId, companyId: companyId },
     });
 
     if (!membership || membership.role !== 'Owner') {

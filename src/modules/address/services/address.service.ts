@@ -44,17 +44,17 @@ export class AddressService {
   }
 
   async getAddressesInZone(dto: GetMapAddressesDto) {
-    const { min_lat, max_lat, min_lng, max_lng } = dto;
+    const { minLat, maxLat, minLng, maxLng } = dto;
 
     const query = `
       SELECT id, latitude, longitude
       FROM "address"
-      WHERE geom && ST_MakeEnvelope(:min_lng, :min_lat, :max_lng, :max_lat, 4326)
+      WHERE geom && ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)
       LIMIT 300
     `;
 
     return this.sequelize.query(query, {
-      replacements: { min_lat, max_lat, min_lng, max_lng },
+      replacements: { minLat, maxLat, minLng, maxLng },
       type: 'SELECT',
     });
   }

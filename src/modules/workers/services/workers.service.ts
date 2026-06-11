@@ -16,7 +16,7 @@ export class WorkersService {
 
   async getWorkerIdByUserId(userId: number): Promise<number> {
     const worker = await this.workerProfileModel.findOne({
-      where: { user_id: userId },
+      where: { userId: userId },
       attributes: ['id'],
     });
     if (!worker) throw new NotFoundException('Profil Worker introuvable');
@@ -25,7 +25,7 @@ export class WorkersService {
 
   async getWorkerByUserId(userId: number): Promise<WorkerProfile> {
     const worker = await this.workerProfileModel.findOne({
-      where: { user_id: userId },
+      where: { userId: userId },
     });
     if (!worker) throw new NotFoundException('Profil Worker introuvable');
     return worker;
