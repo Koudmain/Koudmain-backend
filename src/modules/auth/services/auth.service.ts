@@ -263,6 +263,7 @@ export class AuthService {
         await this.companiesService.createCompanyWithOwner(
           {
             name: dto.employerProfile.company_name,
+            establishmentType: dto.employerProfile.establishmentType,
             ownerPosition: dto.employerProfile.owner_position,
             desiredTradeIds: dto.employerProfile.desired_trade_ids,
             ...(addressId !== undefined && { addressId: addressId }),

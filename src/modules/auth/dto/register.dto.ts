@@ -25,6 +25,15 @@ export enum OwnerPosition {
   OTHER = 'OTHER',
 }
 
+export enum EstablishmentType {
+  CAFE_BAR = 'Café / Bar',
+  RESTAURANT = 'Restaurant',
+  HOTEL = 'Hôtel',
+  FAST_FOOD = 'Restauration rapide',
+  CATERING_EVENT = 'Traiteur / Event',
+  OTHER_CHR = 'Autre CHR',
+}
+
 export class WorkerProfileDto {
   @IsInt()
   @IsNotEmpty()
@@ -50,6 +59,10 @@ export class EmployerProfileDto {
   @IsString()
   @IsNotEmpty()
   company_name: string;
+
+  @IsEnum(EstablishmentType)
+  @IsNotEmpty()
+  establishmentType: EstablishmentType;
 
   @IsEnum(OwnerPosition)
   @IsNotEmpty()
