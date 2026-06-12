@@ -4,7 +4,6 @@ import type { Request } from 'express';
 export interface JwtPayload {
   sub: number;
   email?: string;
-  app_context?: string;
   [key: string]: unknown;
 }
 

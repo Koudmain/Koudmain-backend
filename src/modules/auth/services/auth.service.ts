@@ -120,7 +120,6 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
-      app_context: targetApp,
     };
     return this.generateTokens(payload, user.id);
   }

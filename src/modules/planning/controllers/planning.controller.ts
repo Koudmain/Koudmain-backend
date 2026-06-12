@@ -41,12 +41,6 @@ export class PlanningController {
       throw new BadRequestException('Utilisateur non authentifié');
     }
 
-    return this.planningService.getPlanning(
-      Number(user.sub),
-      user.app_context,
-      startDate,
-      endDate,
-      activeCompanyId,
-    );
+    return this.planningService.getPlanning(Number(user.sub), startDate, endDate, activeCompanyId);
   }
 }
