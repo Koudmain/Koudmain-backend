@@ -81,7 +81,7 @@ describe('AuthController', () => {
         birthDate: '1990-01-01',
         role: UserRole.WORKER,
         workerProfile: {
-          skillCategoryId: 1,
+          skillCategoryIds: [1],
         } as WorkerProfileDto,
       };
 

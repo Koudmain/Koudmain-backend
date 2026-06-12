@@ -16,6 +16,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Address } from '@/modules/address/address.model';
 import { CompanyTrade } from '@/modules/companies/models/company-trade.model';
+import { WorkerTrade } from '@/modules/workers/models/worker-trade.model';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 
 @Module({
@@ -25,7 +26,7 @@ import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
     forwardRef(() => CompaniesModule),
     MailerModule,
     RedisModule,
-    SequelizeModule.forFeature([RefreshSession, Address, CompanyTrade]),
+    SequelizeModule.forFeature([RefreshSession, Address, CompanyTrade, WorkerTrade]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

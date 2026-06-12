@@ -213,7 +213,7 @@ describe('AuthService', () => {
       birthDate: '1990-01-01',
       role: UserRole.WORKER,
       workerProfile: {
-        skillCategoryId: 1,
+        skillCategoryIds: [1],
         bio: 'Plombier expérimenté',
         workRadius: 30,
       } as WorkerProfileDto,
@@ -299,7 +299,7 @@ describe('AuthService', () => {
       expect(mockWorkersService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 2,
-          skillCategoryId: 1,
+          skillCategoryIds: [1],
           workRadius: 30,
         }),
         expect.objectContaining({ transaction: mockTransaction }),

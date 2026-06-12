@@ -50,8 +50,6 @@ CREATE TABLE "worker_profile" (
   "user_id" integer,
   "address_id" integer,
   "bio" text,
-  "workplace_latitude" numeric(9,6),
-  "workplace_longitude" numeric(9,6),
   "work_radius" integer DEFAULT 20,
   "skills_description" text,
   "identity_verified" boolean DEFAULT false,
@@ -265,8 +263,6 @@ COMMENT ON COLUMN "user"."role" IS 'Rôle exclusif de l''utilisateur (WORKER ou 
 COMMENT ON COLUMN "worker_profile"."work_radius" IS 'Rayon de recherche (km)';
 COMMENT ON COLUMN "user"."birth_date" IS 'Date de naissance pour KYC et légalité';
 COMMENT ON COLUMN "worker_profile"."bio" IS 'Description/Biographie du worker';
-COMMENT ON COLUMN "worker_profile"."workplace_latitude" IS 'Latitude du lieu de travail souhaité';
-COMMENT ON COLUMN "worker_profile"."workplace_longitude" IS 'Longitude du lieu de travail souhaité';
 
 COMMENT ON COLUMN "wallet"."balance" IS 'Solde disponible pour virement';
 

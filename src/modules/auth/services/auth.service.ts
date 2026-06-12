@@ -246,7 +246,7 @@ export class AuthService {
         await this.workersService.create(
           {
             userId: newUser.id,
-            skillCategoryId: dto.workerProfile.skillCategoryId,
+            skillCategoryIds: dto.workerProfile.skillCategoryIds,
             bio: dto.workerProfile.bio,
             workRadius: dto.workerProfile.workRadius ?? 20,
             ...(addressId !== undefined && { addressId }),

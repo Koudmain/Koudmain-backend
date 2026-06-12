@@ -35,9 +35,11 @@ export enum EstablishmentType {
 }
 
 export class WorkerProfileDto {
-  @IsInt()
+  @IsArray()
+  @IsInt({ each: true })
+  @ArrayMinSize(1)
   @IsNotEmpty()
-  skillCategoryId: number;
+  skillCategoryIds: number[];
 
   @IsString()
   @IsOptional()

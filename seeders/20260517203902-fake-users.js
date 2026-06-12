@@ -94,15 +94,28 @@ module.exports = {
     workerRows.forEach((w, i) => {
       workerProfiles.push({
         user_id: w.id,
-        workplace_latitude: faker.location.latitude({ max: 48, min: 43 }),
-        workplace_longitude: faker.location.longitude({ max: 6, min: 1 }),
         work_radius: faker.number.int({ min: 10, max: 50 }),
         skills_description: faker.person.jobDescriptor(),
-        skill_category_id: faker.helpers.arrayElement(skillRows).id,
         address_id: addressRows[i].id,
       });
     });
     await queryInterface.bulkInsert('worker_profile', workerProfiles, {});
+
+    const workerProfilesQuery = await queryInterface.sequelize.query(`SELECT id FROM worker_profile ORDER BY id DESC LIMIT ${numWorkers};`);
+    const workerProfileRows = workerProfilesQuery[0].reverse();
+
+    const workerTrades = [];
+    workerProfileRows.forEach((wp, i) => {
+      const numSkills = faker.number.int({ min: 1, max: 3 });
+      const pickedSkills = faker.helpers.arrayElements(skillRows, numSkills);
+      pickedSkills.forEach(skill => {
+        workerTrades.push({
+          worker_id: wp.id,
+          skill_category_id: skill.id,
+        });
+      });
+    });
+    await queryInterface.bulkInsert('worker_trade', workerTrades, {});
 
     // 5. Generate Companies
     const companies = [];
@@ -110,6 +123,7 @@ module.exports = {
       companies.push({
         name: faker.company.name(),
         owner_position: faker.helpers.arrayElement(['Manager', 'Owner', 'HR']),
+        establishment_type: faker.helpers.arrayElement(['Restaurant', 'Bar', 'Café', 'Hotel']),
         is_premium: faker.datatype.boolean(),
         address_id: addressRows[numWorkers + i].id,
       });
@@ -129,7 +143,7 @@ module.exports = {
         company_id: companyRows[i].id,
         role: 'Owner',
       });
-      
+
       const numSkills = faker.number.int({ min: 1, max: 3 });
       const pickedSkills = faker.helpers.arrayElements(skillRows, numSkills);
       pickedSkills.forEach(skill => {
@@ -146,6 +160,7 @@ module.exports = {
 
   async down(queryInterface, Sequelize) {
     await queryInterface.bulkDelete('company_trade', null, {});
+    await queryInterface.bulkDelete('worker_trade', null, {});
     await queryInterface.bulkDelete('company_member', null, {});
     await queryInterface.bulkDelete('company', null, {});
     await queryInterface.bulkDelete('worker_profile', null, {});

@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { WorkersService } from './workers.service';
 import { WorkerProfile } from '../models/worker-profile.model';
+import { WorkerTrade } from '../models/worker-trade.model';
 import { NotFoundException } from '@nestjs/common';
-import { CreationAttributes } from 'sequelize';
 
 describe('WorkersService', () => {
   let service: WorkersService;
@@ -13,6 +13,10 @@ describe('WorkersService', () => {
     findOne: jest.fn(),
   };
 
+  const mockWorkerTradeModel = {
+    bulkCreate: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -20,6 +24,10 @@ describe('WorkersService', () => {
         {
           provide: getModelToken(WorkerProfile),
           useValue: mockWorkerProfileModel,
+        },
+        {
+          provide: getModelToken(WorkerTrade),
+          useValue: mockWorkerTradeModel,
         },
       ],
     }).compile();
@@ -35,18 +43,30 @@ describe('WorkersService', () => {
 
   describe('create', () => {
     it('doit créer et retourner un profil worker avec succès', async () => {
-      const dto: CreationAttributes<WorkerProfile> = {
+      const dto = {
         userId: 1,
-        max_distance_km: 30,
-        skillsDescription: 'Café',
+        bio: 'Super worker',
+        workRadius: 30,
+        skillCategoryIds: [1, 2],
       };
 
-      const createdProfile = { id: 10, ...dto };
+      const createdProfile = { id: 10, userId: 1, bio: 'Super worker', workRadius: 30 };
       mockWorkerProfileModel.create.mockResolvedValue(createdProfile);
+      mockWorkerTradeModel.bulkCreate.mockResolvedValue([]);
 
       const result = await service.create(dto);
 
-      expect(mockWorkerProfileModel.create).toHaveBeenCalledWith(dto, { transaction: undefined });
+      expect(mockWorkerProfileModel.create).toHaveBeenCalledWith(
+        { userId: 1, bio: 'Super worker', workRadius: 30, addressId: undefined },
+        { transaction: undefined },
+      );
+      expect(mockWorkerTradeModel.bulkCreate).toHaveBeenCalledWith(
+        [
+          { workerId: 10, skillCategoryId: 1 },
+          { workerId: 10, skillCategoryId: 2 },
+        ],
+        { transaction: undefined },
+      );
       expect(result).toEqual(createdProfile);
     });
   });
