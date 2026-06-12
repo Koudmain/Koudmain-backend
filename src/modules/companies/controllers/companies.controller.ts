@@ -21,14 +21,14 @@ export class CompaniesController {
     return this.companiesService.getUserCompanies(userId);
   }
 
-  @Put(':company_id/address')
+  @Put(':companyId/address')
   async updateCompanyAddress(
     @Request() req: RequestWithUser,
-    @Param('company_id', ParseIntPipe) company_id: number,
+    @Param('companyId', ParseIntPipe) companyId: number,
     @Body() body: UpdateCompanyAddressDto,
   ) {
     const userId = req.user.sub;
 
-    return this.companiesService.updateCompanyAddress(userId, company_id, body);
+    return this.companiesService.updateCompanyAddress(userId, companyId, body);
   }
 }

@@ -40,12 +40,12 @@ describe('SkillService', () => {
     mockSkillModel.max.mockResolvedValue(5);
     mockSkillModel.create.mockImplementation((data) => Promise.resolve(data));
 
-    const SkillData: Partial<Skill> = {
+    const skillData: Partial<Skill> = {
       name: 'Test Skill',
     };
 
     // Act
-    const result = await service.create(SkillData);
+    const result = await service.create(skillData);
 
     // Assert
     expect(result.id).toEqual(6);

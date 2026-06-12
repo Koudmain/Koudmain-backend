@@ -166,11 +166,11 @@ describe('Planning (e2e)', () => {
     expect(res.body.length).toBeGreaterThan(0);
 
     const entry = res.body[0];
-    expect(entry).toHaveProperty('publication_id');
+    expect(entry).toHaveProperty('publicationId');
     expect(entry).toHaveProperty('title', 'Planning Test Job');
     expect(Number(entry.salary)).toBe(20);
     expect(entry).toHaveProperty('company_name', 'Test Company Planning');
-    expect(entry).toHaveProperty('company_rating');
+    expect(entry).toHaveProperty('companyRating');
     expect(entry).toHaveProperty('application_status');
   });
 
@@ -182,11 +182,11 @@ describe('Planning (e2e)', () => {
     expect(res.body.length).toBeGreaterThan(0);
 
     const entry = res.body[0];
-    expect(entry).toHaveProperty('publication_id');
+    expect(entry).toHaveProperty('publicationId');
     expect(entry).toHaveProperty('title', 'Planning Test Job');
     expect(Number(entry.salary)).toBe(20);
     expect(entry).toHaveProperty('worker_name', 'Worker Planning');
-    expect(entry).toHaveProperty('worker_rating');
+    expect(entry).toHaveProperty('workerRating');
   });
 
   it('should only return Accepted applications for employer, not Pending ones', async () => {

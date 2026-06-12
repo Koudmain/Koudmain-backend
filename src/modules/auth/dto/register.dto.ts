@@ -37,7 +37,7 @@ export enum EstablishmentType {
 export class WorkerProfileDto {
   @IsInt()
   @IsNotEmpty()
-  skill_category_id: number;
+  skillCategoryId: number;
 
   @IsString()
   @IsOptional()
@@ -47,7 +47,7 @@ export class WorkerProfileDto {
   @Min(1)
   @Max(500)
   @IsOptional()
-  work_radius?: number;
+  workRadius?: number;
 
   @ValidateNested()
   @Type(() => CreateAddressDto)
@@ -58,7 +58,7 @@ export class WorkerProfileDto {
 export class EmployerProfileDto {
   @IsString()
   @IsNotEmpty()
-  company_name: string;
+  companyName: string;
 
   @IsEnum(EstablishmentType)
   @IsNotEmpty()
@@ -66,12 +66,12 @@ export class EmployerProfileDto {
 
   @IsEnum(OwnerPosition)
   @IsNotEmpty()
-  owner_position: OwnerPosition;
+  ownerPosition: OwnerPosition;
 
   @IsArray()
   @IsInt({ each: true })
   @ArrayMinSize(1)
-  desired_trade_ids: number[];
+  desiredTradeIds: number[];
 
   @ValidateNested()
   @Type(() => CreateAddressDto)
@@ -82,11 +82,11 @@ export class EmployerProfileDto {
 export class RegisterDto {
   @IsString()
   @IsNotEmpty()
-  first_name: string;
+  firstName: string;
 
   @IsString()
   @IsNotEmpty()
-  last_name: string;
+  lastName: string;
 
   @IsEmail()
   email: string;
@@ -97,11 +97,11 @@ export class RegisterDto {
 
   @IsString()
   @IsNotEmpty()
-  phone_number: string;
+  phoneNumber: string;
 
   @IsString()
   @IsNotEmpty()
-  birth_date: string;
+  birthDate: string;
 
   @IsEnum(UserRole)
   role: UserRole;

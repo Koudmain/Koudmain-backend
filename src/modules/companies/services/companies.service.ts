@@ -12,6 +12,7 @@ import { CreationAttributes, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { Address } from '@/modules/address/address.model';
+import { EstablishmentType } from '@/modules/auth/dto/register.dto';
 
 @Injectable()
 export class CompaniesService {
@@ -26,6 +27,7 @@ export class CompaniesService {
   async createCompanyWithOwner(
     data: {
       name: string;
+      establishmentType: EstablishmentType;
       ownerPosition: string;
       desiredTradeIds: number[];
       addressId?: number;
@@ -35,14 +37,15 @@ export class CompaniesService {
   ): Promise<Company> {
     const companyData: CreationAttributes<Company> = {
       name: data.name,
+      establishmentType: data.establishmentType,
       ownerPosition: data.ownerPosition,
       ...(data.addressId !== undefined && { addressId: data.addressId }),
     };
     const company = await this.companyModel.create(companyData, { transaction });
 
     const memberData: CreationAttributes<CompanyMember> = {
-      company_id: company.id,
-      user_id: userId,
+      companyId: company.id,
+      userId: userId,
       role: 'Owner',
     };
     await this.memberModel.create(memberData, { transaction });
@@ -60,7 +63,7 @@ export class CompaniesService {
 
   async getUserCompanies(userId: number) {
     const memberships = await this.memberModel.findAll({
-      where: { user_id: userId },
+      where: { userId: userId },
       include: [
         {
           model: Company,
@@ -89,7 +92,7 @@ export class CompaniesService {
     updateAddressDto: UpdateCompanyAddressDto,
   ) {
     const membership = await this.memberModel.findOne({
-      where: { user_id: userId, company_id: companyId },
+      where: { userId: userId, companyId: companyId },
     });
 
     if (!membership || membership.role !== 'Owner') {

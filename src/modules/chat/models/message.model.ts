@@ -5,8 +5,8 @@ import { User } from '@/modules/users/models/user.model';
 @Table({ tableName: 'message', timestamps: true, createdAt: 'created_at', updatedAt: false })
 export class Message extends Model {
   @ForeignKey(() => Conversation)
-  @Column
-  declare conversation_id: number;
+  @Column({ field: 'conversation_id' })
+  declare conversationId: number;
 
   @ForeignKey(() => User)
   @Column
@@ -30,7 +30,7 @@ export class Message extends Model {
 
 export interface MessageAttributes {
   id: number;
-  conversation_id: number;
+  conversationId: number;
   sender_id: number;
   content_text: string;
   file_url: string;

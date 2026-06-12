@@ -12,7 +12,13 @@ import { Address } from '@/modules/address/address.model';
 import { Sequelize } from 'sequelize-typescript';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import { UserRole } from '@/modules/users/models/user.model';
-import { RegisterDto, WorkerProfileDto, EmployerProfileDto } from '@/modules/auth/dto/register.dto';
+import {
+  RegisterDto,
+  WorkerProfileDto,
+  EmployerProfileDto,
+  OwnerPosition,
+  EstablishmentType,
+} from '@/modules/auth/dto/register.dto';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt', () => ({
@@ -172,8 +178,8 @@ describe('AuthService', () => {
       const result = await service.signIn('test@test.com', 'correct_pass', 'worker');
 
       expect(result).toEqual({
-        access_token: 'access_token_mock',
-        refresh_token: 'refresh_token_mock',
+        accessToken: 'access_token_mock',
+        refreshToken: 'refresh_token_mock',
       });
       expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
         1,
@@ -200,32 +206,33 @@ describe('AuthService', () => {
 
   describe('register', () => {
     const baseWorkerDto: RegisterDto = {
-      first_name: 'John',
-      last_name: 'Doe',
+      firstName: 'John',
+      lastName: 'Doe',
       email: 'worker@test.com',
       password: 'password123',
-      phone_number: '0600000000',
-      birth_date: '1990-01-01',
+      phoneNumber: '0600000000',
+      birthDate: '1990-01-01',
       role: UserRole.WORKER,
       workerProfile: {
-        skill_category_id: 1,
+        skillCategoryId: 1,
         bio: 'Plombier expérimenté',
-        work_radius: 30,
+        workRadius: 30,
       } as WorkerProfileDto,
     };
 
     const baseEmployerDto: RegisterDto = {
-      first_name: 'Jane',
-      last_name: 'Smith',
+      firstName: 'Jane',
+      lastName: 'Smith',
       email: 'employer@test.com',
       password: 'password123',
-      phone_number: '0611111111',
-      birth_date: '1985-05-05',
+      phoneNumber: '0611111111',
+      birthDate: '1985-05-05',
       role: UserRole.EMPLOYER,
       employerProfile: {
-        company_name: 'Acme Corp',
-        owner_position: 'HR', // OwnerPosition enum value
-        desired_trade_ids: [1, 2],
+        companyName: 'Acme Corp',
+        establishmentType: EstablishmentType.CAFE_BAR,
+        ownerPosition: OwnerPosition.HR, // OwnerPosition enum value
+        desiredTradeIds: [1, 2],
       } as EmployerProfileDto,
     };
 
@@ -260,6 +267,7 @@ describe('AuthService', () => {
       expect(mockUsersService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           first_name: 'John',
+          last_name: 'Doe',
           email: 'worker@test.com',
           password: 'hashed_password',
           role: UserRole.WORKER,
@@ -305,18 +313,23 @@ describe('AuthService', () => {
       });
       mockEmailVerificationService.sendVerificationCode.mockResolvedValue(undefined);
 
-      await service.register(baseEmployerDto);
+      const result = await service.register(baseEmployerDto);
 
       expect(mockWorkersService.create).not.toHaveBeenCalled();
       expect(mockCompaniesService.createCompanyWithOwner).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Acme Corp',
+          establishmentType: EstablishmentType.CAFE_BAR,
           ownerPosition: 'HR',
           desiredTradeIds: [1, 2],
         }),
         3,
         mockTransaction,
       );
+      expect(result).toEqual({
+        userId: 3,
+        message: 'Un code de vérification a été envoyé à votre adresse email.',
+      });
     });
 
     it('should ROLLBACK and not persist user if workerProfile creation fails', async () => {
@@ -392,8 +405,8 @@ describe('AuthService', () => {
 
       expect(mockRefreshSessionService.revokeSession).toHaveBeenCalledWith(99);
       expect(result).toEqual({
-        access_token: 'new_access_token',
-        refresh_token: 'new_refresh_token',
+        accessToken: 'new_access_token',
+        refreshToken: 'new_refresh_token',
       });
     });
   });

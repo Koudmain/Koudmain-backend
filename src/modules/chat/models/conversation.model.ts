@@ -19,16 +19,16 @@ export class Conversation extends Model {
   declare id: number;
 
   @ForeignKey(() => Publication)
-  @Column
-  declare publication_id: number;
+  @Column({ field: 'publication_id' })
+  declare publicationId: number;
 
   @ForeignKey(() => WorkerProfile)
-  @Column
-  declare worker_id: number;
+  @Column({ field: 'worker_id' })
+  declare workerId: number;
 
   @ForeignKey(() => Company)
-  @Column
-  declare company_id: number;
+  @Column({ field: 'company_id' })
+  declare companyId: number;
 
   @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
   declare updated_at: Date;
@@ -46,7 +46,7 @@ export class Conversation extends Model {
   declare settings: ConversationSetting[];
 
   @HasMany(() => Message, {
-    foreignKey: 'conversation_id',
+    foreignKey: 'conversationId',
     as: 'last_message',
     sourceKey: 'id',
   })

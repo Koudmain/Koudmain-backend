@@ -20,14 +20,14 @@ export class Publication extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   declare id: number;
 
-  @Column({ type: DataType.INTEGER })
-  declare company_id: number;
+  @Column({ field: 'company_id', type: DataType.INTEGER })
+  declare companyId: number;
 
   @BelongsTo(() => Company, 'company_id')
   declare company: Company;
 
-  @Column({ type: DataType.INTEGER })
-  declare created_by_user_id: number;
+  @Column({ field: 'created_by_user_id', type: DataType.INTEGER })
+  declare createdByUserId: number;
 
   @BelongsTo(() => User, 'created_by_user_id')
   declare creator: User;
@@ -78,11 +78,11 @@ export class Publication extends Model {
 export class PostPublicationDto {
   @IsOptional()
   @IsNumber()
-  declare company_id?: number;
+  declare companyId?: number;
 
   @IsOptional()
   @IsNumber()
-  declare created_by_user_id?: number;
+  declare createdByUserId?: number;
 
   @IsOptional()
   @IsNumber()

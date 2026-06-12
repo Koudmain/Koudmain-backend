@@ -136,7 +136,7 @@ describe('Chat System (e2e)', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         title: 'Développeur Fullstack E2E',
-        company_id: companyId,
+        companyId: companyId,
         hourly_rate: 50,
       });
 
@@ -150,9 +150,9 @@ describe('Chat System (e2e)', () => {
       .post('/chat/conversations')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
-        publication_id: pubId,
-        worker_id: workerId,
-        company_id: companyId,
+        publicationId: pubId,
+        workerId: workerId,
+        companyId: companyId,
       });
 
     expect(response.status).toBe(201);
@@ -163,7 +163,7 @@ describe('Chat System (e2e)', () => {
 
   it('POST /chat/messages - devrait envoyer un message', async () => {
     const payload = {
-      conversation_id: convId,
+      conversationId: convId,
       content: 'Salut, ceci est un test E2E avec token !',
     };
 

@@ -20,7 +20,7 @@ export class RefreshSessionService {
 
     const tokenHash = this.hashToken(refreshToken);
     return this.refreshSessionModel.create({
-      user_id: userId,
+      userId: userId,
       token_hash: tokenHash,
       expires_at: expiresAt,
       revoked_at: null,
@@ -29,7 +29,7 @@ export class RefreshSessionService {
 
   async validateSession(userId: number, refreshToken: string): Promise<RefreshSession | null> {
     const session = await this.refreshSessionModel.findOne({
-      where: { user_id: userId, revoked_at: null },
+      where: { userId: userId, revoked_at: null },
       order: [['created_at', 'DESC']],
       limit: 1,
     });
@@ -57,14 +57,14 @@ export class RefreshSessionService {
   async revokeActiveSessionByUserId(userId: number): Promise<void> {
     await this.refreshSessionModel.update(
       { revoked_at: new Date() },
-      { where: { user_id: userId, revoked_at: null } },
+      { where: { userId: userId, revoked_at: null } },
     );
   }
 
   async revokeAllSessions(userId: number): Promise<void> {
     await this.refreshSessionModel.update(
       { revoked_at: new Date() },
-      { where: { user_id: userId } },
+      { where: { userId: userId } },
     );
   }
 }

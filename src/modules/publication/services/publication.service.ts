@@ -58,12 +58,12 @@ export class PublicationService {
     return this.getById(id);
   }
 
-  async delete(publication_id: number) {
+  async delete(publicationId: number) {
     await this.publicationModel.destroy({
       where: {
-        id: publication_id,
+        id: publicationId,
       },
     });
-    return publication_id;
+    return publicationId;
   }
 }

@@ -45,7 +45,7 @@ describe('AuthController', () => {
 
   describe('signIn', () => {
     it('should call authService.signIn and return tokens', async () => {
-      const mockTokens = { access_token: 'acc_token', refresh_token: 'ref_token' };
+      const mockTokens = { accessToken: 'acc_token', refreshToken: 'ref_token' };
       mockAuthService.signIn.mockResolvedValue(mockTokens);
 
       const result = await controller.signIn({
@@ -73,15 +73,15 @@ describe('AuthController', () => {
       mockAuthService.register.mockResolvedValue(mockResponse);
 
       const dto: RegisterDto = {
-        first_name: 'John',
-        last_name: 'Doe',
+        firstName: 'John',
+        lastName: 'Doe',
         email: 'john@example.com',
         password: 'password123',
-        phone_number: '0600000000',
-        birth_date: '1990-01-01',
+        phoneNumber: '0600000000',
+        birthDate: '1990-01-01',
         role: UserRole.WORKER,
         workerProfile: {
-          skill_category_id: 1,
+          skillCategoryId: 1,
         } as WorkerProfileDto,
       };
 
@@ -95,10 +95,10 @@ describe('AuthController', () => {
 
   describe('refresh', () => {
     it('should call authService.refresh and return tokens', async () => {
-      const mockTokens = { access_token: 'new_acc', refresh_token: 'new_ref' };
+      const mockTokens = { accessToken: 'new_acc', refreshToken: 'new_ref' };
       mockAuthService.refresh.mockResolvedValue(mockTokens);
 
-      const result = await controller.refresh({ refresh_token: 'old_ref' });
+      const result = await controller.refresh({ refreshToken: 'old_ref' });
 
       expect(mockAuthService.refresh).toHaveBeenCalledTimes(1);
       expect(mockAuthService.refresh).toHaveBeenCalledWith('old_ref');

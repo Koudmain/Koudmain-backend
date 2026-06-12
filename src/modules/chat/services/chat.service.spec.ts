@@ -83,7 +83,7 @@ describe('ChatService', () => {
       const mockConv = {
         id: 1,
         worker: { userId: 10 },
-        company: { members: [{ user_id: 20 }] },
+        company: { members: [{ userId: 20 }] },
       };
 
       messageModel.create.mockResolvedValue(mockMsg);
@@ -120,13 +120,13 @@ describe('ChatService', () => {
 
       conversationModel.findOrCreate.mockResolvedValue([{ id: 50 }, true]);
 
-      serviceMocks.companyMemberModel.findAll.mockResolvedValue([{ user_id: 200 }]);
+      serviceMocks.companyMemberModel.findAll.mockResolvedValue([{ userId: 200 }]);
 
       await service.findOrCreateConversation(1, 1, 1);
 
       expect(serviceMocks.conversationSettingModel.bulkCreate).toHaveBeenCalledWith([
-        { user_id: 100, conversation_id: 50 },
-        { user_id: 200, conversation_id: 50 },
+        { userId: 100, conversationId: 50 },
+        { userId: 200, conversationId: 50 },
       ]);
     });
   });

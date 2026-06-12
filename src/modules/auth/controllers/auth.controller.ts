@@ -2,8 +2,8 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Post, Request } from '@nes
 import type { Request as ExpressRequest } from 'express';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
-import { Public } from '@/decorators/public.decorator';
 import { RegisterDto } from '@/modules/auth/dto/register.dto';
+import { publicRoute } from '@/decorators/public.decorator';
 
 type JwtPayload = {
   sub: number;
@@ -18,12 +18,12 @@ type SignInBody = {
 };
 
 type AuthTokenResponse = {
-  access_token: string;
-  refresh_token: string;
+  accessToken: string;
+  refreshToken: string;
 };
 
 type RefreshBody = {
-  refresh_token: string;
+  refreshToken: string;
 };
 
 type VerifyEmailBody = {
@@ -42,20 +42,20 @@ export class AuthController {
     private emailVerificationService: EmailVerificationService,
   ) {}
 
-  @Public()
+  @publicRoute()
   @HttpCode(HttpStatus.OK)
   @Post('login')
   signIn(@Body() body: SignInBody): Promise<AuthTokenResponse> {
     return this.authService.signIn(body.email, body.password, body.targetApp);
   }
 
-  @Public()
+  @publicRoute()
   @Post('register')
   signUp(@Body() dto: RegisterDto): Promise<{ userId: number; message: string }> {
     return this.authService.register(dto);
   }
 
-  @Public()
+  @publicRoute()
   @HttpCode(HttpStatus.OK)
   @Post('verify-email')
   async verifyEmail(@Body() body: VerifyEmailBody): Promise<AuthTokenResponse> {
@@ -63,7 +63,7 @@ export class AuthController {
     return this.authService.generateTokensForUser(body.userId);
   }
 
-  @Public()
+  @publicRoute()
   @HttpCode(HttpStatus.OK)
   @Post('resend-verification')
   async resendVerification(@Body() body: ResendVerificationBody): Promise<{ message: string }> {
@@ -77,10 +77,10 @@ export class AuthController {
     return { message: 'Un nouveau code de vérification a été envoyé.' };
   }
 
-  @Public()
+  @publicRoute()
   @Post('refresh')
   refresh(@Body() body: RefreshBody): Promise<AuthTokenResponse> {
-    return this.authService.refresh(body.refresh_token);
+    return this.authService.refresh(body.refreshToken);
   }
 
   @HttpCode(HttpStatus.OK)

@@ -15,12 +15,12 @@ export class ChatController {
 
   @Post('conversations')
   async createConversation(
-    @Body() body: { publication_id: number; worker_id: number; company_id: number },
+    @Body() body: { publicationId: number; workerId: number; companyId: number },
   ) {
     return this.chatService.findOrCreateConversation(
-      body.publication_id,
-      body.worker_id,
-      body.company_id,
+      body.publicationId,
+      body.workerId,
+      body.companyId,
     );
   }
 
@@ -29,36 +29,36 @@ export class ChatController {
     return this.chatService.getConversationsForWorker(req.user.sub);
   }
 
-  @Get('company/:company_id/conversations')
+  @Get('company/:companyId/conversations')
   async getCompanyConvs(
-    @Param('company_id', ParseIntPipe) company_id: number,
+    @Param('companyId', ParseIntPipe) companyId: number,
     @Request() req: RequestWithUser,
   ) {
-    return this.chatService.getConversationsForCompany(company_id, req.user.sub);
+    return this.chatService.getConversationsForCompany(companyId, req.user.sub);
   }
 
-  @Get('company/conversations/:conversation_id')
+  @Get('company/conversations/:conversationId')
   async getCompanyConv(
-    @Param('conversation_id', ParseIntPipe) conversation_id: number,
+    @Param('conversationId', ParseIntPipe) conversationId: number,
     @Request() req: RequestWithUser,
   ) {
-    return this.chatService.getConversationDetailsForCompany(req.user.sub, conversation_id);
+    return this.chatService.getConversationDetailsForCompany(req.user.sub, conversationId);
   }
 
   @Get('conversations/:id/messages')
   async getMessages(
-    @Param('id') conversation_id: number,
+    @Param('id') conversationId: number,
     @Query('limit') limit: number = 20,
     @Query('offset') offset: number = 0,
   ) {
-    return this.chatService.getMessagesByConversation(conversation_id, limit, offset);
+    return this.chatService.getMessagesByConversation(conversationId, limit, offset);
   }
 
   @Post('messages')
   async send(
     @Request() req: RequestWithUser,
-    @Body() body: { conversation_id: number; content: string },
+    @Body() body: { conversationId: number; content: string },
   ) {
-    return this.chatService.sendMessage(req.user.sub, body.conversation_id, body.content);
+    return this.chatService.sendMessage(req.user.sub, body.conversationId, body.content);
   }
 }

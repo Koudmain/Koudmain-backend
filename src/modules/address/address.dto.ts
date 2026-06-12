@@ -55,21 +55,17 @@ export class CreateAddressDto {
 export class GetMapAddressesDto {
   @IsString()
   @IsNotEmpty()
-  min_lat: string;
+  minLat: string;
 
   @IsString()
   @IsNotEmpty()
-  max_lat: string;
+  maxLat: string;
 
   @IsString()
   @IsNotEmpty()
-  min_lng: string;
+  minLng: string;
 
   @IsString()
   @IsNotEmpty()
-  max_lng: string;
-
-  // @IsString()
-  // @IsNotEmpty()
-  // lat_delta: string;
+  maxLng: string;
 }
