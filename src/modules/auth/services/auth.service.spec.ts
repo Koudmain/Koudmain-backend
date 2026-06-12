@@ -235,10 +235,31 @@ describe('AuthService', () => {
       } as EmployerProfileDto,
     };
 
-    it('should throw ConflictException if email already exists', async () => {
-      mockUsersService.findOneByEmail.mockResolvedValue({ id: 1 });
+    it('should throw ConflictException if email already exists and is verified', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({ id: 1, email_verified_at: new Date() });
 
       await expect(service.register(baseWorkerDto)).rejects.toThrow(ConflictException);
+      expect(mockSequelize.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should resend verification code and return userId if email exists but is unverified', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email_verified_at: null,
+        email: 'test@test.com',
+        first_name: 'John',
+      });
+
+      const result = await service.register(baseWorkerDto);
+      expect(mockEmailVerificationService.sendVerificationCode).toHaveBeenCalledWith(
+        1,
+        'test@test.com',
+        'John',
+      );
+      expect(result).toEqual({
+        userId: 1,
+        message: 'Un code de vérification a été renvoyé à votre adresse email.',
+      });
       expect(mockSequelize.transaction).not.toHaveBeenCalled();
     });
 

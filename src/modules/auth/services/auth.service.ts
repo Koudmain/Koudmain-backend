@@ -185,7 +185,20 @@ export class AuthService {
 
   async register(dto: RegisterDto): Promise<{ userId: number; message: string }> {
     const existingUser = await this.usersService.findOneByEmail(dto.email);
-    if (existingUser) throw new ConflictException('Email already exists');
+    if (existingUser) {
+      if (!existingUser.email_verified_at) {
+        await this.emailVerificationService.sendVerificationCode(
+          existingUser.id,
+          existingUser.email,
+          existingUser.first_name,
+        );
+        return {
+          userId: existingUser.id,
+          message: 'Un code de vérification a été renvoyé à votre adresse email.',
+        };
+      }
+      throw new ConflictException('Email already exists');
+    }
 
     const hashedPassword = await hash(dto.password, 10);
     const workerGeo =
