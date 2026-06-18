@@ -14,10 +14,9 @@ type AuthenticatedRequest = ExpressRequest & { user: JwtPayload };
 type SignInBody = {
   email: string;
   password: string;
-  targetApp: 'worker' | 'employer';
 };
 
-type AuthTokenResponse = {
+export type AuthTokenResponse = {
   accessToken: string;
   refreshToken: string;
 };
@@ -46,7 +45,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   signIn(@Body() body: SignInBody): Promise<AuthTokenResponse> {
-    return this.authService.signIn(body.email, body.password, body.targetApp);
+    return this.authService.signIn(body.email, body.password);
   }
 
   @publicRoute()

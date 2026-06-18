@@ -60,6 +60,11 @@ describe('Chat System (e2e)', () => {
       await app.init();
 
       sequelize = app.get<Sequelize>(getConnectionToken());
+
+      await sequelize.query(
+        `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
+      );
+
       authToken = await getAuthTokenForEmployer(app, 'recruteur@test.com');
       console.log('Auth token obtenu pour les tests E2E', authToken);
     } catch (error) {
@@ -79,45 +84,60 @@ describe('Chat System (e2e)', () => {
 
   it("PRE-REQUIS : Créer un user pour l'authentification", async () => {
     // Register
-    await request(app.getHttpServer()).post('/auth/register').send({
-      first_name: 'Test',
-      last_name: 'E2E',
-      email: 'test.e2e@example.com',
-      password: 'password123',
-      role: 'EMPLOYER',
-    });
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        firstName: 'Test',
+        lastName: 'E2E',
+        email: 'test.e2e.chat@example.com',
+        password: 'password123',
+        phoneNumber: '0600000000',
+        birthDate: '1990-01-01',
+        role: 'EMPLOYER',
+        employerProfile: {
+          companyName: 'Chat Company',
+          establishmentType: 'Restaurant',
+          ownerPosition: 'MANAGER',
+          desiredTradeIds: [1],
+        },
+      });
 
     // Login
     const response = await request(app.getHttpServer()).post('/auth/login').send({
-      email: 'test.e2e@example.com',
+      email: 'test.e2e.chat@example.com',
       password: 'password123',
-      targetApp: 'employer',
     });
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('access_token');
+    expect(response.body).toHaveProperty('accessToken');
 
     const authBody = response.body as AuthResponse;
-    authToken = authBody.access_token;
+    authToken = authBody.accessToken;
   });
 
   it('PRE-REQUIS : Créer un worker, une entreprise et une publication', async () => {
     const server = app.getHttpServer();
 
-    await request(server).post('/auth/register').send({
-      email: 'worker_test@gmail.com',
-      password: 'Password123!',
-      first_name: 'Worker',
-      last_name: 'Test',
-      role: 'WORKER',
-    });
+    await request(server)
+      .post('/auth/register')
+      .send({
+        email: 'worker_test.chat@gmail.com',
+        password: 'Password123!',
+        firstName: 'Worker',
+        lastName: 'Test',
+        phoneNumber: '0600000000',
+        birthDate: '1990-01-01',
+        role: 'WORKER',
+        workerProfile: {
+          skillCategoryIds: [1],
+        },
+      });
     const loginRes = await request(server).post('/auth/login').send({
-      email: 'worker_test@gmail.com',
+      email: 'worker_test.chat@gmail.com',
       password: 'Password123!',
-      targetApp: 'worker',
     });
     const authBodyWorker = loginRes.body as AuthResponse;
-    const tokenWorker = authBodyWorker.access_token;
+    const tokenWorker = authBodyWorker.accessToken;
     const workerProfileRes = await request(server)
       .get('/workers')
       .set('Authorization', `Bearer ${tokenWorker}`);

@@ -81,14 +81,14 @@ describe('AppController (e2e)', () => {
     const response = await request(app.getHttpServer()).post('/auth/login').send({
       email: 'test.e2e@example.com',
       password: 'password123',
-      targetApp: 'employer',
     });
 
+    console.log('Login Response:', response.body);
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('access_token');
+    expect(response.body).toHaveProperty('accessToken');
 
     const authBody = response.body as AuthResponse;
-    accessToken = authBody.access_token;
+    accessToken = authBody.accessToken;
   });
 
   it('should create a publication with associated skills', async () => {

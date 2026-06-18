@@ -112,7 +112,7 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue(null);
 
-      await expect(service.signIn('test@test.com', 'password', 'worker')).rejects.toThrow(
+      await expect(service.signIn('test@test.com', 'password')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -126,40 +126,12 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.signIn('test@test.com', 'wrong_pass', 'worker')).rejects.toThrow(
+      await expect(service.signIn('test@test.com', 'wrong_pass')).rejects.toThrow(
         UnauthorizedException,
       );
     });
 
-    it('should throw UnauthorizedException if worker profile is inactive', async () => {
-      mockUsersService.findOneByEmail.mockResolvedValue({
-        id: 1,
-        email: 'test@test.com',
-        password: 'hashed',
-        role: UserRole.EMPLOYER,
-      });
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-
-      await expect(service.signIn('test@test.com', 'correct_pass', 'worker')).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should throw UnauthorizedException if employer profile is inactive', async () => {
-      mockUsersService.findOneByEmail.mockResolvedValue({
-        id: 1,
-        email: 'test@test.com',
-        password: 'hashed',
-        role: UserRole.WORKER,
-      });
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-
-      await expect(service.signIn('test@test.com', 'correct_pass', 'employer')).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should return tokens if credentials are correct for active worker app', async () => {
+    it('should return tokens if credentials are correct', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue({
         id: 1,
         email: 'test@test.com',
@@ -172,7 +144,7 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('access_token_mock')
         .mockResolvedValueOnce('refresh_token_mock');
 
-      const result = await service.signIn('test@test.com', 'correct_pass', 'worker');
+      const result = await service.signIn('test@test.com', 'correct_pass');
 
       expect(result).toEqual({
         accessToken: 'access_token_mock',

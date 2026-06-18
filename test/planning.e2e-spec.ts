@@ -10,6 +10,7 @@ import { CompaniesModule } from '@/modules/companies/companies.module';
 import { DriveModule } from '@/modules/drive/drive.module';
 import { PublicationModule } from '@/modules/publication/publication.module';
 import { PlanningModule } from '@/modules/planning/planning.module';
+import { SkillModule } from '@/modules/skill/skill.module';
 
 require('dotenv').config();
 
@@ -42,6 +43,7 @@ describe('Planning (e2e)', () => {
         DriveModule,
         PublicationModule,
         PlanningModule,
+        SkillModule,
       ],
     }).compile();
 
@@ -49,43 +51,63 @@ describe('Planning (e2e)', () => {
     await app.init();
     sequelize = app.get<Sequelize>(getConnectionToken());
 
+    await sequelize.query(
+      `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
+    );
+
     // Cleanup stale data from previous runs
     await sequelize.query(
       `DELETE FROM "application" WHERE publication_id IN (SELECT id FROM "publication" WHERE title = 'Planning Test Job');`,
     );
     await sequelize.query(`DELETE FROM "publication" WHERE title = 'Planning Test Job';`);
-    await sequelize.query(`DELETE FROM "company" WHERE name = 'Test Company Planning';`);
-    await sequelize.query(
-      `DELETE FROM "user" WHERE email IN ('planning.worker@test.com', 'planning.employer@test.com', 'planning.noapp@test.com');`,
-    );
+    await sequelize.query(`TRUNCATE TABLE "user" CASCADE;`);
+    await sequelize.query(`TRUNCATE TABLE "company" CASCADE;`);
 
     // Register and login worker
-    await request(app.getHttpServer()).post('/auth/register').send({
-      email: 'planning.worker@test.com',
-      password: 'Password123!',
-      first_name: 'Worker',
-      last_name: 'Planning',
-      is_worker_active: true,
-    });
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'planning.worker@test.com',
+        password: 'Password123!',
+        firstName: 'Worker',
+        lastName: 'Planning',
+        phoneNumber: '0600000000',
+        birthDate: '1990-01-01',
+        role: 'WORKER',
+        workerProfile: {
+          skillCategoryIds: [1],
+        },
+        is_worker_active: true,
+      });
     const workerLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'planning.worker@test.com', password: 'Password123!', targetApp: 'worker' });
-    workerToken = workerLogin.body.access_token;
+      .send({ email: 'planning.worker@test.com', password: 'Password123!' });
+    workerToken = workerLogin.body.accessToken;
 
     // Register and login employer
-    await request(app.getHttpServer()).post('/auth/register').send({
-      email: 'planning.employer@test.com',
-      password: 'Password123!',
-      first_name: 'Employer',
-      last_name: 'Planning',
-      is_employer_active: true,
-    });
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'planning.employer@test.com',
+        password: 'Password123!',
+        firstName: 'Employer',
+        lastName: 'Planning',
+        phoneNumber: '0600000000',
+        birthDate: '1990-01-01',
+        role: 'EMPLOYER',
+        employerProfile: {
+          companyName: 'Test Company Planning',
+          establishmentType: 'Restaurant',
+          ownerPosition: 'MANAGER',
+          desiredTradeIds: [1],
+        },
+        is_employer_active: true,
+      });
     const employerLogin = await request(app.getHttpServer()).post('/auth/login').send({
       email: 'planning.employer@test.com',
       password: 'Password123!',
-      targetApp: 'employer',
     });
-    employerToken = employerLogin.body.access_token;
+    employerToken = employerLogin.body.accessToken;
 
     // Extract user IDs from JWT payloads (avoids DB query race conditions)
     const workerUserId = JSON.parse(Buffer.from(workerToken.split('.')[1], 'base64').toString())
@@ -139,10 +161,8 @@ describe('Planning (e2e)', () => {
       `DELETE FROM "application" WHERE publication_id IN (SELECT id FROM "publication" WHERE title = 'Planning Test Job');`,
     );
     await sequelize.query(`DELETE FROM "publication" WHERE title = 'Planning Test Job';`);
-    await sequelize.query(`DELETE FROM "company" WHERE name = 'Test Company Planning';`);
-    await sequelize.query(
-      `DELETE FROM "user" WHERE email IN ('planning.worker@test.com', 'planning.employer@test.com', 'planning.noapp@test.com');`,
-    );
+    await sequelize.query(`TRUNCATE TABLE "user" CASCADE;`);
+    await sequelize.query(`TRUNCATE TABLE "company" CASCADE;`);
     await app.close();
   });
 
@@ -207,17 +227,25 @@ describe('Planning (e2e)', () => {
   });
 
   it('should return empty array for a worker with no applications', async () => {
-    await request(app.getHttpServer()).post('/auth/register').send({
-      email: 'planning.noapp@test.com',
-      password: 'Password123!',
-      first_name: 'No',
-      last_name: 'App',
-      is_worker_active: true,
-    });
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: 'planning.noapp@test.com',
+        password: 'Password123!',
+        firstName: 'No',
+        lastName: 'App',
+        phoneNumber: '0600000000',
+        birthDate: '1990-01-01',
+        role: 'WORKER',
+        workerProfile: {
+          skillCategoryIds: [1],
+        },
+        is_worker_active: true,
+      });
     const loginRes = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'planning.noapp@test.com', password: 'Password123!', targetApp: 'worker' });
-    const noAppToken = loginRes.body.access_token;
+      .send({ email: 'planning.noapp@test.com', password: 'Password123!' });
+    const noAppToken = loginRes.body.accessToken;
 
     const res = await request(app.getHttpServer())
       .get('/planning')
@@ -225,6 +253,6 @@ describe('Planning (e2e)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
 
-    await sequelize.query(`DELETE FROM "user" WHERE email = 'planning.noapp@test.com';`);
+    await sequelize.query(`TRUNCATE TABLE "user" CASCADE;`);
   });
 });

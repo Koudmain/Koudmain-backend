@@ -51,15 +51,10 @@ describe('AuthController', () => {
       const result = await controller.signIn({
         email: 'test@example.com',
         password: 'password123',
-        targetApp: 'worker',
       });
 
       expect(mockAuthService.signIn).toHaveBeenCalledTimes(1);
-      expect(mockAuthService.signIn).toHaveBeenCalledWith(
-        'test@example.com',
-        'password123',
-        'worker',
-      );
+      expect(mockAuthService.signIn).toHaveBeenCalledWith('test@example.com', 'password123');
       expect(result).toEqual(mockTokens);
     });
   });

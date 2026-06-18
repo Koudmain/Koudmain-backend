@@ -12,16 +12,12 @@ import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { RegisterDto } from '@/modules/auth/models/register.model';
+import { AuthTokenResponse } from '@/modules/auth/controllers/auth.controller';
 
 type AddressGeocodeResult = {
   fullAddress: string;
   latitude: number | null;
   longitude: number | null;
-};
-
-type TokenResponse = {
-  accessToken: string;
-  refreshToken: string;
 };
 
 @Injectable()
@@ -41,10 +37,7 @@ export class AuthService {
   private async generateTokens(
     payload: Record<string, unknown>,
     userId: number,
-  ): Promise<{
-    accessToken: string;
-    refreshToken: string;
-  }> {
+  ): Promise<AuthTokenResponse> {
     const accessSecret = process.env.JWT_ACCESS_SECRET;
     const refreshSecret = process.env.JWT_REFRESH_SECRET;
     const accessExpiresIn = process.env.JWT_ACCESS_EXPIRES_IN ?? '15m';
@@ -105,11 +98,7 @@ export class AuthService {
     }
   }
 
-  async signIn(
-    email: string,
-    pass: string,
-    targetApp: 'worker' | 'employer',
-  ): Promise<TokenResponse> {
+  async signIn(email: string, pass: string): Promise<AuthTokenResponse> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) {
       throw new UnauthorizedException();
@@ -120,13 +109,6 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    if (targetApp === 'worker' && user.role !== UserRole.WORKER) {
-      throw new UnauthorizedException("Vous n'avez pas de profil worker actif");
-    }
-    if (targetApp === 'employer' && user.role !== UserRole.EMPLOYER) {
-      throw new UnauthorizedException("Vous n'avez pas de profil employeur actif");
-    }
-
     const payload = {
       sub: user.id,
       email: user.email,
@@ -134,7 +116,7 @@ export class AuthService {
     return this.generateTokens(payload, user.id);
   }
 
-  async refresh(token: string): Promise<TokenResponse> {
+  async refresh(token: string): Promise<AuthTokenResponse> {
     try {
       const refreshSecret = process.env.JWT_REFRESH_SECRET;
       const payload = await this.jwtService.verifyAsync<{
@@ -170,7 +152,7 @@ export class AuthService {
     return { message: 'All sessions revoked successfully' };
   }
 
-  async generateTokensForUser(userId: number): Promise<TokenResponse> {
+  async generateTokensForUser(userId: number): Promise<AuthTokenResponse> {
     const user = await this.usersService.findOneById(userId);
     if (!user) throw new UnauthorizedException('Utilisateur introuvable.');
 
