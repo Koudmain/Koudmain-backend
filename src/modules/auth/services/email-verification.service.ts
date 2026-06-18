@@ -11,7 +11,6 @@ import { RedisService } from '@/shared/redis/redis.service';
 import { MailerService } from '@/modules/mailer/services/mailer.service';
 import { UsersService } from '@/modules/users/services/users.service';
 
-/** TTL du code OTP en secondes (15 min) */
 const OTP_TTL_SECONDS = 900;
 const RESEND_COOLDOWN_SECONDS = 60;
 

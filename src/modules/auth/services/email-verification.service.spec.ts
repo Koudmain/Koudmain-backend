@@ -1,11 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GoneException, HttpException, UnauthorizedException } from '@nestjs/common';
-import { EmailVerificationService } from './email-verification.service';
+import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { RedisService } from '@/shared/redis/redis.service';
 import { MailerService } from '@/modules/mailer/services/mailer.service';
 import { UsersService } from '@/modules/users/services/users.service';
-
-// ─── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockRedisService = {
   set: jest.fn(),
@@ -20,8 +18,6 @@ const mockMailerService = {
 const mockUsersService = {
   markEmailAsVerified: jest.fn(),
 };
-
-// ─── Suite ────────────────────────────────────────────────────────────────────
 
 describe('EmailVerificationService', () => {
   let service: EmailVerificationService;
@@ -40,8 +36,6 @@ describe('EmailVerificationService', () => {
 
     service = module.get<EmailVerificationService>(EmailVerificationService);
   });
-
-  // ─── sendVerificationCode ───────────────────────────────────────────────────
 
   describe('sendVerificationCode()', () => {
     it('génère un code à 6 chiffres, le stocke en Redis et envoie l email', async () => {
@@ -63,7 +57,7 @@ describe('EmailVerificationService', () => {
     });
 
     it('lève TooManyRequestsException si le cooldown est actif (enforceRateLimit=true)', async () => {
-      mockRedisService.get.mockResolvedValue('1'); // cooldown présent
+      mockRedisService.get.mockResolvedValue('1');
 
       await expect(service.sendVerificationCode(1, 'test@test.com', 'Jean', true)).rejects.toThrow(
         HttpException,
@@ -73,19 +67,16 @@ describe('EmailVerificationService', () => {
     });
 
     it('positionne le cooldown Redis lors d un resend (enforceRateLimit=true)', async () => {
-      mockRedisService.get.mockResolvedValue(null); // pas de cooldown
+      mockRedisService.get.mockResolvedValue(null);
       mockRedisService.set.mockResolvedValue(undefined);
       mockMailerService.sendVerificationEmail.mockResolvedValue(undefined);
 
       await service.sendVerificationCode(2, 'user@test.com', 'Marie', true);
 
-      // OTP key + cooldown key
       expect(mockRedisService.set).toHaveBeenCalledTimes(2);
       expect(mockRedisService.set).toHaveBeenCalledWith('email_verification_cooldown:2', '1', 60);
     });
   });
-
-  // ─── verifyCode ─────────────────────────────────────────────────────────────
 
   describe('verifyCode()', () => {
     it('valide le code correct, met à jour la DB et nettoie Redis', async () => {

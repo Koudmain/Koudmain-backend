@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Post, Request } from '@nes
 import type { Request as ExpressRequest } from 'express';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
-import { RegisterDto } from '@/modules/auth/dto/register.dto';
+import { RegisterDto } from '@/modules/auth/models/register.model';
 import { publicRoute } from '@/decorators/public.decorator';
 
 type JwtPayload = {
@@ -72,7 +72,7 @@ export class AuthController {
       user.id,
       user.email,
       user.first_name,
-      true, // enforceRateLimit = true (anti-spam 60s)
+      true,
     );
     return { message: 'Un nouveau code de vérification a été envoyé.' };
   }

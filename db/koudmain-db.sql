@@ -402,7 +402,6 @@ ALTER TABLE "address" ADD COLUMN IF NOT EXISTS "geom" geography(Point, 4326);
 
 CREATE INDEX IF NOT EXISTS "idx_address_geom" ON "address" USING GIST ("geom");
 
--- Seed data for skill_category table
 INSERT INTO "skill_category" ("name") VALUES
   ('Restaurant FOH'),
   ('Restaurant BOH'),

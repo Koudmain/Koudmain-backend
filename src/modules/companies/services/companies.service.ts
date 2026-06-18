@@ -12,7 +12,7 @@ import { CreationAttributes, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { Address } from '@/modules/address/address.model';
-import { EstablishmentType } from '@/modules/auth/dto/register.dto';
+import { EstablishmentType } from '@/modules/auth/models/register.model';
 
 @Injectable()
 export class CompaniesService {

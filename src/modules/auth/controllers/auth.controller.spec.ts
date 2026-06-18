@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthController } from './auth.controller';
-import { AuthService } from '../services/auth.service';
-import { EmailVerificationService } from '../services/email-verification.service';
+import { AuthController } from '@/modules/auth/controllers/auth.controller';
+import { AuthService } from '@/modules/auth/services/auth.service';
+import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { UserRole } from '@/modules/users/models/user.model';
-import { RegisterDto, WorkerProfileDto } from '@/modules/auth/dto/register.dto';
+import { RegisterDto, WorkerProfileDto } from '@/modules/auth/models/register.model';
 
 const mockAuthService = {
   signIn: jest.fn(),

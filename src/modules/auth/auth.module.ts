@@ -1,12 +1,12 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { AuthService } from './services/auth.service';
-import { RefreshSessionService } from './services/refresh-session.service';
-import { EmailVerificationService } from './services/email-verification.service';
-import { AuthGuard } from './auth.guard';
-import { AuthController } from './controllers/auth.controller';
-import { RefreshSession } from './models/refresh-session.model';
+import { AuthService } from '@/modules/auth/services/auth.service';
+import { RefreshSessionService } from '@/modules/auth/services/refresh-session.service';
+import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
+import { AuthGuard } from '@/modules/auth/auth.guard';
+import { AuthController } from '@/modules/auth/controllers/auth.controller';
+import { RefreshSession } from '@/modules/auth/models/refresh-session.model';
 import { UsersModule } from '@/modules/users/users.module';
 import { WorkersModule } from '@/modules/workers/workers.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';

@@ -3,7 +3,7 @@ import { UsersService } from '@/modules/users/services/users.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { RefreshSessionService } from './refresh-session.service';
-import { EmailVerificationService } from './email-verification.service';
+import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
 import { UserRole } from '@/modules/users/models/user.model';
@@ -11,7 +11,18 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
-import { RegisterDto } from '@/modules/auth/dto/register.dto';
+import { RegisterDto } from '@/modules/auth/models/register.model';
+
+type AddressGeocodeResult = {
+  fullAddress: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+type TokenResponse = {
+  accessToken: string;
+  refreshToken: string;
+};
 
 @Injectable()
 export class AuthService {
@@ -74,11 +85,11 @@ export class AuthService {
     return val * (units[unit] || 1000);
   }
 
-  /** Géocode une adresse avant la transaction */
   private async geocodeAddress(
     addr: NonNullable<RegisterDto['workerProfile']>['address'],
-  ): Promise<{ fullAddress: string; latitude: number | null; longitude: number | null }> {
+  ): Promise<AddressGeocodeResult> {
     if (!addr) return { fullAddress: '', latitude: null, longitude: null };
+
     const country = addr.country || 'France';
     const fullAddress =
       `${addr.street_number || ''} ${addr.street_name}, ${addr.zip_code} ${addr.city}, ${country}`.trim();
@@ -90,7 +101,6 @@ export class AuthService {
         longitude: coords?.longitude ?? null,
       };
     } catch {
-      // on ne bloque pas l'inscription
       return { fullAddress, latitude: null, longitude: null };
     }
   }
@@ -99,7 +109,7 @@ export class AuthService {
     email: string,
     pass: string,
     targetApp: 'worker' | 'employer',
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  ): Promise<TokenResponse> {
     const user = await this.usersService.findOneByEmail(email);
     if (!user) {
       throw new UnauthorizedException();
@@ -124,7 +134,7 @@ export class AuthService {
     return this.generateTokens(payload, user.id);
   }
 
-  async refresh(token: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refresh(token: string): Promise<TokenResponse> {
     try {
       const refreshSecret = process.env.JWT_REFRESH_SECRET;
       const payload = await this.jwtService.verifyAsync<{
@@ -160,26 +170,18 @@ export class AuthService {
     return { message: 'All sessions revoked successfully' };
   }
 
-  /**
-   * Génère les tokens JWT pour un userId donné.
-   * Appelé par /auth/verify-email une fois le code OTP validé.
-   */
-  async generateTokensForUser(
-    userId: number,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  async generateTokensForUser(userId: number): Promise<TokenResponse> {
     const user = await this.usersService.findOneById(userId);
     if (!user) throw new UnauthorizedException('Utilisateur introuvable.');
+
     const payload = { sub: user.id, email: user.email };
     return this.generateTokens(payload, user.id);
   }
 
-  /**
-   * Récupère un utilisateur pour le resend de code.
-   * Retourne l'utilisateur ou lève une UnauthorizedException s'il n'existe pas.
-   */
   async getUserForVerification(userId: number) {
     const user = await this.usersService.findOneById(userId);
     if (!user) throw new UnauthorizedException('Utilisateur introuvable.');
+
     return user;
   }
 
@@ -211,7 +213,6 @@ export class AuthService {
     let newUserId!: number;
 
     await this.sequelize.transaction(async (t) => {
-      // a. Créer l'utilisateur
       const newUser = await this.usersService.create(
         {
           first_name: dto.firstName,
@@ -227,7 +228,6 @@ export class AuthService {
       newUserId = newUser.id;
 
       if (dto.role === UserRole.WORKER && dto.workerProfile) {
-        // WORKER
         let addressId: number | undefined;
         if (dto.workerProfile.address && workerGeo) {
           const newAddr = await this.addressModel.create(
@@ -256,7 +256,6 @@ export class AuthService {
       }
 
       if (dto.role === UserRole.EMPLOYER && dto.employerProfile) {
-        // EMPLOYER
         let addressId: number | undefined;
         if (dto.employerProfile.address && employerGeo) {
           const newAddr = await this.addressModel.create(

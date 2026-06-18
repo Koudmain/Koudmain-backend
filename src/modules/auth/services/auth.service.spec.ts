@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RefreshSessionService } from './refresh-session.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
-import { EmailVerificationService } from './email-verification.service';
+import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { Address } from '@/modules/address/address.model';
@@ -18,7 +18,7 @@ import {
   EmployerProfileDto,
   OwnerPosition,
   EstablishmentType,
-} from '@/modules/auth/dto/register.dto';
+} from '@/modules/auth/models/register.model';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt', () => ({
@@ -68,15 +68,12 @@ describe('AuthService', () => {
     create: jest.fn(),
   };
 
-  /** Simule une transaction Sequelize : exécute le callback et expose commit/rollback */
   const mockTransaction = { commit: jest.fn(), rollback: jest.fn() };
   const mockSequelize = {
     transaction: jest.fn().mockImplementation(async (cb: (t: unknown) => Promise<void>) => {
       return cb(mockTransaction);
     }),
   };
-
-  // ─── Setup ───────────────────────────────────────────────────────────────
 
   beforeEach(async () => {
     // Reset env vars
@@ -230,7 +227,7 @@ describe('AuthService', () => {
       employerProfile: {
         companyName: 'Acme Corp',
         establishmentType: EstablishmentType.CAFE_BAR,
-        ownerPosition: OwnerPosition.HR, // OwnerPosition enum value
+        ownerPosition: OwnerPosition.HR,
         desiredTradeIds: [1, 2],
       } as EmployerProfileDto,
     };
@@ -340,7 +337,7 @@ describe('AuthService', () => {
         expect.objectContaining({
           name: 'Acme Corp',
           establishmentType: EstablishmentType.CAFE_BAR,
-          ownerPosition: 'HR',
+          ownerPosition: OwnerPosition.HR,
           desiredTradeIds: [1, 2],
         }),
         3,
