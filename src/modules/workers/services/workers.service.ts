@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { WorkerProfile } from '../models/worker-profile.model';
-import { WorkerTrade } from '../models/worker-trade.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { WorkerTrade } from '@/modules/workers/models/worker-trade.model';
 import { Transaction } from 'sequelize';
 
 @Injectable()

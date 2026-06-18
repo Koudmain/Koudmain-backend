@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
-import { WorkersService } from './workers.service';
-import { WorkerProfile } from '../models/worker-profile.model';
-import { WorkerTrade } from '../models/worker-trade.model';
+import { WorkersService } from '@/modules/workers/services/workers.service';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { WorkerTrade } from '@/modules/workers/models/worker-trade.model';
 import { NotFoundException } from '@nestjs/common';
 
 describe('WorkersService', () => {

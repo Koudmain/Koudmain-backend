@@ -11,8 +11,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     this.client = new Redis({
-      host: this.configService.get<string>('REDIS_HOST') ?? 'koudmain-redis',
-      port: this.configService.get<number>('REDIS_PORT') ?? 6379,
+      host: this.configService.get<string>('REDIS_HOST'),
+      port: this.configService.get<number>('REDIS_PORT'),
       password: this.configService.get<string>('REDIS_PASSWORD'),
     });
 

@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { Module } from '@nestjs/common';
-import { WorkersModule } from './workers.module';
-import { WorkersService } from './services/workers.service';
-import { WorkersController } from './controllers/workers.controller';
-import { WorkerProfile } from './models/worker-profile.model';
-import { WorkerTrade } from './models/worker-trade.model';
+import { WorkersModule } from '@/modules/workers/workers.module';
+import { WorkersService } from '@/modules/workers/services/workers.service';
+import { WorkersController } from '@/modules/workers/controllers/workers.controller';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { WorkerTrade } from '@/modules/workers/models/worker-trade.model';
 
 jest.mock('@/modules/auth/auth.module', () => {
   @Module({})

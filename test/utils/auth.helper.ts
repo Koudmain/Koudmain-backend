@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
-import { User, UserRole } from '@/modules/users/models/user.model';
+import { UserRole } from '@/modules/users/models/user.model';
 
 export interface AuthResponse {
   access_token: string;
