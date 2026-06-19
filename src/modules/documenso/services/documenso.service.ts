@@ -4,15 +4,17 @@ import * as path from 'path';
 
 @Injectable()
 export class DocumensoService {
-  private readonly documensoApiUrl = 'http://192.168.1.51:3010/api/v2';
-  private readonly fakeApiKey = '';
+  private readonly documensoApiUrl = 'http://192.168.1.51:3010/api/v2'; //CHANGER AVEC VAR DE THOMAS
+  private readonly fakeApiKey = 'fake_api_key'; //CHANGER AVEC API CREER DANS DOCUMENSO - TEMPORAIRE
 
   async createContractForSignature(userEmail: string) {
     try {
       const pdfPath = path.resolve(process.cwd(), './pdf_test/test.pdf');
 
       if (!fs.existsSync(pdfPath)) {
-        throw new Error("Le fichier 'test.pdf' est introuvable à la racine de ton projet NestJS.");
+        throw new Error(
+          "Le fichier 'test.pdf' est introuvable dans le dossier 'pdf_test' de ton projet NestJS.",
+        );
       }
 
       const pdfBuffer = fs.readFileSync(pdfPath);
@@ -85,7 +87,7 @@ export class DocumensoService {
         throw new Error('Impossible de récupérer le token du signataire.');
       }
 
-      const localIP = '192.168.1.51';
+      const localIP = '192.168.1.51'; // CHANGER AVEC VAR DE THOMAS
       return `http://${localIP}:3010/sign/${recipient.token}`;
     } catch (error) {
       console.error('Erreur NestJS V2 :', error);
