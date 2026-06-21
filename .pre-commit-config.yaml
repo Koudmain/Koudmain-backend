@@ -1,23 +1,34 @@
+default_stages: [pre-commit, manual]
+
 repos:
   - repo: local
     hooks:
-      - id: format-fix
-        name: 🎨 Fix formatting (Prettier)
-        entry: npm run format:fix
+      - id: format-check
+        name: 🎨 Check formatting (Prettier)
+        entry: npx prettier --check
         language: system
         files: \.(js|ts|jsx|tsx|json|css|md)$
-        pass_filenames: false
+        pass_filenames: true
 
       - id: lint-check
         name: 🕵️ Check code quality (ESLint)
-        entry: npm run lint:check
+        entry: npx eslint --cache
         language: system
         files: \.(js|ts|jsx|tsx)$
-        pass_filenames: false
+        pass_filenames: true
 
       - id: betterleaks-docker
-        name: 🔒 Detect hardcoded secrets
-        description: Detect hardcoded secrets using Betterleaks
+        name: 🔒 Detect hardcoded secrets (staged files)
+        description: Detect hardcoded secrets using Betterleaks on staged files only
         entry: ghcr.io/betterleaks/betterleaks:latest git --pre-commit --redact --staged --verbose
         language: docker_image
         pass_filenames: false
+        stages: [pre-commit]
+
+      - id: betterleaks-docker-all
+        name: 🔒 Detect hardcoded secrets (all files)
+        description: Detect hardcoded secrets using Betterleaks on all tracked files
+        entry: ghcr.io/betterleaks/betterleaks:latest git --redact --verbose
+        language: docker_image
+        pass_filenames: false
+        stages: [manual]
