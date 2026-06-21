@@ -14,7 +14,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*"]
     },
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -23,8 +23,8 @@
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true,
     "strictPropertyInitialization": false,
-    "types": ["jest", "node", "multer", "express"],
+    "types": ["jest", "node", "multer", "express"]
   },
   "include": ["src/**/*", "test/**/*"],
-  "exclude": ["node_modules", "dist", "build", "coverage", ".zed"],
+  "exclude": ["node_modules", "dist", "build", "coverage", ".zed"]
 }

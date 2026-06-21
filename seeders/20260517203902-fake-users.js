@@ -3,7 +3,7 @@ const { faker } = require('@faker-js/faker');
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up(queryInterface, Sequelize) {
     const NUMBER_OF_USERS = 100;
     const fakeUsers = [];
     const dummyHashedPassword = '$2b$10$EPf9jVdH7Z86L9/O6bO7LeV0gTAp8YVbK39d.e34Y04.b148aM6G.';
@@ -11,7 +11,7 @@ module.exports = {
     for (let i = 0; i < NUMBER_OF_USERS; i++) {
       const firstName = faker.person.firstName();
       const lastName = faker.person.lastName();
-      
+
       fakeUsers.push({
         first_name: firstName,
         last_name: lastName,
@@ -20,14 +20,14 @@ module.exports = {
         password: dummyHashedPassword,
         is_worker_active: faker.datatype.boolean(),
         is_employer_active: faker.datatype.boolean(),
-        created_at: new Date()
+        created_at: new Date(),
       });
     }
 
     await queryInterface.bulkInsert({ tableName: 'user', schema: 'public' }, fakeUsers, {});
   },
 
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
     await queryInterface.bulkDelete({ tableName: 'user', schema: 'public' }, null, {});
-  }
+  },
 };
