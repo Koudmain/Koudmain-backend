@@ -22,6 +22,5 @@ jobs:
       pull-requests: write
     with:
       language: "node"
-      run-tests: true
       run-precommit: true
     secrets: inherit
