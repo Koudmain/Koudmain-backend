@@ -7,11 +7,11 @@ module.exports = {
 
     await queryInterface.addColumn('address', 'geom', {
       type: Sequelize.GEOGRAPHY('POINT', 4326),
-      allowNull: true
+      allowNull: true,
     });
 
     await queryInterface.sequelize.query(
-      'CREATE INDEX IF NOT EXISTS "idx_address_geom" ON "address" USING GIST ("geom");'
+      'CREATE INDEX IF NOT EXISTS "idx_address_geom" ON "address" USING GIST ("geom");',
     );
   },
 
@@ -19,6 +19,5 @@ module.exports = {
     await queryInterface.sequelize.query('DROP INDEX IF EXISTS "idx_address_geom";');
 
     await queryInterface.removeColumn('address', 'geom');
-
-  }
+  },
 };
