@@ -200,7 +200,7 @@ describe('AuthService', () => {
         companyName: 'Acme Corp',
         companyType: CompanyType.CAFE_BAR,
         ownerPosition: OwnerPosition.HR,
-        desiredTradeIds: [1, 2],
+        desiredJobIds: [1, 2],
       } as EmployerProfileDto,
     };
 
@@ -310,7 +310,7 @@ describe('AuthService', () => {
           name: 'Acme Corp',
           companyType: CompanyType.CAFE_BAR,
           ownerPosition: OwnerPosition.HR,
-          desiredTradeIds: [1, 2],
+          desiredJobIds: [1, 2],
         }),
         3,
         mockTransaction,

@@ -258,7 +258,7 @@ export class AuthService {
             name: dto.employerProfile.companyName,
             companyType: dto.employerProfile.companyType,
             ownerPosition: dto.employerProfile.ownerPosition,
-            desiredTradeIds: dto.employerProfile.desiredTradeIds,
+            desiredJobIds: dto.employerProfile.desiredJobIds,
             ...(addressId !== undefined && { addressId }),
           },
           newUser.id,

@@ -7,7 +7,7 @@ import {
 import { InjectModel } from '@nestjs/sequelize';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
-import { CompanyTrade } from '@/modules/companies/models/company-trade.model';
+import { CompanyJob } from '@/modules/companies/models/company-job.model';
 import { CreationAttributes, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
@@ -19,7 +19,7 @@ export class CompaniesService {
   constructor(
     @InjectModel(Company) private companyModel: typeof Company,
     @InjectModel(CompanyMember) private memberModel: typeof CompanyMember,
-    @InjectModel(CompanyTrade) private companyTradeModel: typeof CompanyTrade,
+    @InjectModel(CompanyJob) private companyJobModel: typeof CompanyJob,
     @InjectModel(Address) private addressModel: typeof Address,
     private geocodingService: GeocodingService,
   ) {}
@@ -29,7 +29,7 @@ export class CompaniesService {
       name: string;
       companyType: CompanyType;
       ownerPosition: string;
-      desiredTradeIds: number[];
+      desiredJobIds: number[];
       addressId?: number;
     },
     userId: number,
@@ -50,12 +50,12 @@ export class CompaniesService {
     };
     await this.memberModel.create(memberData, { transaction });
 
-    if (data.desiredTradeIds.length > 0) {
-      const tradeRows = data.desiredTradeIds.map((skillCategoryId) => ({
+    if (data.desiredJobIds.length > 0) {
+      const tradeRows = data.desiredJobIds.map((skillCategoryId) => ({
         companyId: company.id,
         skillCategoryId,
       }));
-      await this.companyTradeModel.bulkCreate(tradeRows, { transaction });
+      await this.companyJobModel.bulkCreate(tradeRows, { transaction });
     }
 
     return company;

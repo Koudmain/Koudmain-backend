@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { Company } from './models/company.model';
 import { CompanyMember } from './models/company-member.model';
-import { CompanyTrade } from './models/company-trade.model';
+import { CompanyJob } from './models/company-job.model';
 import { CompaniesService } from './services/companies.service';
 import { CompaniesController } from './controllers/companies.controller';
 import { AuthModule } from '@/modules/auth/auth.module';
@@ -11,7 +11,7 @@ import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([Company, CompanyMember, CompanyTrade, Address]),
+    SequelizeModule.forFeature([Company, CompanyMember, CompanyJob, Address]),
     forwardRef(() => AuthModule),
   ],
   controllers: [CompaniesController],

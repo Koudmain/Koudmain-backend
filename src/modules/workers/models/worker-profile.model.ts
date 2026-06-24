@@ -11,7 +11,7 @@ import { User } from '@/modules/users/models/user.model';
 import { SkillCategory } from '@/modules/skill-category/models/skill-category.model';
 import { Address } from '@/modules/address/address.model';
 import { Transaction } from 'sequelize';
-import { WorkerTrade } from './worker-trade.model';
+import { WorkerJob } from './worker-job.model';
 
 @Table({ tableName: 'worker_profile', timestamps: false })
 export class WorkerProfile extends Model {
@@ -34,7 +34,7 @@ export class WorkerProfile extends Model {
   @Column({ field: 'skills_description', type: DataType.TEXT })
   declare skillsDescription: string;
 
-  @BelongsToMany(() => SkillCategory, () => WorkerTrade)
+  @BelongsToMany(() => SkillCategory, () => WorkerJob)
   declare skillCategories: SkillCategory[];
 
   @ForeignKey(() => Address)

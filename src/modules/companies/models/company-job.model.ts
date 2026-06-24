@@ -2,8 +2,8 @@ import { Column, Model, Table, DataType, ForeignKey, BelongsTo } from 'sequelize
 import { Company } from './company.model';
 import { SkillCategory } from '@/modules/skill-category/models/skill-category.model';
 
-@Table({ tableName: 'company_trade', timestamps: false })
-export class CompanyTrade extends Model {
+@Table({ tableName: 'company_job', timestamps: false })
+export class CompanyJob extends Model {
   @ForeignKey(() => Company)
   @Column({ field: 'company_id', type: DataType.INTEGER, primaryKey: true })
   declare companyId: number;

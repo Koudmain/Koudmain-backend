@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
-import { WorkerTrade } from '@/modules/workers/models/worker-trade.model';
+import { WorkerJob } from '@/modules/workers/models/worker-job.model';
 import { NotFoundException } from '@nestjs/common';
 
 describe('WorkersService', () => {
@@ -13,7 +13,7 @@ describe('WorkersService', () => {
     findOne: jest.fn(),
   };
 
-  const mockWorkerTradeModel = {
+  const mockWorkerJobModel = {
     bulkCreate: jest.fn(),
   };
 
@@ -26,8 +26,8 @@ describe('WorkersService', () => {
           useValue: mockWorkerProfileModel,
         },
         {
-          provide: getModelToken(WorkerTrade),
-          useValue: mockWorkerTradeModel,
+          provide: getModelToken(WorkerJob),
+          useValue: mockWorkerJobModel,
         },
       ],
     }).compile();
@@ -52,7 +52,7 @@ describe('WorkersService', () => {
 
       const createdProfile = { id: 10, userId: 1, bio: 'Super worker', workRadius: 30 };
       mockWorkerProfileModel.create.mockResolvedValue(createdProfile);
-      mockWorkerTradeModel.bulkCreate.mockResolvedValue([]);
+      mockWorkerJobModel.bulkCreate.mockResolvedValue([]);
 
       const result = await service.create(dto);
 
@@ -60,7 +60,7 @@ describe('WorkersService', () => {
         { userId: 1, bio: 'Super worker', workRadius: 30, addressId: undefined },
         { transaction: undefined },
       );
-      expect(mockWorkerTradeModel.bulkCreate).toHaveBeenCalledWith(
+      expect(mockWorkerJobModel.bulkCreate).toHaveBeenCalledWith(
         [
           { workerId: 10, skillCategoryId: 1 },
           { workerId: 10, skillCategoryId: 2 },

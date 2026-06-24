@@ -98,7 +98,7 @@ describe('Chat System (e2e)', () => {
           companyName: 'Chat Company',
           companyType: 'Restaurant',
           ownerPosition: 'MANAGER',
-          desiredTradeIds: [1],
+          desiredJobIds: [1],
         },
       });
 

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
-import { WorkerTrade } from '@/modules/workers/models/worker-trade.model';
+import { WorkerJob } from '@/modules/workers/models/worker-job.model';
 import { Transaction } from 'sequelize';
 
 @Injectable()
@@ -9,8 +9,8 @@ export class WorkersService {
   constructor(
     @InjectModel(WorkerProfile)
     private workerProfileModel: typeof WorkerProfile,
-    @InjectModel(WorkerTrade)
-    private workerTradeModel: typeof WorkerTrade,
+    @InjectModel(WorkerJob)
+    private workerJobModel: typeof WorkerJob,
   ) {}
 
   async create(
@@ -38,7 +38,7 @@ export class WorkersService {
         workerId: worker.id,
         skillCategoryId,
       }));
-      await this.workerTradeModel.bulkCreate(tradeRows, { transaction: options?.transaction });
+      await this.workerJobModel.bulkCreate(tradeRows, { transaction: options?.transaction });
     }
 
     return worker;

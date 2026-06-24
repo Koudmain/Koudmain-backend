@@ -73,7 +73,7 @@ export class EmployerProfileDto {
   @IsArray()
   @IsInt({ each: true })
   @ArrayMinSize(1)
-  desiredTradeIds: number[];
+  desiredJobIds: number[];
 
   @ValidateNested()
   @Type(() => CreateAddressDto)

@@ -5,7 +5,7 @@ import { WorkersModule } from '@/modules/workers/workers.module';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { WorkersController } from '@/modules/workers/controllers/workers.controller';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
-import { WorkerTrade } from '@/modules/workers/models/worker-trade.model';
+import { WorkerJob } from '@/modules/workers/models/worker-job.model';
 
 jest.mock('@/modules/auth/auth.module', () => {
   @Module({})
@@ -21,15 +21,15 @@ describe('WorkersModule', () => {
 
   beforeEach(async () => {
     const mockWorkerProfileModel = {};
-    const mockWorkerTradeModel = {};
+    const mockWorkerJobModel = {};
 
     moduleRef = await Test.createTestingModule({
       imports: [WorkersModule],
     })
       .overrideProvider(getModelToken(WorkerProfile))
       .useValue(mockWorkerProfileModel)
-      .overrideProvider(getModelToken(WorkerTrade))
-      .useValue(mockWorkerTradeModel)
+      .overrideProvider(getModelToken(WorkerJob))
+      .useValue(mockWorkerJobModel)
       .compile();
   });
 

@@ -22,7 +22,7 @@ export async function getAuthTokenForEmployer(app: INestApplication, email: stri
         companyName: 'Company Name',
         companyType: 'Restaurant',
         ownerPosition: 'MANAGER',
-        desiredTradeIds: [1],
+        desiredJobIds: [1],
       },
     });
 

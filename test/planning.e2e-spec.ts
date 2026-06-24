@@ -99,7 +99,7 @@ describe('Planning (e2e)', () => {
           companyName: 'Test Company Planning',
           companyType: 'Restaurant',
           ownerPosition: 'MANAGER',
-          desiredTradeIds: [1],
+          desiredJobIds: [1],
         },
         is_employer_active: true,
       });
