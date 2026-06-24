@@ -64,7 +64,7 @@ module.exports = {
       allowNull: true,
     });
 
-    await queryInterface.addColumn('company', 'establishment_type', {
+    await queryInterface.addColumn('company', 'company_type', {
       type: Sequelize.STRING(100),
       allowNull: true,
     });
@@ -102,7 +102,7 @@ module.exports = {
     `);
 
     await queryInterface.dropTable('company_trade');
-    await queryInterface.removeColumn('company', 'establishment_type');
+    await queryInterface.removeColumn('company', 'company_type');
     await queryInterface.removeColumn('company', 'owner_position');
     await queryInterface.dropTable('worker_trade');
 

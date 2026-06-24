@@ -12,7 +12,7 @@ import { CreationAttributes, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { Address } from '@/modules/address/address.model';
-import { EstablishmentType } from '@/modules/auth/models/register.model';
+import { CompanyType } from '@/modules/auth/models/register.model';
 
 @Injectable()
 export class CompaniesService {
@@ -27,7 +27,7 @@ export class CompaniesService {
   async createCompanyWithOwner(
     data: {
       name: string;
-      establishmentType: EstablishmentType;
+      companyType: CompanyType;
       ownerPosition: string;
       desiredTradeIds: number[];
       addressId?: number;
@@ -37,7 +37,7 @@ export class CompaniesService {
   ): Promise<Company> {
     const companyData: CreationAttributes<Company> = {
       name: data.name,
-      establishmentType: data.establishmentType,
+      companyType: data.companyType,
       ownerPosition: data.ownerPosition,
       ...(data.addressId !== undefined && { addressId: data.addressId }),
     };

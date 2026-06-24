@@ -97,7 +97,7 @@ describe('Planning (e2e)', () => {
         role: 'EMPLOYER',
         employerProfile: {
           companyName: 'Test Company Planning',
-          establishmentType: 'Restaurant',
+          companyType: 'Restaurant',
           ownerPosition: 'MANAGER',
           desiredTradeIds: [1],
         },

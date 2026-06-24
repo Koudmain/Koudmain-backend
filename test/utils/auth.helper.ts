@@ -20,7 +20,7 @@ export async function getAuthTokenForEmployer(app: INestApplication, email: stri
       role: UserRole.EMPLOYER,
       employerProfile: {
         companyName: 'Company Name',
-        establishmentType: 'Restaurant',
+        companyType: 'Restaurant',
         ownerPosition: 'MANAGER',
         desiredTradeIds: [1],
       },

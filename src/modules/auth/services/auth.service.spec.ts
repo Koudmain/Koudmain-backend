@@ -17,7 +17,7 @@ import {
   WorkerProfileDto,
   EmployerProfileDto,
   OwnerPosition,
-  EstablishmentType,
+  CompanyType,
 } from '@/modules/auth/models/register.model';
 import * as bcrypt from 'bcrypt';
 
@@ -198,7 +198,7 @@ describe('AuthService', () => {
       role: UserRole.EMPLOYER,
       employerProfile: {
         companyName: 'Acme Corp',
-        establishmentType: EstablishmentType.CAFE_BAR,
+        companyType: CompanyType.CAFE_BAR,
         ownerPosition: OwnerPosition.HR,
         desiredTradeIds: [1, 2],
       } as EmployerProfileDto,
@@ -308,7 +308,7 @@ describe('AuthService', () => {
       expect(mockCompaniesService.createCompanyWithOwner).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Acme Corp',
-          establishmentType: EstablishmentType.CAFE_BAR,
+          companyType: CompanyType.CAFE_BAR,
           ownerPosition: OwnerPosition.HR,
           desiredTradeIds: [1, 2],
         }),

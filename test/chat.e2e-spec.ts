@@ -96,7 +96,7 @@ describe('Chat System (e2e)', () => {
         role: 'EMPLOYER',
         employerProfile: {
           companyName: 'Chat Company',
-          establishmentType: 'Restaurant',
+          companyType: 'Restaurant',
           ownerPosition: 'MANAGER',
           desiredTradeIds: [1],
         },

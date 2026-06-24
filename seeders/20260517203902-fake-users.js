@@ -123,7 +123,7 @@ module.exports = {
       companies.push({
         name: faker.company.name(),
         owner_position: faker.helpers.arrayElement(['Manager', 'Owner', 'HR']),
-        establishment_type: faker.helpers.arrayElement(['Restaurant', 'Bar', 'Café', 'Hotel']),
+        company_type: faker.helpers.arrayElement(['Restaurant', 'Bar', 'Café', 'Hotel']),
         is_premium: faker.datatype.boolean(),
         address_id: addressRows[numWorkers + i].id,
       });

@@ -25,7 +25,7 @@ export enum OwnerPosition {
   OTHER = 'OTHER',
 }
 
-export enum EstablishmentType {
+export enum CompanyType {
   CAFE_BAR = 'Café / Bar',
   RESTAURANT = 'Restaurant',
   HOTEL = 'Hôtel',
@@ -62,9 +62,9 @@ export class EmployerProfileDto {
   @IsNotEmpty()
   companyName: string;
 
-  @IsEnum(EstablishmentType)
+  @IsEnum(CompanyType)
   @IsNotEmpty()
-  establishmentType: EstablishmentType;
+  companyType: CompanyType;
 
   @IsEnum(OwnerPosition)
   @IsNotEmpty()
