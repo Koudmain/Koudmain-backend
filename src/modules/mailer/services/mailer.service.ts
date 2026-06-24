@@ -2,6 +2,8 @@ import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import { IsEmail, IsOptional, IsString, IsNumber, IsObject } from 'class-validator';
 import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
+import * as fs from 'fs';
+import * as path from 'path';
 
 type MailjetSendMessage = {
   From: { Email: string; Name?: string };
@@ -142,26 +144,20 @@ export class MailerService {
     }
   }
 
-  async sendVerificationEmail(toEmail: string, firstName: string, code: string): Promise<void> {
-    const contentHtml = `
-<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px 24px; margin: 0 auto 32px; display: inline-block; width: 100%; text-align: center;">
-  <p style="font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #f97316; margin-bottom: 16px; margin-top: 0; font-family: 'Inter', Arial, sans-serif;">
-    Votre code de vérification
-  </p>
-  <p style="font-size: 44px; font-weight: 800; letter-spacing: 12px; color: #0f172a; margin: 0; font-family: 'Plus Jakarta Sans', 'Inter', Arial, sans-serif; text-shadow: 0 0 10px rgba(216, 74, 34, 0.1); font-variant-numeric: tabular-nums;">
-    ${code}
-  </p>
-  <p style="font-size: 13px; color: #64748b; margin-top: 12px; margin-bottom: 0; font-family: 'Inter', Arial, sans-serif;">
-    Valide pendant <strong>15 minutes</strong>
-  </p>
-</div>
-`;
+  private loadTemplate(templateName: string, variables: Record<string, string> = {}): string {
+    const templatePath = path.join(__dirname, '..', 'templates', `${templateName}.html`);
+    let content = fs.readFileSync(templatePath, 'utf8');
 
-    const warningHtml = `
-<div class="warning">
-  Si vous n'avez pas créé de compte sur Koudmain, ignorez cet email. Votre adresse ne sera pas enregistrée.
-</div>
-`;
+    for (const [key, value] of Object.entries(variables)) {
+      content = content.replace(new RegExp(`{{${key}}}`, 'g'), value);
+    }
+
+    return content;
+  }
+
+  async sendVerificationEmail(toEmail: string, firstName: string, code: string): Promise<void> {
+    const contentHtml = this.loadTemplate('verification-content', { code });
+    const warningHtml = this.loadTemplate('verification-warning');
 
     await this.sendEmail({
       toEmail,
