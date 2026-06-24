@@ -3,6 +3,45 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    await queryInterface.sequelize.query(
+      `CREATE TYPE "user_role" AS ENUM ('WORKER', 'EMPLOYER');`,
+    );
+
+    await queryInterface.addColumn('user', 'phone_number', {
+      type: Sequelize.STRING(20),
+      allowNull: true,
+    });
+
+    await queryInterface.addColumn('user', 'email_verified_at', {
+      type: Sequelize.DATE,
+      allowNull: true,
+    });
+
+    await queryInterface.addColumn('user', 'birth_date', {
+      type: Sequelize.DATEONLY,
+      allowNull: true,
+    });
+
+    await queryInterface.addColumn('user', 'role', {
+      type: Sequelize.ENUM('WORKER', 'EMPLOYER'),
+      allowNull: false,
+      defaultValue: 'WORKER',
+    });
+
+    await queryInterface.removeColumn('user', 'is_worker_active');
+    await queryInterface.removeColumn('user', 'is_employer_active');
+
+    await queryInterface.addColumn('worker_profile', 'bio', {
+      type: Sequelize.TEXT,
+      allowNull: true,
+    });
+
+    await queryInterface.renameColumn(
+      'worker_profile',
+      'max_distance_km',
+      'work_radius',
+    );
+
     await queryInterface.createTable('worker_trade', {
       worker_id: {
         type: Sequelize.INTEGER,
@@ -46,12 +85,47 @@ module.exports = {
         onDelete: 'CASCADE',
       },
     });
+
+    await queryInterface.sequelize.query(`
+      INSERT INTO "skill_category" ("name") VALUES
+        ('Restaurant FOH'),
+        ('Restaurant BOH'),
+        ('Café')
+      ON CONFLICT DO NOTHING;
+    `);
   },
 
-  async down(queryInterface) {
+  async down(queryInterface, Sequelize) {
+    await queryInterface.sequelize.query(`
+      DELETE FROM "skill_category"
+      WHERE "name" IN ('Restaurant FOH', 'Restaurant BOH', 'Café');
+    `);
+
     await queryInterface.dropTable('company_trade');
     await queryInterface.removeColumn('company', 'establishment_type');
     await queryInterface.removeColumn('company', 'owner_position');
     await queryInterface.dropTable('worker_trade');
+
+    await queryInterface.renameColumn(
+      'worker_profile',
+      'work_radius',
+      'max_distance_km',
+    );
+    await queryInterface.removeColumn('worker_profile', 'bio');
+
+    await queryInterface.addColumn('user', 'is_employer_active', {
+      type: Sequelize.BOOLEAN,
+      defaultValue: false,
+    });
+    await queryInterface.addColumn('user', 'is_worker_active', {
+      type: Sequelize.BOOLEAN,
+      defaultValue: false,
+    });
+
+    await queryInterface.removeColumn('user', 'role');
+    await queryInterface.removeColumn('user', 'birth_date');
+    await queryInterface.removeColumn('user', 'email_verified_at');
+    await queryInterface.removeColumn('user', 'phone_number');
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS "user_role";`);
   },
 };

@@ -13,8 +13,6 @@ CREATE TABLE "address" (
   "geom" geography(Point, 4326)
 );
 
-CREATE TYPE "user_role" AS ENUM ('WORKER', 'EMPLOYER');
-
 CREATE TABLE "user" (
   "id" serial PRIMARY KEY,
   "first_name" varchar(255),
@@ -22,10 +20,8 @@ CREATE TABLE "user" (
   "profile_picture_url" varchar(255),
   "email" varchar UNIQUE,
   "password" varchar,
-  "phone_number" varchar(20),
-  "email_verified_at" timestamp,
-  "birth_date" date,
-  "role" "user_role" NOT NULL,
+  "is_worker_active" boolean DEFAULT false,
+  "is_employer_active" boolean DEFAULT false,
   "created_at" timestamp DEFAULT (now())
 );
 
@@ -49,8 +45,7 @@ CREATE TABLE "worker_profile" (
   "id" serial PRIMARY KEY,
   "user_id" integer,
   "address_id" integer,
-  "bio" text,
-  "work_radius" integer DEFAULT 20,
+  "max_distance_km" integer DEFAULT 20,
   "skills_description" text,
   "identity_verified" boolean DEFAULT false,
   "iban" varchar,
@@ -258,11 +253,11 @@ COMMENT ON COLUMN "address"."latitude" IS 'Essentiel pour le matching';
 
 COMMENT ON COLUMN "address"."longitude" IS 'Essentiel pour le matching';
 
-COMMENT ON COLUMN "user"."role" IS 'Rôle exclusif de l''utilisateur (WORKER ou EMPLOYER)';
+COMMENT ON COLUMN "user"."is_worker_active" IS 'Accès à l''App Worker';
 
-COMMENT ON COLUMN "worker_profile"."work_radius" IS 'Rayon de recherche (km)';
-COMMENT ON COLUMN "user"."birth_date" IS 'Date de naissance pour KYC et légalité';
-COMMENT ON COLUMN "worker_profile"."bio" IS 'Description/Biographie du worker';
+COMMENT ON COLUMN "user"."is_employer_active" IS 'Accès à l''App Enterprise';
+
+COMMENT ON COLUMN "worker_profile"."max_distance_km" IS 'Rayon de recherche';
 
 COMMENT ON COLUMN "wallet"."balance" IS 'Solde disponible pour virement';
 
@@ -401,8 +396,3 @@ ALTER TABLE "skill" ADD FOREIGN KEY ("category_id") REFERENCES "skill_category" 
 ALTER TABLE "address" ADD COLUMN IF NOT EXISTS "geom" geography(Point, 4326);
 
 CREATE INDEX IF NOT EXISTS "idx_address_geom" ON "address" USING GIST ("geom");
-
-INSERT INTO "skill_category" ("name") VALUES
-  ('Restaurant FOH'),
-  ('Restaurant BOH'),
-  ('Café') ON CONFLICT DO NOTHING;
