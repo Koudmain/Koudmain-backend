@@ -5,6 +5,10 @@
 # Use the official Node.js image as the base image
 FROM node:24-alpine AS base
 
+# Set environment variables
+ARG LOCAL_IP
+ENV LOCAL_IP=${LOCAL_IP}
+
 # Set the working directory inside the container
 WORKDIR /usr/src/app
 

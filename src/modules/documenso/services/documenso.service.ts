@@ -4,8 +4,8 @@ import * as path from 'path';
 
 @Injectable()
 export class DocumensoService {
-  private readonly documensoApiUrl = 'http://192.168.1.51:3010/api/v2'; //CHANGER AVEC VAR DE THOMAS
-  private readonly fakeApiKey = 'fake_api_key'; //CHANGER AVEC API CREER DANS DOCUMENSO - TEMPORAIRE
+  private readonly documensoApiUrl = process.env.DOCUMENSO_API_URL;
+  private readonly documensoApiKey = process.env.DOCUMENSO_API_KEY;
 
   async createContractForSignature(userEmail: string) {
     try {
@@ -13,7 +13,7 @@ export class DocumensoService {
 
       if (!fs.existsSync(pdfPath)) {
         throw new Error(
-          "Le fichier 'test.pdf' est introuvable dans le dossier 'pdf_test' de ton projet NestJS.",
+          "Le fichier 'test.pdf' est introuvable dans le dossier 'pdf_test' du projet NestJS.",
         );
       }
 
@@ -51,7 +51,7 @@ export class DocumensoService {
       const response = await fetch(`${this.documensoApiUrl}/envelope/create`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${this.fakeApiKey}`,
+          Authorization: `Bearer ${this.documensoApiKey}`,
         },
         body: formData,
       });
@@ -66,7 +66,7 @@ export class DocumensoService {
       const distributeResponse = await fetch(`${this.documensoApiUrl}/envelope/distribute`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${this.fakeApiKey}`,
+          Authorization: `Bearer ${this.documensoApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -87,7 +87,7 @@ export class DocumensoService {
         throw new Error('Impossible de récupérer le token du signataire.');
       }
 
-      const localIP = '192.168.1.51'; // CHANGER AVEC VAR DE THOMAS
+      const localIP = process.env.LOCAL_IP;
       return `http://${localIP}:3010/sign/${recipient.token}`;
     } catch (error) {
       console.error('Erreur NestJS V2 :', error);
