@@ -86,6 +86,39 @@ module.exports = {
       },
     });
 
+    await queryInterface.changeColumn('user', 'first_name', {
+      type: Sequelize.STRING(255),
+      allowNull: false,
+    });
+
+    await queryInterface.changeColumn('user', 'last_name', {
+      type: Sequelize.STRING(255),
+      allowNull: false,
+    });
+
+    await queryInterface.changeColumn('user', 'email', {
+      type: Sequelize.STRING,
+      allowNull: false,
+      unique: true,
+    });
+
+    await queryInterface.changeColumn('user', 'password', {
+      type: Sequelize.STRING,
+      allowNull: false,
+    });
+
+    await queryInterface.changeColumn('company', 'name', {
+      type: Sequelize.STRING(255),
+      allowNull: false,
+    });
+
+    await queryInterface.changeColumn('worker_profile', 'user_id', {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      references: { model: 'user', key: 'id' },
+      onDelete: 'CASCADE',
+    });
+
     await queryInterface.sequelize.query(`
       INSERT INTO "skill_category" ("name") VALUES
         ('Restaurant FOH'),
@@ -120,6 +153,41 @@ module.exports = {
     await queryInterface.addColumn('user', 'is_worker_active', {
       type: Sequelize.BOOLEAN,
       defaultValue: false,
+    });
+
+    // ── Revert NOT NULL constraints (retour à nullable) ──────────────────────
+
+    await queryInterface.changeColumn('worker_profile', 'user_id', {
+      type: Sequelize.INTEGER,
+      allowNull: true,
+      references: { model: 'user', key: 'id' },
+      onDelete: 'CASCADE',
+    });
+
+    await queryInterface.changeColumn('company', 'name', {
+      type: Sequelize.STRING(255),
+      allowNull: true,
+    });
+
+    await queryInterface.changeColumn('user', 'password', {
+      type: Sequelize.STRING,
+      allowNull: true,
+    });
+
+    await queryInterface.changeColumn('user', 'email', {
+      type: Sequelize.STRING,
+      allowNull: true,
+      unique: true,
+    });
+
+    await queryInterface.changeColumn('user', 'last_name', {
+      type: Sequelize.STRING(255),
+      allowNull: true,
+    });
+
+    await queryInterface.changeColumn('user', 'first_name', {
+      type: Sequelize.STRING(255),
+      allowNull: true,
     });
 
     await queryInterface.removeColumn('user', 'role');

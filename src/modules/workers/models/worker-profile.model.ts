@@ -19,7 +19,7 @@ export class WorkerProfile extends Model {
   declare id: number;
 
   @ForeignKey(() => User)
-  @Column({ type: DataType.INTEGER, field: 'user_id' })
+  @Column({ type: DataType.INTEGER, field: 'user_id', allowNull: false })
   declare userId: number;
 
   @BelongsTo(() => User)

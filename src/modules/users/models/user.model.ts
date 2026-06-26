@@ -11,22 +11,22 @@ export class User extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true })
   declare id: number;
 
-  @Column({ type: DataType.STRING, unique: false })
+  @Column({ type: DataType.STRING, allowNull: false })
   declare first_name: string;
 
-  @Column({ type: DataType.STRING, unique: false })
+  @Column({ type: DataType.STRING, allowNull: false })
   declare last_name: string;
 
-  @Column({ type: DataType.STRING, unique: false })
-  declare profile_picture_url: string;
+  @Column({ type: DataType.STRING, allowNull: true })
+  declare profile_picture_url: string | null;
 
   @HasMany(() => Review, 'rated_id')
   declare reviews: Review[];
 
-  @Column({ type: DataType.STRING, unique: true })
+  @Column({ type: DataType.STRING, unique: true, allowNull: false })
   declare email: string;
 
-  @Column(DataType.STRING)
+  @Column({ type: DataType.STRING, allowNull: false })
   declare password: string;
 
   @Column({
@@ -35,11 +35,11 @@ export class User extends Model {
   })
   declare role: UserRole;
 
-  @Column({ field: 'phone_number', type: DataType.STRING, unique: false })
-  declare phone_number: string;
+  @Column({ field: 'phone_number', type: DataType.STRING, allowNull: true })
+  declare phone_number: string | null;
 
-  @Column({ field: 'birth_date', type: DataType.DATEONLY })
-  declare birth_date: string;
+  @Column({ field: 'birth_date', type: DataType.DATEONLY, allowNull: true })
+  declare birth_date: string | null;
 
   @Column({ field: 'email_verified_at', type: DataType.DATE })
   declare email_verified_at: Date;

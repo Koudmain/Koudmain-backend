@@ -15,14 +15,14 @@ export class Company extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   declare id: number;
 
-  @Column(DataType.STRING)
+  @Column({ type: DataType.STRING, allowNull: false })
   declare name: string;
 
-  @Column({ field: 'owner_position', type: DataType.STRING(100) })
-  declare ownerPosition: string;
+  @Column({ field: 'owner_position', type: DataType.STRING(100), allowNull: true })
+  declare ownerPosition: string | null;
 
-  @Column({ field: 'company_type', type: DataType.STRING(100) })
-  declare companyType: string;
+  @Column({ field: 'company_type', type: DataType.STRING(100), allowNull: true })
+  declare companyType: string | null;
 
   @Column({ type: DataType.BOOLEAN, defaultValue: false })
   declare is_premium: boolean;
@@ -34,9 +34,10 @@ export class Company extends Model {
   @Column({
     type: DataType.INTEGER,
     field: 'address_id',
+    allowNull: true,
   })
-  addressId: number;
+  declare addressId: number | null;
 
   @BelongsTo(() => Address)
-  address: Address;
+  declare address: Address | null;
 }

@@ -91,6 +91,7 @@ export class RegisterDto {
   lastName: string;
 
   @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @IsString()
@@ -98,14 +99,15 @@ export class RegisterDto {
   password: string;
 
   @IsString()
-  @IsNotEmpty()
-  phoneNumber: string;
+  @IsOptional()
+  phoneNumber?: string;
 
   @IsString()
-  @IsNotEmpty()
-  birthDate: string;
+  @IsOptional()
+  birthDate?: string;
 
   @IsEnum(UserRole)
+  @IsNotEmpty()
   role: UserRole;
 
   /**
