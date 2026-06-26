@@ -7,29 +7,57 @@ import {
 import { InjectModel } from '@nestjs/sequelize';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
-import { CreationAttributes } from 'sequelize';
+import { CompanyJob } from '@/modules/companies/models/company-job.model';
+import { CreationAttributes, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { Address } from '@/modules/address/address.model';
+import { CompanyType } from '@/modules/auth/models/register.model';
 
 @Injectable()
 export class CompaniesService {
   constructor(
     @InjectModel(Company) private companyModel: typeof Company,
     @InjectModel(CompanyMember) private memberModel: typeof CompanyMember,
+    @InjectModel(CompanyJob) private companyJobModel: typeof CompanyJob,
     @InjectModel(Address) private addressModel: typeof Address,
     private geocodingService: GeocodingService,
   ) {}
 
-  async createCompanyWithOwner(name: string, userId: number): Promise<Company> {
-    const companyData: CreationAttributes<Company> = { name };
-    const company = await this.companyModel.create(companyData);
+  async createCompanyWithOwner(
+    data: {
+      name: string;
+      companyType: CompanyType;
+      ownerPosition: string;
+      desiredJobIds: number[];
+      addressId?: number;
+    },
+    userId: number,
+    transaction?: Transaction,
+  ): Promise<Company> {
+    const companyData: CreationAttributes<Company> = {
+      name: data.name,
+      companyType: data.companyType,
+      ownerPosition: data.ownerPosition,
+      ...(data.addressId !== undefined && { addressId: data.addressId }),
+    };
+    const company = await this.companyModel.create(companyData, { transaction });
+
     const memberData: CreationAttributes<CompanyMember> = {
       companyId: company.id,
       userId: userId,
       role: 'Owner',
     };
-    await this.memberModel.create(memberData);
+    await this.memberModel.create(memberData, { transaction });
+
+    if (data.desiredJobIds.length > 0) {
+      const tradeRows = data.desiredJobIds.map((skillCategoryId) => ({
+        companyId: company.id,
+        skillCategoryId,
+      }));
+      await this.companyJobModel.bulkCreate(tradeRows, { transaction });
+    }
+
     return company;
   }
 

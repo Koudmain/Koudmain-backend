@@ -9,6 +9,7 @@ import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Review } from '@/modules/review/models/review.model';
 import { Address } from '@/modules/address/address.model';
+import { UserRole } from '@/modules/users/models/user.model';
 
 @Injectable()
 export class PlanningService {
@@ -23,7 +24,6 @@ export class PlanningService {
 
   async getPlanning(
     userId: number,
-    appContext?: string,
     startDate?: string,
     endDate?: string,
     activeCompanyId?: number,
@@ -58,13 +58,13 @@ export class PlanningService {
       throw new BadRequestException('Utilisateur non trouvé');
     }
 
-    if (appContext === 'worker') {
+    if (user.role === UserRole.WORKER) {
       return this.getWorkerPlanning(userId, filterStartDate, filterEndDate);
-    } else if (appContext === 'employer') {
+    } else if (user.role === UserRole.EMPLOYER) {
       return this.getEmployerPlanning(userId, filterStartDate, filterEndDate, activeCompanyId);
     } else {
       throw new BadRequestException(
-        "L'utilisateur doit avoir un app_context valide dans le token (worker ou employer)",
+        "L'utilisateur n'a pas un rôle valide pour accéder au planning",
       );
     }
   }

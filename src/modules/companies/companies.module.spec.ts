@@ -6,6 +6,7 @@ import { CompaniesService } from './services/companies.service';
 import { CompaniesController } from './controllers/companies.controller';
 import { Company } from './models/company.model';
 import { CompanyMember } from './models/company-member.model';
+import { CompanyJob } from './models/company-job.model';
 import { Address } from '@/modules/address/address.model';
 
 jest.mock('@/modules/auth/auth.module', () => {
@@ -27,6 +28,8 @@ describe('CompaniesModule', () => {
       .overrideProvider(getModelToken(Company))
       .useValue({})
       .overrideProvider(getModelToken(CompanyMember))
+      .useValue({})
+      .overrideProvider(getModelToken(CompanyJob))
       .useValue({})
       .overrideProvider(getModelToken(Address))
       .useValue({})

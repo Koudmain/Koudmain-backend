@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AuthController } from './auth.controller';
-import { AuthService } from '../services/auth.service';
+import { AuthController } from '@/modules/auth/controllers/auth.controller';
+import { AuthService } from '@/modules/auth/services/auth.service';
+import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
+import { UserRole } from '@/modules/users/models/user.model';
+import { RegisterDto, WorkerProfileDto } from '@/modules/auth/models/register.model';
 
 const mockAuthService = {
   signIn: jest.fn(),
@@ -8,6 +11,13 @@ const mockAuthService = {
   refresh: jest.fn(),
   logout: jest.fn(),
   logoutAll: jest.fn(),
+  generateTokensForUser: jest.fn(),
+  getUserForVerification: jest.fn(),
+};
+
+const mockEmailVerificationService = {
+  verifyCode: jest.fn(),
+  sendVerificationCode: jest.fn(),
 };
 
 describe('AuthController', () => {
@@ -17,10 +27,8 @@ describe('AuthController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        {
-          provide: AuthService,
-          useValue: mockAuthService,
-        },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: EmailVerificationService, useValue: mockEmailVerificationService },
       ],
     }).compile();
 
@@ -43,45 +51,40 @@ describe('AuthController', () => {
       const result = await controller.signIn({
         email: 'test@example.com',
         password: 'password123',
-        targetApp: 'worker',
       });
 
       expect(mockAuthService.signIn).toHaveBeenCalledTimes(1);
-      expect(mockAuthService.signIn).toHaveBeenCalledWith(
-        'test@example.com',
-        'password123',
-        'worker',
-      );
+      expect(mockAuthService.signIn).toHaveBeenCalledWith('test@example.com', 'password123');
       expect(result).toEqual(mockTokens);
     });
   });
 
   describe('signUp', () => {
-    it('should call authService.register and return tokens', async () => {
-      const mockTokens = { accessToken: 'acc_token', refreshToken: 'ref_token' };
-      mockAuthService.register.mockResolvedValue(mockTokens);
+    it('should pass the full RegisterDto to authService.register and return userId + message', async () => {
+      const mockResponse = {
+        userId: 1,
+        message: 'Un code de vérification a été envoyé à votre adresse email.',
+      };
+      mockAuthService.register.mockResolvedValue(mockResponse);
 
-      const payload = {
+      const dto: RegisterDto = {
         firstName: 'John',
         lastName: 'Doe',
         email: 'john@example.com',
         password: 'password123',
-        isWorkerActive: true,
-        isEmployerActive: false,
+        phoneNumber: '0600000000',
+        birthDate: '1990-01-01',
+        role: UserRole.WORKER,
+        workerProfile: {
+          skillCategoryIds: [1],
+        } as WorkerProfileDto,
       };
 
-      const result = await controller.signUp(payload);
+      const result = await controller.signUp(dto);
 
       expect(mockAuthService.register).toHaveBeenCalledTimes(1);
-      expect(mockAuthService.register).toHaveBeenCalledWith(
-        payload.firstName,
-        payload.lastName,
-        payload.email,
-        payload.password,
-        payload.isWorkerActive,
-        payload.isEmployerActive,
-      );
-      expect(result).toEqual(mockTokens);
+      expect(mockAuthService.register).toHaveBeenCalledWith(dto);
+      expect(result).toEqual(mockResponse);
     });
   });
 
@@ -117,9 +120,9 @@ describe('AuthController', () => {
       const mockResponse = { message: 'All sessions revoked successfully' };
       mockAuthService.logoutAll.mockResolvedValue(mockResponse);
 
-      const mockReq = { user: { sub: 123 } } as unknown as Parameters<
-        AuthController['logoutAll']
-      >[0];
+      const mockReq = {
+        user: { sub: 123 },
+      } as unknown as Parameters<AuthController['logoutAll']>[0];
       const result = await controller.logoutAll(mockReq);
 
       expect(mockAuthService.logoutAll).toHaveBeenCalledTimes(1);

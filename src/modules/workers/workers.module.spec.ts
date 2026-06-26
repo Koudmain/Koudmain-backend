@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { Module } from '@nestjs/common';
-import { WorkersModule } from './workers.module';
-import { WorkersService } from './services/workers.service';
-import { WorkersController } from './controllers/workers.controller';
-import { WorkerProfile } from './models/worker-profile.model';
+import { WorkersModule } from '@/modules/workers/workers.module';
+import { WorkersService } from '@/modules/workers/services/workers.service';
+import { WorkersController } from '@/modules/workers/controllers/workers.controller';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { WorkerJob } from '@/modules/workers/models/worker-job.model';
 
 jest.mock('@/modules/auth/auth.module', () => {
   @Module({})
@@ -20,12 +21,15 @@ describe('WorkersModule', () => {
 
   beforeEach(async () => {
     const mockWorkerProfileModel = {};
+    const mockWorkerJobModel = {};
 
     moduleRef = await Test.createTestingModule({
       imports: [WorkersModule],
     })
       .overrideProvider(getModelToken(WorkerProfile))
       .useValue(mockWorkerProfileModel)
+      .overrideProvider(getModelToken(WorkerJob))
+      .useValue(mockWorkerJobModel)
       .compile();
   });
 

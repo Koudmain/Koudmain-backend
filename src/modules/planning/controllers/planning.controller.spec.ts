@@ -35,7 +35,7 @@ describe('PlanningController', () => {
   });
 
   describe('getPlanning', () => {
-    const mockUser: JwtPayload = { sub: 123, app_context: 'worker' };
+    const mockUser: JwtPayload = { sub: 123 };
 
     it('should call getPlanning service method with correct parameters', async () => {
       const startDate = '2026-05-01';
@@ -55,7 +55,6 @@ describe('PlanningController', () => {
 
       expect(mockPlanningService.getPlanning).toHaveBeenCalledWith(
         123,
-        'worker',
         startDate,
         endDate,
         activeCompanyId,
@@ -76,7 +75,7 @@ describe('PlanningController', () => {
     });
 
     it('should throw BadRequestException if user.sub is missing', async () => {
-      const userWithoutSub = { app_context: 'worker' } as unknown as JwtPayload;
+      const userWithoutSub = {} as unknown as JwtPayload;
       const requestWithoutSub = { query: {} };
       await expect(() =>
         controller.getPlanning(
@@ -100,7 +99,6 @@ describe('PlanningController', () => {
       );
       expect(mockPlanningService.getPlanning).toHaveBeenCalledWith(
         123,
-        'worker',
         undefined,
         undefined,
         undefined,

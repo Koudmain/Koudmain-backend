@@ -52,7 +52,7 @@ describe('WorkersController', () => {
         id: 1,
         userId: userId,
         max_distance_km: 25,
-        skills_description: 'Développeur NestJS',
+        skillsDescription: 'Développeur NestJS',
       };
 
       mockWorkersService.getWorkerByUserId.mockResolvedValue(mockProfile);
