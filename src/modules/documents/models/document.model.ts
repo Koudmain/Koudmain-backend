@@ -4,6 +4,7 @@ import { Invoice } from './invoice.model';
 import { DocumentAssignment } from './document-assignment.model';
 import { DocumentContext } from './document-context.model';
 import { Message } from '@/modules/chat/models/message.model';
+import { SignatureEnvelope } from './signature-envelope.model';
 
 export enum DocumentCategory {
   CONTRACT = 'CONTRACT',
@@ -74,6 +75,9 @@ export class Document extends Model<Document> {
 
   @HasOne(() => DocumentContext, 'documentId')
   context: DocumentContext;
+
+  @HasOne(() => SignatureEnvelope, 'documentId')
+  signatureEnvelope: SignatureEnvelope;
 
   @HasMany(() => Message, 'documentId')
   messages: Message[];

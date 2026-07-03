@@ -11,6 +11,22 @@ module.exports = {
       END $$;
     `);
 
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        CREATE TYPE signature_provider AS ENUM ('DOCUMENSO', 'DOCUSIGN', 'YOUSIGN');
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
+    await queryInterface.sequelize.query(`
+      DO $$ BEGIN
+        CREATE TYPE signature_status AS ENUM ('PENDING', 'PARTIALLY_SIGNED', 'COMPLETED', 'DECLINED', 'EXPIRED');
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;
+      END $$;
+    `);
+
     await queryInterface.createTable('document', {
       id: {
         type: Sequelize.INTEGER,
@@ -238,17 +254,61 @@ module.exports = {
       references: { model: 'document', key: 'id' },
       onDelete: 'SET NULL'
     });
+
+    await queryInterface.createTable('signature_envelope', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false
+      },
+      document_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        unique: true,
+        references: { model: 'document', key: 'id' },
+        onDelete: 'CASCADE'
+      },
+      provider: {
+        type: Sequelize.ENUM('DOCUMENSO', 'DOCUSIGN', 'YOUSIGN'),
+        allowNull: false,
+        defaultValue: 'DOCUMENSO'
+      },
+      external_document_id: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        unique: true
+      },
+      status: {
+        type: Sequelize.ENUM('PENDING', 'PARTIALLY_SIGNED', 'COMPLETED', 'DECLINED', 'EXPIRED'),
+        allowNull: false,
+        defaultValue: 'PENDING'
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+      },
+      updated_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+      }
+    });
   },
 
   async down (queryInterface, Sequelize) {
     await queryInterface.removeColumn('message', 'document_id');
 
     await queryInterface.dropTable('document_context');
+    await queryInterface.dropTable('signature_envelope');
     await queryInterface.dropTable('document_assignment');
     await queryInterface.dropTable('invoice');
     await queryInterface.dropTable('contract');
     await queryInterface.dropTable('document');
 
     await queryInterface.sequelize.query(`DROP TYPE IF EXISTS document_category;`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS signature_status;`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS signature_provider;`);
   }
 };

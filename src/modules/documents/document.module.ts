@@ -5,10 +5,18 @@ import { Contract } from './models/contract.model';
 import { Invoice } from './models/invoice.model';
 import { DocumentAssignment } from './models/document-assignment.model';
 import { DocumentContext } from './models/document-context.model';
+import { SignatureEnvelope } from './models/signature-envelope.model';
 
 @Module({
   imports: [
-    SequelizeModule.forFeature([Document, Contract, Invoice, DocumentAssignment, DocumentContext]),
+    SequelizeModule.forFeature([
+      Document,
+      Contract,
+      Invoice,
+      DocumentAssignment,
+      DocumentContext,
+      SignatureEnvelope,
+    ]),
   ],
   controllers: [],
   providers: [],
