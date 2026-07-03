@@ -3,15 +3,15 @@ import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
 export class UpdateCompanyAddressDto {
   @IsString()
   @IsOptional()
-  street_number: string;
+  streetNumber: string;
 
   @IsString()
   @IsNotEmpty()
-  street_name: string;
+  streetName: string;
 
   @IsString()
   @IsNotEmpty()
-  zip_code: string;
+  zipCode: string;
 
   @IsString()
   @IsNotEmpty()
@@ -25,15 +25,15 @@ export class UpdateCompanyAddressDto {
 export class CreateAddressDto {
   @IsString()
   @IsOptional()
-  street_number: string;
+  streetNumber: string;
 
   @IsString()
   @IsNotEmpty()
-  street_name: string;
+  streetName: string;
 
   @IsString()
   @IsNotEmpty()
-  zip_code: string;
+  zipCode: string;
 
   @IsString()
   @IsNotEmpty()

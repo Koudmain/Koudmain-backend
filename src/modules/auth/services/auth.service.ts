@@ -85,7 +85,7 @@ export class AuthService {
 
     const country = addr.country || 'France';
     const fullAddress =
-      `${addr.street_number || ''} ${addr.street_name}, ${addr.zip_code} ${addr.city}, ${country}`.trim();
+      `${addr.streetNumber || ''} ${addr.streetName}, ${addr.zipCode} ${addr.city}, ${country}`.trim();
     try {
       const coords = await this.geocodingService.getCoordsFromAddress(fullAddress);
       return {
@@ -214,7 +214,10 @@ export class AuthService {
         if (dto.workerProfile.address && workerGeo) {
           const newAddr = await this.addressModel.create(
             {
-              ...dto.workerProfile.address,
+              street_number: dto.workerProfile.address.streetNumber,
+              street_name: dto.workerProfile.address.streetName,
+              zip_code: dto.workerProfile.address.zipCode,
+              city: dto.workerProfile.address.city,
               country: dto.workerProfile.address.country || 'France',
               full_address: workerGeo.fullAddress,
               latitude: workerGeo.latitude,
@@ -242,7 +245,10 @@ export class AuthService {
         if (dto.employerProfile.address && employerGeo) {
           const newAddr = await this.addressModel.create(
             {
-              ...dto.employerProfile.address,
+              street_number: dto.employerProfile.address.streetNumber,
+              street_name: dto.employerProfile.address.streetName,
+              zip_code: dto.employerProfile.address.zipCode,
+              city: dto.employerProfile.address.city,
               country: dto.employerProfile.address.country || 'France',
               full_address: employerGeo.fullAddress,
               latitude: employerGeo.latitude,

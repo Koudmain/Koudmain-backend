@@ -109,7 +109,7 @@ export class CompaniesService {
 
     const country = updateAddressDto.country || 'France';
     const fullAddressString =
-      `${updateAddressDto.street_number || ''} ${updateAddressDto.street_name}, ${updateAddressDto.zip_code} ${updateAddressDto.city}, ${country}`.trim();
+      `${updateAddressDto.streetNumber || ''} ${updateAddressDto.streetName}, ${updateAddressDto.zipCode} ${updateAddressDto.city}, ${country}`.trim();
 
     let coords = null;
     try {
@@ -121,7 +121,10 @@ export class CompaniesService {
     }
 
     const addressPayload = {
-      ...updateAddressDto,
+      street_number: updateAddressDto.streetNumber,
+      street_name: updateAddressDto.streetName,
+      zip_code: updateAddressDto.zipCode,
+      city: updateAddressDto.city,
       country,
       full_address: fullAddressString,
       latitude: coords?.latitude ?? null,
