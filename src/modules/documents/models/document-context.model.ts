@@ -4,12 +4,22 @@ import { Publication } from '@/modules/publication/models/publication.model';
 import { Conversation } from '@/modules/chat/models/conversation.model';
 import { Mission } from '@/modules/missions/mission.model';
 
+export interface DocumentContextAttributes {
+  documentId: number;
+  publicationId?: number | null;
+  conversationId?: number | null;
+  missionId?: number | null;
+}
+
 @Table({
   tableName: 'document_context',
   underscored: true,
   timestamps: false,
 })
-export class DocumentContext extends Model<DocumentContext> {
+export class DocumentContext
+  extends Model<DocumentContext, DocumentContextAttributes>
+  implements DocumentContextAttributes
+{
   @ForeignKey(() => Document)
   @Column({
     type: DataType.INTEGER,
@@ -23,21 +33,21 @@ export class DocumentContext extends Model<DocumentContext> {
     type: DataType.INTEGER,
     allowNull: true,
   })
-  publicationId: number;
+  publicationId: number | null;
 
   @ForeignKey(() => Conversation)
   @Column({
     type: DataType.INTEGER,
     allowNull: true,
   })
-  conversationId: number;
+  conversationId: number | null;
 
   @ForeignKey(() => Mission)
   @Column({
     type: DataType.INTEGER,
     allowNull: true,
   })
-  missionId: number;
+  missionId: number | null;
 
   @BelongsTo(() => Document, 'documentId')
   document: Document;

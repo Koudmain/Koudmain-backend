@@ -12,13 +12,25 @@ export enum DocumentCategory {
   OTHER = 'OTHER',
 }
 
+export interface DocumentAttributes {
+  id: number;
+  name: string;
+  originalFilename: string | null;
+  filePath: string;
+  category: DocumentCategory;
+  sizeBytes: number | null;
+  mimeType: string | null;
+  updatedAt?: Date;
+  createdAt?: Date;
+}
+
 @Table({
   tableName: 'document',
   underscored: true,
   timestamps: true,
   updatedAt: false,
 })
-export class Document extends Model<Document> {
+export class Document extends Model<Document, DocumentAttributes> implements DocumentAttributes {
   @Column({
     type: DataType.INTEGER,
     primaryKey: true,
@@ -37,7 +49,7 @@ export class Document extends Model<Document> {
     type: DataType.STRING,
     allowNull: true,
   })
-  declare originalFilename: string;
+  declare originalFilename: string | null;
 
   @Column({
     type: DataType.STRING,
@@ -56,13 +68,19 @@ export class Document extends Model<Document> {
     type: DataType.INTEGER,
     allowNull: true,
   })
-  declare sizeBytes: number;
+  declare sizeBytes: number | null;
 
   @Column({
     type: DataType.STRING,
     allowNull: true,
   })
-  declare mimeType: string;
+  declare mimeType: string | null;
+
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
+
+  @Column({ field: 'updated_at', type: DataType.DATE })
+  declare updatedAt: Date;
 
   @HasOne(() => Contract, 'documentId')
   contract: Contract;

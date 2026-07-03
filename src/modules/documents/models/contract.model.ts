@@ -2,12 +2,22 @@ import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize
 import { Document, DocumentCategory } from './document.model';
 import { Mission } from '@/modules/missions/mission.model';
 
+export interface ContractAttributes {
+  documentId: number;
+  documentCategory: DocumentCategory;
+  missionId: number;
+  signedAt?: Date | null;
+  workerSignatureId?: string | null;
+  employerSignatureId?: string | null;
+  status?: string | null;
+}
+
 @Table({
   tableName: 'contract',
   underscored: true,
-  timestamps: false,
+  timestamps: true,
 })
-export class Contract extends Model<Contract> {
+export class Contract extends Model<Contract, ContractAttributes> implements ContractAttributes {
   @ForeignKey(() => Document)
   @Column({
     type: DataType.INTEGER,

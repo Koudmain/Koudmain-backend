@@ -3,13 +3,25 @@ import { Document } from './document.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
 
+export interface DocumentAssignmentAttributes {
+  id: number;
+  documentId: number;
+  workerId?: number | null;
+  companyId?: number | null;
+  type: string;
+  verified: boolean;
+}
+
 @Table({
   tableName: 'document_assignment',
   underscored: true,
   timestamps: true,
   updatedAt: false,
 })
-export class DocumentAssignment extends Model<DocumentAssignment> {
+export class DocumentAssignment
+  extends Model<DocumentAssignment, DocumentAssignmentAttributes>
+  implements DocumentAssignmentAttributes
+{
   @Column({
     type: DataType.INTEGER,
     primaryKey: true,
@@ -30,14 +42,14 @@ export class DocumentAssignment extends Model<DocumentAssignment> {
     type: DataType.INTEGER,
     allowNull: true,
   })
-  declare workerId: number;
+  declare workerId: number | null;
 
   @ForeignKey(() => Company)
   @Column({
     type: DataType.INTEGER,
     allowNull: true,
   })
-  declare companyId: number;
+  declare companyId: number | null;
 
   @Column({
     type: DataType.STRING,
