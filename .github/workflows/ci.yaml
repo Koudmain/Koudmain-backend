@@ -14,16 +14,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  force-ci:
-    name: "Force CI"
-    if: github.event_name == 'push' || (github.event.action == 'labeled' && (github.event.label.name == 'force ci' || github.event.label.name == 'to merge'))
-    uses: Koudmain/.github/.github/workflows/orchestrator-ci.yml@chore/orchestrator-ci-new-architecture
-    permissions:
-      pull-requests: write
-    with:
-      language: "node"
-      run-precommit: true
-    secrets: inherit
+  # force-ci:
+  #   name: "Force CI"
+  #   if: github.event_name == 'push' || (github.event.action == 'labeled' && (github.event.label.name == 'force ci' || github.event.label.name == 'to merge'))
+  #   uses: Koudmain/.github/.github/workflows/orchestrator-ci.yml@main
+  #   permissions:
+  #     pull-requests: write
+  #   with:
+  #     language: "node"
+  #     run-precommit: true
+  #   secrets: inherit
 
   unit-tests:
     name: "Unit tests + coverage"
@@ -103,7 +103,7 @@ jobs:
   
   label-cleanup:
     name: "Label cleanup"
-    needs: [force-ci, unit-tests, e2e-tests]
+    needs: [unit-tests, e2e-tests] # TEMPORARY CONFIGURATION THIS ONE IS THE CORRECT ONE : [force-ci, unit-tests, e2e-tests] 
     if: always() && (github.event_name == 'push' || (github.event.action == 'labeled' && (github.event.label.name == 'force ci' || github.event.label.name == 'to merge')))
     uses: Koudmain/.github/.github/workflows/reusable-label-cleanup.yml@chore/orchestrator-ci-new-architecture
     permissions:
