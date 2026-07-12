@@ -17,7 +17,7 @@ jobs:
   force-ci:
     name: "Force CI"
     if: github.event_name == 'push' || (github.event.action == 'labeled' && (github.event.label.name == 'force ci' || github.event.label.name == 'to merge'))
-    uses: Koudmain/.github/.github/workflows/orchestrator-ci.yml@chore/orchestrator-ci-new-architecture
+    uses: Koudmain/.github/.github/workflows/orchestrator-ci.yml@main
     permissions:
       pull-requests: write
     with:
@@ -106,7 +106,7 @@ jobs:
     name: "Label cleanup"
     needs: [force-ci, unit-tests, e2e-tests]
     if: always() && (github.event_name == 'push' || (github.event.action == 'labeled' && (github.event.label.name == 'force ci' || github.event.label.name == 'to merge')))
-    uses: Koudmain/.github/.github/workflows/reusable-label-cleanup.yml@chore/orchestrator-ci-new-architecture
+    uses: Koudmain/.github/.github/workflows/reusable-label-cleanup.yml@main
     permissions:
       pull-requests: write
     with:
