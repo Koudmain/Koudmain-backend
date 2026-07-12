@@ -9,8 +9,7 @@ CREATE TABLE "address" (
   "country" varchar(100) DEFAULT 'France',
   "latitude" numeric(9,6),
   "longitude" numeric(9,6),
-  "full_address" text,
-  "geom" geography(Point, 4326)
+  "full_address" text
 );
 
 CREATE TABLE "user" (
@@ -392,7 +391,3 @@ ALTER TABLE "contract" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id"
 ALTER TABLE "invoice" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "skill" ADD FOREIGN KEY ("category_id") REFERENCES "skill_category" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "address" ADD COLUMN IF NOT EXISTS "geom" geography(Point, 4326);
-
-CREATE INDEX IF NOT EXISTS "idx_address_geom" ON "address" USING GIST ("geom");
