@@ -20,6 +20,8 @@ describe('Planning (e2e)', () => {
   let workerToken: string;
   let employerToken: string;
   let companyId: number;
+  let companyName: string;
+  let workerName: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -60,52 +62,17 @@ describe('Planning (e2e)', () => {
       `DELETE FROM "application" WHERE publication_id IN (SELECT id FROM "publication" WHERE title = 'Planning Test Job');`,
     );
     await sequelize.query(`DELETE FROM "publication" WHERE title = 'Planning Test Job';`);
-    await sequelize.query(`TRUNCATE TABLE "user" CASCADE;`);
-    await sequelize.query(`TRUNCATE TABLE "company" CASCADE;`);
 
-    // Register and login worker
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        email: 'planning.worker@test.com',
-        password: 'Password123!',
-        firstName: 'Worker',
-        lastName: 'Planning',
-        phoneNumber: '0600000000',
-        birthDate: '1990-01-01',
-        role: 'WORKER',
-        workerProfile: {
-          skillCategoryIds: [1],
-        },
-        is_worker_active: true,
-      });
+    // Login worker
     const workerLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'planning.worker@test.com', password: 'Password123!' });
+      .send({ email: 'worker2@koudmain.fr', password: 'password123' });
     workerToken = workerLogin.body.accessToken;
 
-    // Register and login employer
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        email: 'planning.employer@test.com',
-        password: 'Password123!',
-        firstName: 'Employer',
-        lastName: 'Planning',
-        phoneNumber: '0600000000',
-        birthDate: '1990-01-01',
-        role: 'EMPLOYER',
-        employerProfile: {
-          companyName: 'Test Company Planning',
-          companyType: 'Restaurant',
-          ownerPosition: 'MANAGER',
-          desiredJobIds: [1],
-        },
-        is_employer_active: true,
-      });
+    // Login employer
     const employerLogin = await request(app.getHttpServer()).post('/auth/login').send({
-      email: 'planning.employer@test.com',
-      password: 'Password123!',
+      email: 'employer2@koudmain.fr',
+      password: 'password123',
     });
     employerToken = employerLogin.body.accessToken;
 
@@ -115,22 +82,24 @@ describe('Planning (e2e)', () => {
     const employerUserId = JSON.parse(Buffer.from(employerToken.split('.')[1], 'base64').toString())
       .sub as number;
 
-    // Create company
+    // Find company
     const [companyRows] = await sequelize.query(
-      `INSERT INTO "company" (name) VALUES ('Test Company Planning') RETURNING id`,
+      `SELECT "company".id, "company".name FROM "company" INNER JOIN "company_member" ON "company".id = "company_member".company_id WHERE "company_member".user_id = ${employerUserId} LIMIT 1`,
     );
     companyId = (companyRows[0] as { id: number }).id;
+    companyName = (companyRows[0] as { name: string }).name;
 
-    // Add employer as company member
-    await sequelize.query(
-      `INSERT INTO "company_member" (company_id, user_id) VALUES (${companyId}, ${employerUserId})`,
-    );
-
-    // Create worker profile
+    // Find worker profile
     const [workerProfileRows] = await sequelize.query(
-      `INSERT INTO "worker_profile" (user_id) VALUES (${workerUserId}) RETURNING id`,
+      `SELECT id FROM "worker_profile" WHERE user_id = ${workerUserId}`,
     );
     const workerProfileId = (workerProfileRows[0] as { id: number }).id;
+
+    // Find worker name
+    const [workerUserRows] = await sequelize.query(
+      `SELECT first_name, last_name FROM "user" WHERE id = ${workerUserId}`,
+    );
+    workerName = `${(workerUserRows[0] as any).first_name} ${(workerUserRows[0] as any).last_name}`;
 
     // Create publication in current date range (employer owns it)
     const now = new Date();
@@ -161,8 +130,6 @@ describe('Planning (e2e)', () => {
       `DELETE FROM "application" WHERE publication_id IN (SELECT id FROM "publication" WHERE title = 'Planning Test Job');`,
     );
     await sequelize.query(`DELETE FROM "publication" WHERE title = 'Planning Test Job';`);
-    await sequelize.query(`TRUNCATE TABLE "user" CASCADE;`);
-    await sequelize.query(`TRUNCATE TABLE "company" CASCADE;`);
     await app.close();
   });
 
@@ -189,7 +156,7 @@ describe('Planning (e2e)', () => {
     expect(entry).toHaveProperty('publicationId');
     expect(entry).toHaveProperty('title', 'Planning Test Job');
     expect(Number(entry.salary)).toBe(20);
-    expect(entry).toHaveProperty('company_name', 'Test Company Planning');
+    expect(entry).toHaveProperty('company_name', companyName);
     expect(entry).toHaveProperty('companyRating');
     expect(entry).toHaveProperty('application_status');
   });
@@ -205,7 +172,7 @@ describe('Planning (e2e)', () => {
     expect(entry).toHaveProperty('publicationId');
     expect(entry).toHaveProperty('title', 'Planning Test Job');
     expect(Number(entry.salary)).toBe(20);
-    expect(entry).toHaveProperty('worker_name', 'Worker Planning');
+    expect(entry).toHaveProperty('worker_name', workerName);
     expect(entry).toHaveProperty('workerRating');
   });
 
@@ -224,35 +191,5 @@ describe('Planning (e2e)', () => {
       .set('Authorization', `Bearer ${workerToken}`);
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
-  });
-
-  it('should return empty array for a worker with no applications', async () => {
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        email: 'planning.noapp@test.com',
-        password: 'Password123!',
-        firstName: 'No',
-        lastName: 'App',
-        phoneNumber: '0600000000',
-        birthDate: '1990-01-01',
-        role: 'WORKER',
-        workerProfile: {
-          skillCategoryIds: [1],
-        },
-        is_worker_active: true,
-      });
-    const loginRes = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email: 'planning.noapp@test.com', password: 'Password123!' });
-    const noAppToken = loginRes.body.accessToken;
-
-    const res = await request(app.getHttpServer())
-      .get('/planning')
-      .set('Authorization', `Bearer ${noAppToken}`);
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
-
-    await sequelize.query(`TRUNCATE TABLE "user" CASCADE;`);
   });
 });

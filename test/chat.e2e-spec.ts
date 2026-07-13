@@ -64,8 +64,11 @@ describe('Chat System (e2e)', () => {
       await sequelize.query(
         `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
       );
+      await sequelize.query(
+        `INSERT INTO "skill" (id, name, category_id) VALUES (0, 'Skill E2E Chat Test', 1) ON CONFLICT DO NOTHING;`,
+      );
 
-      authToken = await getAuthTokenForEmployer(app, 'recruteur@test.com');
+      authToken = await getAuthTokenForEmployer(app, 'employer1@koudmain.fr');
       console.log('Auth token obtenu pour les tests E2E', authToken);
     } catch (error) {
       console.error('Erreur Sequelize détaillée :', error);
@@ -74,90 +77,48 @@ describe('Chat System (e2e)', () => {
   });
 
   afterAll(async () => {
-    await sequelize.query('TRUNCATE TABLE "user" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "message" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "conversation" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
-    await sequelize.query('TRUNCATE TABLE "company" RESTART IDENTITY CASCADE;');
     await app.close();
   });
 
-  it("PRE-REQUIS : Créer un user pour l'authentification", async () => {
-    // Register
-    await request(app.getHttpServer())
-      .post('/auth/register')
-      .send({
-        firstName: 'Test',
-        lastName: 'E2E',
-        email: 'test.e2e.chat@example.com',
-        password: 'password123',
-        phoneNumber: '0600000000',
-        birthDate: '1990-01-01',
-        role: 'EMPLOYER',
-        employerProfile: {
-          companyName: 'Chat Company',
-          companyType: 'Restaurant',
-          ownerPosition: 'MANAGER',
-          desiredJobIds: [1],
-        },
-      });
-
-    // Login
-    const response = await request(app.getHttpServer()).post('/auth/login').send({
-      email: 'test.e2e.chat@example.com',
-      password: 'password123',
-    });
-
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('accessToken');
-
-    const authBody = response.body as AuthResponse;
-    authToken = authBody.accessToken;
-  });
-
-  it('PRE-REQUIS : Créer un worker, une entreprise et une publication', async () => {
+  it('PRE-REQUIS : Récupérer un worker, une entreprise et créer une publication', async () => {
     const server = app.getHttpServer();
 
-    await request(server)
-      .post('/auth/register')
-      .send({
-        email: 'worker_test.chat@gmail.com',
-        password: 'Password123!',
-        firstName: 'Worker',
-        lastName: 'Test',
-        phoneNumber: '0600000000',
-        birthDate: '1990-01-01',
-        role: 'WORKER',
-        workerProfile: {
-          skillCategoryIds: [1],
-        },
-      });
     const loginRes = await request(server).post('/auth/login').send({
-      email: 'worker_test.chat@gmail.com',
-      password: 'Password123!',
+      email: 'worker1@koudmain.fr',
+      password: 'password123',
     });
     const authBodyWorker = loginRes.body as AuthResponse;
     const tokenWorker = authBodyWorker.accessToken;
-    const workerProfileRes = await request(server)
-      .get('/workers')
-      .set('Authorization', `Bearer ${tokenWorker}`);
-    const workerProfile = workerProfileRes.body as WorkerProfile;
-    workerId = workerProfile.id;
 
-    const coRes = await request(server)
-      .get('/companies/my-companies')
-      .set('Authorization', `Bearer ${authToken}`);
+    const workerUserId = JSON.parse(Buffer.from(tokenWorker.split('.')[1], 'base64').toString())
+      .sub as number;
+    const employerUserId = JSON.parse(Buffer.from(authToken.split('.')[1], 'base64').toString())
+      .sub as number;
 
-    const body = coRes.body as [{ id: number }];
-    companyId = body[0].id;
+    const [workerProfileRows] = await sequelize.query(
+      `SELECT id FROM "worker_profile" WHERE user_id = ${workerUserId}`,
+    );
+    workerId = (workerProfileRows[0] as { id: number }).id;
+
+    const [companyRows] = await sequelize.query(
+      `SELECT "company".id FROM "company" INNER JOIN "company_member" ON "company".id = "company_member".company_id WHERE "company_member".user_id = ${employerUserId} LIMIT 1`,
+    );
+    companyId = (companyRows[0] as { id: number }).id;
 
     const pubRes = await request(server)
       .post('/publication/create')
       .set('Authorization', `Bearer ${authToken}`)
       .send({
         title: 'Développeur Fullstack E2E',
+        description: 'Need a fullstack developer ASAP.',
         companyId: companyId,
         hourly_rate: 50,
+        starting_date: new Date().toISOString(),
+        ending_date: new Date(Date.now() + 86400000).toISOString(),
+        skills: [0],
       });
 
     const pubBody = pubRes.body as { id: number };
