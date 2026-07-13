@@ -12,7 +12,7 @@ import { CreationAttributes, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { Address } from '@/modules/address/address.model';
-import { CompanyType } from '@/modules/auth/models/register.model';
+import { CompanyType, OwnerPosition } from '@/modules/auth/models/register.model';
 
 @Injectable()
 export class CompaniesService {
@@ -28,7 +28,7 @@ export class CompaniesService {
     data: {
       name: string;
       companyType: CompanyType;
-      ownerPosition: string;
+      ownerPosition: OwnerPosition;
       desiredJobIds: number[];
       addressId?: number;
     },
@@ -46,7 +46,7 @@ export class CompaniesService {
     const memberData: CreationAttributes<CompanyMember> = {
       companyId: company.id,
       userId: userId,
-      role: 'Owner',
+      role: OwnerPosition.OWNER,
     };
     await this.memberModel.create(memberData, { transaction });
 
@@ -95,7 +95,7 @@ export class CompaniesService {
       where: { userId: userId, companyId: companyId },
     });
 
-    if (!membership || membership.role !== 'Owner') {
+    if (!membership || membership.role !== (OwnerPosition.OWNER as string)) {
       throw new ForbiddenException("Vous n'avez pas les droits pour modifier cette entreprise");
     }
 

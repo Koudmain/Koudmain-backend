@@ -57,9 +57,9 @@ describe('CompaniesController', () => {
     const userId = 1;
     const mockReq = { user: { sub: userId, email: 'test@example.com' } } as RequestWithUser;
     const dto: UpdateCompanyAddressDto = {
-      street_number: '15',
-      street_name: 'Rue de la Paix',
-      zip_code: '75002',
+      streetNumber: '15',
+      streetName: 'Rue de la Paix',
+      zipCode: '75002',
       city: 'Paris',
       country: 'France',
     };

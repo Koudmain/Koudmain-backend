@@ -11,6 +11,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { OwnerPosition } from '@/modules/auth/models/register.model';
 
 describe('CompaniesService', () => {
   let service: CompaniesService;
@@ -59,9 +60,9 @@ describe('CompaniesService', () => {
     const userId = 1;
     const companyId = 10;
     const dto = {
-      street_number: '15',
-      street_name: 'Rue de la Paix',
-      zip_code: '75002',
+      streetNumber: '15',
+      streetName: 'Rue de la Paix',
+      zipCode: '75002',
       city: 'Paris',
       country: 'France',
     };
@@ -75,7 +76,7 @@ describe('CompaniesService', () => {
     });
 
     it('doit lever NotFoundException si la société n’existe pas', async () => {
-      mockMemberModel.findOne.mockResolvedValue({ role: 'Owner' });
+      mockMemberModel.findOne.mockResolvedValue({ role: OwnerPosition.OWNER });
       mockCompanyModel.findByPk.mockResolvedValue(null);
 
       await expect(service.updateCompanyAddress(userId, companyId, dto)).rejects.toThrow(
@@ -84,7 +85,7 @@ describe('CompaniesService', () => {
     });
 
     it("doit mettre à jour l'adresse existante si l'entreprise en a déjà une", async () => {
-      mockMemberModel.findOne.mockResolvedValue({ role: 'Owner' });
+      mockMemberModel.findOne.mockResolvedValue({ role: OwnerPosition.OWNER });
 
       const mockAddressInstance = { id: 50, update: jest.fn() };
       const mockCompany = { id: companyId, address: mockAddressInstance };
@@ -108,7 +109,7 @@ describe('CompaniesService', () => {
     });
 
     it("doit créer une nouvelle adresse si l'entreprise n'en avait pas", async () => {
-      mockMemberModel.findOne.mockResolvedValue({ role: 'Owner' });
+      mockMemberModel.findOne.mockResolvedValue({ role: OwnerPosition.OWNER });
 
       const mockCompany = { id: companyId, address: null, set: jest.fn(), save: jest.fn() };
 
@@ -129,7 +130,7 @@ describe('CompaniesService', () => {
     });
 
     it('doit lever InternalServerErrorException en cas d’erreur', async () => {
-      mockMemberModel.findOne.mockResolvedValue({ role: 'Owner' });
+      mockMemberModel.findOne.mockResolvedValue({ role: OwnerPosition.OWNER });
 
       mockCompanyModel.findByPk.mockRejectedValue(new InternalServerErrorException('DB Error'));
 
@@ -144,7 +145,7 @@ describe('CompaniesService', () => {
       const mockAddress = { id: 50, full_address: '15 Rue de la Paix, 75002 Paris' };
       const mockMemberships = [
         {
-          role: 'Owner',
+          role: OwnerPosition.OWNER,
           company: {
             id: 1,
             name: 'Company 1',
@@ -159,7 +160,7 @@ describe('CompaniesService', () => {
       expect(result[0]).toEqual({
         id: 1,
         name: 'Company 1',
-        role: 'Owner',
+        role: OwnerPosition.OWNER,
         address: mockAddress,
       });
     });

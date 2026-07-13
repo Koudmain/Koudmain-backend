@@ -11,8 +11,14 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
-import { RegisterDto } from '@/modules/auth/models/register.model';
+import {
+  RegisterDto,
+  WorkerProfileDto,
+  EmployerProfileDto,
+} from '@/modules/auth/models/register.model';
 import { AuthTokenResponse } from '@/modules/auth/controllers/auth.controller';
+import { CreateAddressDto } from '@/modules/address/address.dto';
+import { Transaction } from 'sequelize';
 
 type AddressGeocodeResult = {
   fullAddress: string;
@@ -210,66 +216,11 @@ export class AuthService {
       newUserId = newUser.id;
 
       if (dto.role === UserRole.WORKER && dto.workerProfile) {
-        let addressId: number | undefined;
-        if (dto.workerProfile.address && workerGeo) {
-          const newAddr = await this.addressModel.create(
-            {
-              street_number: dto.workerProfile.address.streetNumber,
-              street_name: dto.workerProfile.address.streetName,
-              zip_code: dto.workerProfile.address.zipCode,
-              city: dto.workerProfile.address.city,
-              country: dto.workerProfile.address.country || 'France',
-              full_address: workerGeo.fullAddress,
-              latitude: workerGeo.latitude,
-              longitude: workerGeo.longitude,
-            },
-            { transaction: t },
-          );
-          addressId = newAddr.id;
-        }
-
-        await this.workersService.create(
-          {
-            userId: newUser.id,
-            skillCategoryIds: dto.workerProfile.skillCategoryIds,
-            bio: dto.workerProfile.bio,
-            workRadius: dto.workerProfile.workRadius ?? 20,
-            ...(addressId !== undefined && { addressId }),
-          },
-          { transaction: t },
-        );
+        await this.registerWorker(newUser.id, dto.workerProfile, workerGeo, t);
       }
 
       if (dto.role === UserRole.EMPLOYER && dto.employerProfile) {
-        let addressId: number | undefined;
-        if (dto.employerProfile.address && employerGeo) {
-          const newAddr = await this.addressModel.create(
-            {
-              street_number: dto.employerProfile.address.streetNumber,
-              street_name: dto.employerProfile.address.streetName,
-              zip_code: dto.employerProfile.address.zipCode,
-              city: dto.employerProfile.address.city,
-              country: dto.employerProfile.address.country || 'France',
-              full_address: employerGeo.fullAddress,
-              latitude: employerGeo.latitude,
-              longitude: employerGeo.longitude,
-            },
-            { transaction: t },
-          );
-          addressId = newAddr.id;
-        }
-
-        await this.companiesService.createCompanyWithOwner(
-          {
-            name: dto.employerProfile.companyName,
-            companyType: dto.employerProfile.companyType,
-            ownerPosition: dto.employerProfile.ownerPosition,
-            desiredJobIds: dto.employerProfile.desiredJobIds,
-            ...(addressId !== undefined && { addressId }),
-          },
-          newUser.id,
-          t,
-        );
+        await this.registerEmployer(newUser.id, dto.employerProfile, employerGeo, t);
       }
     });
 
@@ -284,5 +235,74 @@ export class AuthService {
       userId: newUserId,
       message: 'Un code de vérification a été envoyé à votre adresse email.',
     };
+  }
+
+  private async createAddressRecord(
+    addressDto: CreateAddressDto,
+    geo: AddressGeocodeResult,
+    transaction: Transaction,
+  ): Promise<Address> {
+    return this.addressModel.create(
+      {
+        street_number: addressDto.streetNumber,
+        street_name: addressDto.streetName,
+        zip_code: addressDto.zipCode,
+        city: addressDto.city,
+        country: addressDto.country || 'France',
+        full_address: geo.fullAddress,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+      },
+      { transaction },
+    );
+  }
+
+  private async registerWorker(
+    userId: number,
+    profile: WorkerProfileDto,
+    geo: AddressGeocodeResult | null,
+    transaction: Transaction,
+  ): Promise<void> {
+    let addressId: number | undefined;
+    if (profile.address && geo) {
+      const address = await this.createAddressRecord(profile.address, geo, transaction);
+      addressId = address.id;
+    }
+
+    await this.workersService.create(
+      {
+        userId,
+        skillCategoryIds: profile.skillCategoryIds,
+        bio: profile.bio,
+        workRadius: profile.workRadius ?? 20,
+        ...(addressId !== undefined && { addressId }),
+      },
+      { transaction },
+    );
+  }
+
+  private async registerEmployer(
+    userId: number,
+    profile: EmployerProfileDto,
+    geo: AddressGeocodeResult | null,
+    transaction: Transaction,
+  ): Promise<void> {
+    let addressId: number | undefined;
+    if (profile.address && geo) {
+      const address = await this.createAddressRecord(profile.address, geo, transaction);
+      addressId = address.id;
+    }
+
+    await this.companiesService.createCompanyWithOwner(
+      {
+        name: profile.companyName,
+        companyType: profile.companyType,
+        ownerPosition: profile.ownerPosition,
+        desiredJobIds: profile.desiredJobIds,
+        ...(addressId !== undefined && { addressId }),
+      },
+      userId,
+      transaction,
+    );
   }
 }

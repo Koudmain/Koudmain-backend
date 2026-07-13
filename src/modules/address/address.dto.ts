@@ -3,7 +3,7 @@ import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
 export class UpdateCompanyAddressDto {
   @IsString()
   @IsOptional()
-  streetNumber: string;
+  streetNumber?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -19,13 +19,13 @@ export class UpdateCompanyAddressDto {
 
   @IsString()
   @IsOptional()
-  country: string;
+  country?: string;
 }
 
 export class CreateAddressDto {
   @IsString()
   @IsOptional()
-  streetNumber: string;
+  streetNumber?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -41,15 +41,15 @@ export class CreateAddressDto {
 
   @IsString()
   @IsOptional()
-  country: string;
+  country?: string;
 
   @IsNumber()
   @IsOptional()
-  latitude: number;
+  latitude?: number;
 
   @IsNumber()
   @IsOptional()
-  longitude: number;
+  longitude?: number;
 }
 
 export class GetMapAddressesDto {

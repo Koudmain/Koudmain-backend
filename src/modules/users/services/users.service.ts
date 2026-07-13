@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { User, UserRole } from '@/modules/users/models/user.model';
-import { hash } from 'bcrypt';
+import { User } from '@/modules/users/models/user.model';
 import { Transaction } from 'sequelize';
 
 @Injectable()
@@ -23,18 +22,6 @@ export class UsersService {
   async findOneByIdPublic(id: number): Promise<User | null> {
     return this.userModel.findByPk(id, {
       attributes: { exclude: ['password'] },
-    });
-  }
-
-  async createFake() {
-    const hashedPassword = await hash('changeme', 10);
-
-    return this.create({
-      first_name: 'john',
-      last_name: `doe_${Date.now()}`,
-      email: `fake_${Date.now()}@test.com`,
-      password: hashedPassword,
-      role: UserRole.WORKER,
     });
   }
 

@@ -42,7 +42,7 @@ module.exports = {
       'work_radius',
     );
 
-    await queryInterface.createTable('worker_trade', {
+    await queryInterface.createTable('worker_job', {
       worker_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -69,7 +69,7 @@ module.exports = {
       allowNull: true,
     });
 
-    await queryInterface.createTable('company_trade', {
+    await queryInterface.createTable('company_job', {
       company_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -105,6 +105,7 @@ module.exports = {
     await queryInterface.changeColumn('user', 'password', {
       type: Sequelize.STRING,
       allowNull: false,
+      unique: false,
     });
 
     await queryInterface.changeColumn('company', 'name', {
@@ -134,10 +135,10 @@ module.exports = {
       WHERE "name" IN ('Restaurant FOH', 'Restaurant BOH', 'Café');
     `);
 
-    await queryInterface.dropTable('company_trade');
+    await queryInterface.dropTable('company_job');
     await queryInterface.removeColumn('company', 'company_type');
     await queryInterface.removeColumn('company', 'owner_position');
-    await queryInterface.dropTable('worker_trade');
+    await queryInterface.dropTable('worker_job');
 
     await queryInterface.renameColumn(
       'worker_profile',
@@ -154,8 +155,6 @@ module.exports = {
       type: Sequelize.BOOLEAN,
       defaultValue: false,
     });
-
-    // ── Revert NOT NULL constraints (retour à nullable) ──────────────────────
 
     await queryInterface.changeColumn('worker_profile', 'user_id', {
       type: Sequelize.INTEGER,

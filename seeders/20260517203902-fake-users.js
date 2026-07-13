@@ -115,7 +115,7 @@ module.exports = {
         });
       });
     });
-    await queryInterface.bulkInsert('worker_trade', workerTrades, {});
+    await queryInterface.bulkInsert('worker_job', workerTrades, {});
 
     // 5. Generate Companies
     const companies = [];
@@ -155,12 +155,12 @@ module.exports = {
     });
 
     await queryInterface.bulkInsert('company_member', companyMembers, {});
-    await queryInterface.bulkInsert('company_trade', companyTrades, {});
+    await queryInterface.bulkInsert('company_job', companyTrades, {});
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.bulkDelete('company_trade', null, {});
-    await queryInterface.bulkDelete('worker_trade', null, {});
+    await queryInterface.bulkDelete('company_job', null, {});
+    await queryInterface.bulkDelete('worker_job', null, {});
     await queryInterface.bulkDelete('company_member', null, {});
     await queryInterface.bulkDelete('company', null, {});
     await queryInterface.bulkDelete('worker_profile', null, {});
