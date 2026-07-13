@@ -12,8 +12,8 @@ export class CompanyJob extends Model {
   declare company: Company;
 
   @ForeignKey(() => SkillCategory)
-  @Column({ field: 'skill_category_id', type: DataType.INTEGER, primaryKey: true })
-  declare skillCategoryId: number;
+  @Column({ field: 'skill_category_id', type: DataType.INTEGER, primaryKey: true, allowNull: true })
+  declare skillCategoryId: number | null;
 
   @BelongsTo(() => SkillCategory)
   declare skillCategory: SkillCategory;

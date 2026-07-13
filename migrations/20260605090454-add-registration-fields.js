@@ -52,7 +52,7 @@ module.exports = {
       },
       skill_category_id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
         primaryKey: true,
         references: { model: 'skill_category', key: 'id' },
         onDelete: 'CASCADE',
@@ -79,7 +79,7 @@ module.exports = {
       },
       skill_category_id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
         primaryKey: true,
         references: { model: 'skill_category', key: 'id' },
         onDelete: 'CASCADE',
