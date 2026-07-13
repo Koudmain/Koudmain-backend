@@ -1,7 +1,10 @@
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IsEmail, IsOptional, IsString, IsNumber, IsObject } from 'class-validator';
-import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
+import {
+  MAILJET_CLIENT,
+  MAILJET_VERIFICATION_TEMPLATE_ID,
+} from '@/modules/mailer/mailer.constants';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -163,7 +166,7 @@ export class MailerService {
       toEmail,
       toName: firstName,
       subject: `${code} — Votre code de vérification Koudmain`,
-      templateId: 8041377,
+      templateId: MAILJET_VERIFICATION_TEMPLATE_ID,
       variables: {
         preHeader: `${code} est votre code de vérification Koudmain`,
         title: 'Confirmez votre adresse email',
