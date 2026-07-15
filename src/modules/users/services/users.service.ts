@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { User } from '../models/user.model';
-import { hash } from 'bcrypt';
+import { User } from '@/modules/users/models/user.model';
+import { Transaction } from 'sequelize';
 
 @Injectable()
 export class UsersService {
@@ -25,28 +25,18 @@ export class UsersService {
     });
   }
 
-  async createFake() {
-    const hashedPassword = await hash('changeme', 10);
-
-    return this.create({
-      first_name: 'john',
-      last_name: `doe_${Date.now()}`,
-      email: `fake_${Date.now()}@test.com`,
-      password: hashedPassword,
-      is_worker_active: false,
-      is_employer_active: false,
-    });
-  }
-
-  async create(user: Partial<User>) {
+  async create(user: Partial<User>, options?: { transaction?: Transaction }) {
     const maxId = await this.userModel.max('id');
     const nextId = user.id ?? (typeof maxId === 'number' ? maxId : 0) + 1;
 
-    return this.userModel.create({
-      ...user,
-      id: nextId,
-      updatedAt: user.updatedAt ?? new Date(),
-    });
+    return this.userModel.create(
+      {
+        ...user,
+        id: nextId,
+        updatedAt: user.updatedAt ?? new Date(),
+      },
+      { transaction: options?.transaction },
+    );
   }
 
   async updateProfilePicture(id: number, url: string) {
@@ -58,5 +48,9 @@ export class UsersService {
       where: { id },
       returning: true,
     });
+  }
+
+  async markEmailAsVerified(userId: number): Promise<void> {
+    await this.userModel.update({ email_verified_at: new Date() }, { where: { id: userId } });
   }
 }

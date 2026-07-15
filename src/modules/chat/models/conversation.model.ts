@@ -33,6 +33,9 @@ export class Conversation extends Model {
   @Column({ type: DataType.DATE, defaultValue: DataType.NOW })
   declare updated_at: Date;
 
+  @Column({ type: DataType.STRING, defaultValue: 'active' })
+  declare status: string;
+
   @BelongsTo(() => Publication)
   declare publication: Publication;
 

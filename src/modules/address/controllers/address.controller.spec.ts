@@ -42,14 +42,14 @@ describe('AddressController', () => {
     it('doit appeler addressService.createAddress avec le DTO', async () => {
       const userId = 7;
       const dto: CreateAddressDto = {
-        street_number: '1',
-        street_name: 'Rue Test',
-        zip_code: '75000',
+        streetNumber: '1',
+        streetName: 'Rue Test',
+        zipCode: '75000',
         city: 'Paris',
         country: 'France',
         latitude: 48.85,
         longitude: 2.35,
-      } as CreateAddressDto;
+      };
 
       const mockReq = { user: { sub: userId, email: 'a@b.c' } } as RequestWithUser;
 

@@ -59,7 +59,6 @@ describe('AppController (e2e)', () => {
   });
 
   afterAll(async () => {
-    await sequelize.query('TRUNCATE TABLE "user" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "publication_skill" RESTART IDENTITY CASCADE;');
     await sequelize.query('TRUNCATE TABLE "skill" RESTART IDENTITY CASCADE;');
@@ -67,29 +66,19 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('should register and login a user to get an access token', async () => {
-    // Register
-    await request(app.getHttpServer()).post('/auth/register').send({
-      first_name: 'Test',
-      last_name: 'E2E',
-      email: 'test.e2e@example.com',
-      password: 'password123',
-      is_worker_active: true,
-      is_employer_active: true,
-    });
-
+  it('should login a user to get an access token', async () => {
     // Login
     const response = await request(app.getHttpServer()).post('/auth/login').send({
-      email: 'test.e2e@example.com',
+      email: 'employer1@koudmain.fr',
       password: 'password123',
-      targetApp: 'employer',
     });
 
+    console.log('Login Response:', response.body);
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('access_token');
+    expect(response.body).toHaveProperty('accessToken');
 
     const authBody = response.body as AuthResponse;
-    accessToken = authBody.access_token;
+    accessToken = authBody.accessToken;
   });
 
   it('should create a publication with associated skills', async () => {

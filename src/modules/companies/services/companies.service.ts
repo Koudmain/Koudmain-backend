@@ -7,29 +7,57 @@ import {
 import { InjectModel } from '@nestjs/sequelize';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
-import { CreationAttributes } from 'sequelize';
+import { CompanyJob } from '@/modules/companies/models/company-job.model';
+import { CreationAttributes, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { Address } from '@/modules/address/address.model';
+import { CompanyType, OwnerPosition } from '@/modules/auth/models/register.model';
 
 @Injectable()
 export class CompaniesService {
   constructor(
     @InjectModel(Company) private companyModel: typeof Company,
     @InjectModel(CompanyMember) private memberModel: typeof CompanyMember,
+    @InjectModel(CompanyJob) private companyJobModel: typeof CompanyJob,
     @InjectModel(Address) private addressModel: typeof Address,
     private geocodingService: GeocodingService,
   ) {}
 
-  async createCompanyWithOwner(name: string, userId: number): Promise<Company> {
-    const companyData: CreationAttributes<Company> = { name };
-    const company = await this.companyModel.create(companyData);
+  async createCompanyWithOwner(
+    data: {
+      name: string;
+      companyType: CompanyType;
+      ownerPosition: OwnerPosition;
+      desiredJobIds: number[];
+      addressId?: number;
+    },
+    userId: number,
+    transaction?: Transaction,
+  ): Promise<Company> {
+    const companyData: CreationAttributes<Company> = {
+      name: data.name,
+      companyType: data.companyType,
+      ownerPosition: data.ownerPosition,
+      ...(data.addressId !== undefined && { addressId: data.addressId }),
+    };
+    const company = await this.companyModel.create(companyData, { transaction });
+
     const memberData: CreationAttributes<CompanyMember> = {
       companyId: company.id,
       userId: userId,
-      role: 'Owner',
+      role: OwnerPosition.OWNER,
     };
-    await this.memberModel.create(memberData);
+    await this.memberModel.create(memberData, { transaction });
+
+    if (data.desiredJobIds.length > 0) {
+      const tradeRows = data.desiredJobIds.map((skillCategoryId) => ({
+        companyId: company.id,
+        skillCategoryId,
+      }));
+      await this.companyJobModel.bulkCreate(tradeRows, { transaction });
+    }
+
     return company;
   }
 
@@ -67,7 +95,7 @@ export class CompaniesService {
       where: { userId: userId, companyId: companyId },
     });
 
-    if (!membership || membership.role !== 'Owner') {
+    if (!membership || membership.role !== (OwnerPosition.OWNER as string)) {
       throw new ForbiddenException("Vous n'avez pas les droits pour modifier cette entreprise");
     }
 
@@ -81,7 +109,7 @@ export class CompaniesService {
 
     const country = updateAddressDto.country || 'France';
     const fullAddressString =
-      `${updateAddressDto.street_number || ''} ${updateAddressDto.street_name}, ${updateAddressDto.zip_code} ${updateAddressDto.city}, ${country}`.trim();
+      `${updateAddressDto.streetNumber || ''} ${updateAddressDto.streetName}, ${updateAddressDto.zipCode} ${updateAddressDto.city}, ${country}`.trim();
 
     let coords = null;
     try {
@@ -93,7 +121,10 @@ export class CompaniesService {
     }
 
     const addressPayload = {
-      ...updateAddressDto,
+      street_number: updateAddressDto.streetNumber,
+      street_name: updateAddressDto.streetName,
+      zip_code: updateAddressDto.zipCode,
+      city: updateAddressDto.city,
       country,
       full_address: fullAddressString,
       latitude: coords?.latitude ?? null,

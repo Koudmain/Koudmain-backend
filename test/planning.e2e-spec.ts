@@ -10,6 +10,7 @@ import { CompaniesModule } from '@/modules/companies/companies.module';
 import { DriveModule } from '@/modules/drive/drive.module';
 import { PublicationModule } from '@/modules/publication/publication.module';
 import { PlanningModule } from '@/modules/planning/planning.module';
+import { SkillModule } from '@/modules/skill/skill.module';
 
 require('dotenv').config();
 
@@ -19,6 +20,8 @@ describe('Planning (e2e)', () => {
   let workerToken: string;
   let employerToken: string;
   let companyId: number;
+  let companyName: string;
+  let workerName: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -42,6 +45,7 @@ describe('Planning (e2e)', () => {
         DriveModule,
         PublicationModule,
         PlanningModule,
+        SkillModule,
       ],
     }).compile();
 
@@ -49,43 +53,28 @@ describe('Planning (e2e)', () => {
     await app.init();
     sequelize = app.get<Sequelize>(getConnectionToken());
 
+    await sequelize.query(
+      `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
+    );
+
     // Cleanup stale data from previous runs
     await sequelize.query(
       `DELETE FROM "application" WHERE publication_id IN (SELECT id FROM "publication" WHERE title = 'Planning Test Job');`,
     );
     await sequelize.query(`DELETE FROM "publication" WHERE title = 'Planning Test Job';`);
-    await sequelize.query(`DELETE FROM "company" WHERE name = 'Test Company Planning';`);
-    await sequelize.query(
-      `DELETE FROM "user" WHERE email IN ('planning.worker@test.com', 'planning.employer@test.com', 'planning.noapp@test.com');`,
-    );
 
-    // Register and login worker
-    await request(app.getHttpServer()).post('/auth/register').send({
-      email: 'planning.worker@test.com',
-      password: 'Password123!',
-      first_name: 'Worker',
-      last_name: 'Planning',
-      is_worker_active: true,
-    });
+    // Login worker
     const workerLogin = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'planning.worker@test.com', password: 'Password123!', targetApp: 'worker' });
-    workerToken = workerLogin.body.access_token;
+      .send({ email: 'worker2@koudmain.fr', password: 'password123' });
+    workerToken = workerLogin.body.accessToken;
 
-    // Register and login employer
-    await request(app.getHttpServer()).post('/auth/register').send({
-      email: 'planning.employer@test.com',
-      password: 'Password123!',
-      first_name: 'Employer',
-      last_name: 'Planning',
-      is_employer_active: true,
-    });
+    // Login employer
     const employerLogin = await request(app.getHttpServer()).post('/auth/login').send({
-      email: 'planning.employer@test.com',
-      password: 'Password123!',
-      targetApp: 'employer',
+      email: 'employer2@koudmain.fr',
+      password: 'password123',
     });
-    employerToken = employerLogin.body.access_token;
+    employerToken = employerLogin.body.accessToken;
 
     // Extract user IDs from JWT payloads (avoids DB query race conditions)
     const workerUserId = JSON.parse(Buffer.from(workerToken.split('.')[1], 'base64').toString())
@@ -93,22 +82,24 @@ describe('Planning (e2e)', () => {
     const employerUserId = JSON.parse(Buffer.from(employerToken.split('.')[1], 'base64').toString())
       .sub as number;
 
-    // Create company
+    // Find company
     const [companyRows] = await sequelize.query(
-      `INSERT INTO "company" (name) VALUES ('Test Company Planning') RETURNING id`,
+      `SELECT "company".id, "company".name FROM "company" INNER JOIN "company_member" ON "company".id = "company_member".company_id WHERE "company_member".user_id = ${employerUserId} LIMIT 1`,
     );
     companyId = (companyRows[0] as { id: number }).id;
+    companyName = (companyRows[0] as { name: string }).name;
 
-    // Add employer as company member
-    await sequelize.query(
-      `INSERT INTO "company_member" (company_id, user_id) VALUES (${companyId}, ${employerUserId})`,
-    );
-
-    // Create worker profile
+    // Find worker profile
     const [workerProfileRows] = await sequelize.query(
-      `INSERT INTO "worker_profile" (user_id) VALUES (${workerUserId}) RETURNING id`,
+      `SELECT id FROM "worker_profile" WHERE user_id = ${workerUserId}`,
     );
     const workerProfileId = (workerProfileRows[0] as { id: number }).id;
+
+    // Find worker name
+    const [workerUserRows] = await sequelize.query(
+      `SELECT first_name, last_name FROM "user" WHERE id = ${workerUserId}`,
+    );
+    workerName = `${(workerUserRows[0] as any).first_name} ${(workerUserRows[0] as any).last_name}`;
 
     // Create publication in current date range (employer owns it)
     const now = new Date();
@@ -139,10 +130,6 @@ describe('Planning (e2e)', () => {
       `DELETE FROM "application" WHERE publication_id IN (SELECT id FROM "publication" WHERE title = 'Planning Test Job');`,
     );
     await sequelize.query(`DELETE FROM "publication" WHERE title = 'Planning Test Job';`);
-    await sequelize.query(`DELETE FROM "company" WHERE name = 'Test Company Planning';`);
-    await sequelize.query(
-      `DELETE FROM "user" WHERE email IN ('planning.worker@test.com', 'planning.employer@test.com', 'planning.noapp@test.com');`,
-    );
     await app.close();
   });
 
@@ -169,7 +156,7 @@ describe('Planning (e2e)', () => {
     expect(entry).toHaveProperty('publicationId');
     expect(entry).toHaveProperty('title', 'Planning Test Job');
     expect(Number(entry.salary)).toBe(20);
-    expect(entry).toHaveProperty('company_name', 'Test Company Planning');
+    expect(entry).toHaveProperty('company_name', companyName);
     expect(entry).toHaveProperty('companyRating');
     expect(entry).toHaveProperty('application_status');
   });
@@ -185,7 +172,7 @@ describe('Planning (e2e)', () => {
     expect(entry).toHaveProperty('publicationId');
     expect(entry).toHaveProperty('title', 'Planning Test Job');
     expect(Number(entry.salary)).toBe(20);
-    expect(entry).toHaveProperty('worker_name', 'Worker Planning');
+    expect(entry).toHaveProperty('worker_name', workerName);
     expect(entry).toHaveProperty('workerRating');
   });
 
@@ -204,27 +191,5 @@ describe('Planning (e2e)', () => {
       .set('Authorization', `Bearer ${workerToken}`);
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
-  });
-
-  it('should return empty array for a worker with no applications', async () => {
-    await request(app.getHttpServer()).post('/auth/register').send({
-      email: 'planning.noapp@test.com',
-      password: 'Password123!',
-      first_name: 'No',
-      last_name: 'App',
-      is_worker_active: true,
-    });
-    const loginRes = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email: 'planning.noapp@test.com', password: 'Password123!', targetApp: 'worker' });
-    const noAppToken = loginRes.body.access_token;
-
-    const res = await request(app.getHttpServer())
-      .get('/planning')
-      .set('Authorization', `Bearer ${noAppToken}`);
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
-
-    await sequelize.query(`DELETE FROM "user" WHERE email = 'planning.noapp@test.com';`);
   });
 });

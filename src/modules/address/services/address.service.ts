@@ -16,7 +16,7 @@ export class AddressService {
   async createAddress(body: CreateAddressDto) {
     const country = body.country || 'France';
     const fullAddress =
-      `${body.street_number || ''} ${body.street_name}, ${body.zip_code} ${body.city}, ${country}`.trim();
+      `${body.streetNumber || ''} ${body.streetName}, ${body.zipCode} ${body.city}, ${country}`.trim();
 
     let latitude: number | null = null;
     let longitude: number | null = null;
@@ -34,7 +34,11 @@ export class AddressService {
     }
 
     const address = await this.addressModel.create({
-      ...body,
+      street_number: body.streetNumber,
+      street_name: body.streetName,
+      zip_code: body.zipCode,
+      city: body.city,
+      country: body.country,
       full_address: fullAddress,
       latitude,
       longitude,

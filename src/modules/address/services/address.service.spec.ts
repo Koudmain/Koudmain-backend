@@ -44,13 +44,13 @@ describe('AddressService', () => {
 
   describe('createAddress', () => {
     it('should build full_address, fetch coordinates, and call model.create', async () => {
-      const body = {
-        street_number: '10',
-        street_name: 'Rue de Test',
-        zip_code: '75000',
+      const body: CreateAddressDto = {
+        streetNumber: '10',
+        streetName: 'Rue de Test',
+        zipCode: '75000',
         city: 'Paris',
         country: 'France',
-      } as CreateAddressDto;
+      };
 
       const mockCoords = { latitude: 48.85, longitude: 2.35 };
       mockGeocodingService.getCoordsFromAddress.mockResolvedValue(mockCoords);
@@ -72,7 +72,11 @@ describe('AddressService', () => {
 
       expect(mockAddressModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          ...body,
+          street_number: body.streetNumber,
+          street_name: body.streetName,
+          zip_code: body.zipCode,
+          city: body.city,
+          country: body.country,
           full_address: expectedFullAddress,
           latitude: mockCoords.latitude,
           longitude: mockCoords.longitude,

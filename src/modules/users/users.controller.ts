@@ -2,7 +2,6 @@ import {
   Controller,
   Patch,
   Get,
-  Post,
   Body,
   UseInterceptors,
   UploadedFile,
@@ -11,7 +10,6 @@ import {
 } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
 import { UsersService } from './services/users.service';
-import { publicRoute } from '@/decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DriveService } from '../drive/drive.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -82,11 +80,5 @@ export class UsersController {
   @Get()
   findAll() {
     return this.usersService.findAll();
-  }
-
-  @publicRoute()
-  @Post('fake')
-  createFake() {
-    return this.usersService.createFake();
   }
 }
