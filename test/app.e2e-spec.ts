@@ -22,13 +22,16 @@ describe('AppController (e2e)', () => {
   let accessToken: string;
 
   beforeAll(async () => {
-    console.log('=== [DEBUG CI] Configuration de la base de données ===');
-    console.log('NODE_ENV :', process.env.NODE_ENV);
-    console.log('HOST :', process.env.DB_TEST_HOST);
-    console.log('PORT :', process.env.DB_TEST_DOCKER_PORT);
-    console.log('USER :', process.env.DB_TEST_USER);
-    console.log('PASSWORD :', process.env.DB_TEST_PASSWORD ? '****** (Défini)' : 'NON DÉFINI');
-    console.log('DB NAME :', process.env.DB_TEST_NAME);
+    // --- FORCE LE DEBUG DANS LA CI (Outrepasse les filtres de Jest) ---
+    process.stdout.write('\n=== [DEBUG CI] Configuration de la base de données ===\n');
+    process.stdout.write(`NODE_ENV : ${process.env.NODE_ENV}\n`);
+    process.stdout.write(`HOST : ${process.env.DB_TEST_HOST}\n`);
+    process.stdout.write(`PORT : ${process.env.DB_TEST_DOCKER_PORT}\n`);
+    process.stdout.write(`USER : ${process.env.DB_TEST_USER}\n`);
+    process.stdout.write(`PASSWORD : ${process.env.DB_TEST_PASSWORD ? '****** (Défini)' : 'NON DÉFINI'}\n`);
+    process.stdout.write(`DB NAME : ${process.env.DB_TEST_NAME}\n`);
+    process.stdout.write('=====================================================\n\n');
+
     try {
       const moduleFixture: TestingModule = await Test.createTestingModule({
         imports: [
@@ -60,8 +63,14 @@ describe('AppController (e2e)', () => {
 
       sequelize = app.get<Sequelize>(getConnectionToken());
     } catch (error) {
-      console.error('Erreur Sequelize détaillée :', error);
-      process.exit(1);
+      // On force l'affichage de l'erreur brute dans le terminal
+      process.stdout.write('!!! ERREUR SEQUELIZE BRUTE !!!\n');
+      process.stdout.write(error instanceof Error ? error.stack ?? error.message : String(error));
+      process.stdout.write('\n==============================\n');
+      
+      // COMMENTEZ TEMPORAIREMENT process.exit(1) pour laisser Jest afficher le rapport complet
+      // process.exit(1); 
+      throw error; // On jette l'erreur proprement pour que Jest la capture
     }
   });
 
