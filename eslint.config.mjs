@@ -7,7 +7,7 @@ import unicorn from 'eslint-plugin-unicorn';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs', 'dist/**', 'node_modules/**', 'coverage/**', 'migrations/**', 'seeders/**', 'test/jest.*.js'],
+    ignores: ['eslint.config.mjs', 'dist/**', 'node_modules/**', 'coverage/**', 'migrations/**', 'seeders/**', 'test/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

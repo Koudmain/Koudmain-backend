@@ -8,6 +8,7 @@ repos:
         entry: npx prettier --check
         language: system
         files: \.(js|ts|jsx|tsx|json|css|md)$
+        exclude: ^(dist|node_modules|coverage|migrations|seeders|test)/
         pass_filenames: true
 
       - id: lint-check
@@ -15,6 +16,7 @@ repos:
         entry: npx eslint --cache
         language: system
         files: \.(js|ts|jsx|tsx)$
+        exclude: ^(dist|node_modules|coverage|migrations|seeders|test)/
         pass_filenames: true
 
       - id: betterleaks-docker
