@@ -9,6 +9,7 @@ module.exports = {
     '!*/node_modules/**',
     '!<rootDir>/src/main.ts',
     '!<rootDir>/src/modules/database/database.service.ts',
+    '!**/*.model.(t|j)s'
   ],
   reporters: [
     'default',
