@@ -53,7 +53,7 @@ jobs:
         image: postgis/postgis:16-3.5-alpine
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: "7GrZF02EpHk="
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: koudmain_test
         ports:
           - 5432:5432
@@ -76,18 +76,18 @@ jobs:
       NODE_ENV: test
       # Postgres database configuration for E2E tests
       DB_TEST_USER: postgres
-      DB_TEST_PASSWORD: "7GrZF02EpHk="
+      DB_TEST_PASSWORD: postgres
       DB_TEST_NAME: koudmain_test
       DB_TEST_HOST: localhost
       DB_TEST_DOCKER_PORT: 5432
       # Redis configuration for E2E tests
       REDIS_HOST: localhost
       REDIS_PORT: 6379
-      REDIS_PASSWORD: "zy5zdaSlqTw="
+      REDIS_PASSWORD: redispassword
       REDIS_DB: 0
       # JWT configuration for E2E tests
-      JWT_ACCESS_SECRET: mRxsCSMLKIWBouCCTzQJSw==
-      JWT_REFRESH_SECRET: yWb+aeAcKXdj/6pqMerkkQ==
+      JWT_ACCESS_SECRET: test-access-secret
+      JWT_REFRESH_SECRET: test-refresh-secret
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
       # Mailer configuration for E2E tests
