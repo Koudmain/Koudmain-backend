@@ -64,6 +64,8 @@ jobs:
           --health-retries 5
       redis:
         image: redis:7-alpine
+        env:
+          REDIS_PASSWORD: redispassword
         ports:
           - 6379:6379
         options: >-
