@@ -1,25 +1,240 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { getConnectionToken, SequelizeModule } from '@nestjs/sequelize';
+import { Sequelize } from 'sequelize-typescript';
+import { PublicationModule } from '@/modules/publication/publication.module';
+import { SkillModule } from '@/modules/skill/skill.module';
+import { CompaniesModule } from '@/modules/companies/companies.module';
+import { ConfigModule } from '@nestjs/config';
+import { UsersModule } from '@/modules/users/users.module';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { DriveModule } from '@/modules/drive/drive.module';
+import { PlanningModule } from '@/modules/planning/planning.module';
+import { SkillCategory } from '@/modules/skill-category/models/skill-category.model';
+import { AuthResponse } from './utils/auth.helper';
+
+require('dotenv').config();
 
 describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: INestApplication;
+  let sequelize: Sequelize;
+  let accessToken: string;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+  beforeAll(async () => {
+    try {
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [
+          ConfigModule.forRoot({ isGlobal: true }),
+          SequelizeModule.forRoot({
+            dialect: 'postgres',
+            host: process.env.DB_TEST_HOST,
+            port: parseInt(process.env.DB_TEST_DOCKER_PORT ?? '5432', 10),
+            username: process.env.DB_TEST_USER,
+            password: process.env.DB_TEST_PASSWORD,
+            database: process.env.DB_TEST_NAME,
+            autoLoadModels: true,
+            synchronize: false,
+            retryAttempts: 3,
+            retryDelay: 2000,
+          }),
+          UsersModule,
+          AuthModule,
+          CompaniesModule,
+          DriveModule,
+          PublicationModule,
+          PlanningModule,
+          SkillModule,
+        ],
+      }).compile();
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
+      app = moduleFixture.createNestApplication();
+      await app.init();
+
+      sequelize = app.get<Sequelize>(getConnectionToken());
+    } catch (error) {
+      console.error('Erreur Sequelize détaillée :', error);
+      process.exit(1);
+    }
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  afterAll(async () => {
+    await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
+    await sequelize.query('TRUNCATE TABLE "publication_skill" RESTART IDENTITY CASCADE;');
+    await sequelize.query('TRUNCATE TABLE "skill" RESTART IDENTITY CASCADE;');
+    await sequelize.query('TRUNCATE TABLE "skill_category" RESTART IDENTITY CASCADE;');
+    await app.close();
+  });
+
+  it('should login a user to get an access token', async () => {
+    // Login
+    const response = await request(app.getHttpServer()).post('/auth/login').send({
+      email: 'employer1@koudmain.fr',
+      password: 'password123',
+    });
+
+    console.log('Login Response:', response.body);
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('accessToken');
+
+    const authBody = response.body as AuthResponse;
+    accessToken = authBody.accessToken;
+  });
+
+  it('should create a publication with associated skills', async () => {
+    await sequelize.query(
+      `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
+    );
+    await sequelize.query(
+      `INSERT INTO "skill" (id, name, category_id) VALUES (999, 'Skill E2E Publication Test', 1) ON CONFLICT DO NOTHING;`,
+    );
+
+    const response = await request(app.getHttpServer())
+      .post('/publication/create')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'E2E Database Test',
+        description: "This shouldn\'t be mocked!",
+        hourly_rate: 25.5,
+        starting_date: new Date(),
+        ending_date: new Date(),
+        skills: [999],
+      });
+
+    expect(response.status).toBe(201);
+
+    const dbCheck = await sequelize.query(
+      `SELECT * FROM "publication" WHERE title = 'E2E Database Test';`,
+    );
+    expect(dbCheck[0].length).toBe(1);
+    expect((dbCheck[0][0] as any).description).toBe("This shouldn't be mocked!");
+
+    const relCheck = await sequelize.query(
+      `SELECT * FROM "publication_skill" WHERE publication_id = 1;`,
+    );
+    expect(relCheck[0].length).toBe(1);
+  });
+
+  it('should get all publication previously added by the test', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/publication/get')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({});
+
+    expect(response.status).toBe(200);
+
+    expect(response.body).toBeInstanceOf(Array);
+
+    const first_pub: Record<string, any> = response.body[0] ? response.body[0] : undefined;
+
+    if (first_pub) {
+      expect(first_pub.id).toBe(1);
+      expect(first_pub.skills).toBeInstanceOf(Array);
+      expect(first_pub.skills[0].id).toBe(999);
+      expect(first_pub.skills[0].name).toBe('Skill E2E Publication Test');
+    }
+  });
+
+  it('should edit the title and skills of the first publication previously added by the test', async () => {
+    const response = await request(app.getHttpServer())
+      .put('/publication/update/1')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ title: 'Updated Title', skills: [] });
+
+    expect(response.status).toBe(200);
+
+    const dbCheck = await sequelize.query(`SELECT * FROM "publication" WHERE id = 1;`);
+    expect(dbCheck[0].length).toBe(1);
+    expect((dbCheck[0][0] as any).title).toBe('Updated Title');
+
+    const skillCheck = await sequelize.query(
+      `SELECT * FROM "publication_skill" WHERE publication_id = 1;`,
+    );
+    expect(skillCheck[0].length).toBe(0);
+  });
+
+  it('should delete the first publication previously added by the test', async () => {
+    const response = await request(app.getHttpServer())
+      .delete('/publication/delete/1')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({});
+
+    expect(response.status).toBe(200);
+
+    const dbCheck = await sequelize.query(`SELECT * FROM "publication" WHERE id = 1;`);
+    expect(dbCheck[0].length).toBe(0);
+
+    // Clean up pre-inserted skill and category so downstream skill tests run on a pristine state
+    await sequelize.query('TRUNCATE TABLE "skill" RESTART IDENTITY CASCADE;');
+    await sequelize.query('TRUNCATE TABLE "skill_category" RESTART IDENTITY CASCADE;');
+  });
+
+  it('should create a skill without any foreign Key constraint field', async () => {
+    await sequelize.query(
+      `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
+    );
+
+    const response = await request(app.getHttpServer())
+      .post('/skill/create')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        name: 'Skill TEST E2E',
+        category_id: 1,
+      });
+
+    expect(response.status).toBe(201);
+
+    const dbCheck = await sequelize.query(`SELECT * FROM "skill" WHERE name = 'Skill TEST E2E';`);
+    expect(dbCheck[0].length).toBe(1);
+    expect((dbCheck[0][0] as any).name).toBe('Skill TEST E2E');
+    expect((dbCheck[0][0] as any).category_id).toBe(1);
+  });
+
+  it('should get all skill previously added by the test', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/skill/get')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({});
+
+    expect(response.status).toBe(200);
+
+    expect(response.body).toBeInstanceOf(Array);
+
+    const first_skill: Record<string, any> = response.body[0] ? response.body[0] : undefined;
+
+    if (first_skill) {
+      expect(first_skill.id).toBe(1);
+    }
+  });
+
+  it('should get the first skill previously added by the test', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/skill/get/1')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({});
+
+    expect(response.status).toBe(200);
+
+    const skill = response.body;
+
+    expect(skill.id).toBe(1);
+    expect(skill.name).toBe('Skill TEST E2E');
+    expect(skill.category).toStrictEqual(
+      SkillCategory.build({ id: 1, name: 'Test Category' }).get({ plain: true }),
+    );
+  });
+
+  it('should get skills by category ID', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/skill/category/1')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({});
+
+    expect(response.status).toBe(200);
+    expect(response.body).toBeInstanceOf(Array);
+    expect(response.body.length).toBeGreaterThan(0);
+    expect(response.body[0].category).toStrictEqual(
+      SkillCategory.build({ id: 1, name: 'Test Category' }).get({ plain: true }),
+    );
   });
 });
