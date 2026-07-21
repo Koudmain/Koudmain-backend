@@ -33,6 +33,7 @@
     "db:backup:schema": "docker exec -t koudmain-db pg_dump -U ${DB_USER:-postgres} -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -s ${DB_NAME:-koudmain} > backup_schema_$(date +%Y%m%d_%H%M%S).sql"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1091.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.1",
