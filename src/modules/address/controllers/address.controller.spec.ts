@@ -1,15 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AddressController } from './address.controller';
 import { AddressService } from '@/modules/address/services/address.service';
-import type { Request as ExpressRequest } from 'express';
 import { CreateAddressDto, GetMapAddressesDto } from '@/modules/address/address.dto';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { type RequestWithUser } from '@/common/types/request.type';
 
 describe('AddressController', () => {
   let controller: AddressController;

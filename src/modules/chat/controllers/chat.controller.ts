@@ -1,13 +1,6 @@
 import { Controller, Post, Body, Request, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
-import type { Request as ExpressRequest } from 'express';
 import { ChatService } from '@/modules/chat/services/chat.service';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { type RequestWithUser } from '@/common/types/request.type';
 
 @Controller('chat')
 export class ChatController {

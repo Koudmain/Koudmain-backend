@@ -1,13 +1,6 @@
 import { Controller, Get, Request } from '@nestjs/common';
-import type { Request as ExpressRequest } from 'express';
 import { WorkersService } from '@/modules/workers/services/workers.service';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { type RequestWithUser } from '@/common/types/request.type';
 
 @Controller('workers')
 export class WorkersController {

@@ -10,19 +10,12 @@ import {
   BadRequestException,
   Request,
 } from '@nestjs/common';
-import type { Request as ExpressRequest } from 'express';
 import { DocumentsService } from '@/modules/documents/services/document.service';
 import { Document } from '@/modules/documents/models/document.model';
 import { CreateDocumentDto } from '@/modules/documents/dtos/create-document.dto';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { type RequestWithUser } from '@/common/types/request.type';
 
 export class PostDocumentResponseDto {
   declare message: string;
