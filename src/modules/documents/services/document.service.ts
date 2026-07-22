@@ -15,7 +15,6 @@ export class DocumentsService {
     @InjectModel(DocumentAssignment) private assignmentModel: typeof DocumentAssignment,
     @InjectModel(DocumentContext) private contextModel: typeof DocumentContext,
     @InjectModel(Contract) private contractModel: typeof Contract,
-    @InjectModel(Invoice) private invoiceModel: typeof Invoice,
   ) {}
 
   async create(dto: CreateDocumentDto): Promise<Document | null> {

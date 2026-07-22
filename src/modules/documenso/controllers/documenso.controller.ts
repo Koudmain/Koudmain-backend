@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { DocumensoService } from '../services/documenso.service';
+import { DocumensoService } from '@/modules/documenso/services/documenso.service';
 
 @Controller('documenso')
 export class DocumensoController {
