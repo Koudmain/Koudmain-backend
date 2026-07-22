@@ -7,7 +7,7 @@ import { DocumentAssignment } from './models/document-assignment.model';
 import { DocumentContext } from './models/document-context.model';
 import { SignatureEnvelope } from './models/signature-envelope.model';
 import { WorkersModule } from '@/modules/workers/workers.module';
-import { CompaniesModule } from '../companies/companies.module';
+import { CompaniesModule } from '@/modules/companies/companies.module';
 
 @Module({
   imports: [
