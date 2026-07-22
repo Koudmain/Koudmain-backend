@@ -41,6 +41,7 @@ export class DocumentsService {
       documentId: createdDocument.id,
       workerId: dto.workerId ?? null,
       companyId: dto.companyId ?? null,
+      userId: dto.userId ?? null,
       type: dto.assignmentType,
       verified: false,
     });
@@ -85,5 +86,32 @@ export class DocumentsService {
       },
     });
     return documentId;
+  }
+
+  async getDocumentsByUserId(userId: number): Promise<Document[]> {
+    return this.documentModel.findAll({
+      include: ['assignments', 'context', Contract, Invoice, SignatureEnvelope],
+      where: {
+        '$assignments.user_id$': userId,
+      },
+    });
+  }
+
+  async getDocumentsByWorkerId(workerId: number): Promise<Document[]> {
+    return this.documentModel.findAll({
+      include: ['assignments', 'context', Contract, Invoice, SignatureEnvelope],
+      where: {
+        '$assignments.worker_id$': workerId,
+      },
+    });
+  }
+
+  async getDocumentsByCompanyId(companyId: number): Promise<Document[]> {
+    return this.documentModel.findAll({
+      include: ['assignments', 'context', Contract, Invoice, SignatureEnvelope],
+      where: {
+        '$assignments.company_id$': companyId,
+      },
+    });
   }
 }

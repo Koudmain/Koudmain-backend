@@ -3,6 +3,9 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
+    await queryInterface.dropTable('worker_document', { force: true });
+    await queryInterface.dropTable('company_document', { force: true });
+
     await queryInterface.sequelize.query(`
       DO $$ BEGIN
         CREATE TYPE document_category AS ENUM ('CONTRACT', 'INVOICE', 'OTHER');
@@ -187,6 +190,12 @@ module.exports = {
         references: { model: 'worker_profile', key: 'id' },
         onDelete: 'SET NULL'
       },
+      user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: { model: 'user', key: 'id' },
+        onDelete: 'SET NULL'
+      },
       company_id: {
         type: Sequelize.INTEGER,
         allowNull: true,
@@ -211,7 +220,7 @@ module.exports = {
     await queryInterface.sequelize.query(`
       ALTER TABLE "document_assignment"
       ADD CONSTRAINT "check_owner_exists"
-      CHECK ("worker_id" IS NOT NULL OR "company_id" IS NOT NULL);
+      CHECK ("worker_id" IS NOT NULL OR "company_id" IS NOT NULL OR "user_id" IS NOT NULL);
     `);
 
     await queryInterface.createTable('document_context', {
@@ -300,8 +309,8 @@ module.exports = {
   async down (queryInterface, Sequelize) {
     await queryInterface.removeColumn('message', 'document_id');
 
-    await queryInterface.dropTable('document_context');
     await queryInterface.dropTable('signature_envelope');
+    await queryInterface.dropTable('document_context');
     await queryInterface.dropTable('document_assignment');
     await queryInterface.dropTable('invoice');
     await queryInterface.dropTable('contract');

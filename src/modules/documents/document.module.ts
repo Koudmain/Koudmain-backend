@@ -6,9 +6,13 @@ import { Invoice } from './models/invoice.model';
 import { DocumentAssignment } from './models/document-assignment.model';
 import { DocumentContext } from './models/document-context.model';
 import { SignatureEnvelope } from './models/signature-envelope.model';
+import { WorkersModule } from '@/modules/workers/workers.module';
+import { CompaniesModule } from '../companies/companies.module';
 
 @Module({
   imports: [
+    WorkersModule,
+    CompaniesModule,
     SequelizeModule.forFeature([
       Document,
       Contract,

@@ -33,6 +33,10 @@ export class CreateDocumentDto {
   @IsOptional()
   companyId?: number;
 
+  @IsNumber()
+  @IsOptional()
+  userId?: number;
+
   @IsString()
   @IsNotEmpty()
   assignmentType: string;

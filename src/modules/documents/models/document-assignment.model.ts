@@ -2,12 +2,14 @@ import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize
 import { Document } from './document.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
+import { User } from '@/modules/users/models/user.model';
 
 export interface DocumentAssignmentAttributes {
   id: number;
   documentId: number;
   workerId?: number | null;
   companyId?: number | null;
+  userId?: number | null;
   type: string;
   verified: boolean;
 }
@@ -50,6 +52,13 @@ export class DocumentAssignment
     allowNull: true,
   })
   declare companyId: number | null;
+
+  @ForeignKey(() => User)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  declare userId: number | null;
 
   @Column({
     type: DataType.STRING,

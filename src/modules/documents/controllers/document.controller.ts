@@ -8,10 +8,21 @@ import {
   Param,
   Delete,
   BadRequestException,
+  Request,
 } from '@nestjs/common';
+import type { Request as ExpressRequest } from 'express';
 import { DocumentsService } from '@/modules/documents/services/document.service';
 import { Document } from '@/modules/documents/models/document.model';
 import { CreateDocumentDto } from '@/modules/documents/dtos/create-document.dto';
+import { WorkersService } from '@/modules/workers/services/workers.service';
+import { CompaniesService } from '@/modules/companies/services/companies.service';
+
+interface RequestWithUser extends ExpressRequest {
+  user: {
+    sub: number;
+    email: string;
+  };
+}
 
 export class PostDocumentResponseDto {
   declare message: string;
@@ -21,7 +32,11 @@ export class PostDocumentResponseDto {
 
 @Controller('document')
 export class DocumentsController {
-  constructor(private readonly documentsService: DocumentsService) {}
+  constructor(
+    private readonly documentsService: DocumentsService,
+    private readonly workersService: WorkersService,
+    private readonly companiesService: CompaniesService,
+  ) {}
 
   @HttpCode(HttpStatus.CREATED)
   @Post('create')
@@ -42,7 +57,7 @@ export class DocumentsController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Get('get')
+  @Get('/')
   async get(): Promise<Document[]> {
     return this.documentsService.getAll();
   }
@@ -57,6 +72,43 @@ export class DocumentsController {
     }
 
     return document;
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('user')
+  async getDocumentsByUserId(@Request() req: RequestWithUser): Promise<Document[]> {
+    const userId = req.user.sub;
+
+    return this.documentsService.getDocumentsByUserId(userId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('worker')
+  async getDocumentsByWorkerId(@Request() req: RequestWithUser): Promise<Document[]> {
+    const userId = req.user.sub;
+
+    const workerProfile = await this.workersService.getWorkerByUserId(userId);
+    if (!workerProfile) {
+      throw new BadRequestException('Profil de travailleur non trouvé pour cet utilisateur');
+    }
+
+    return this.documentsService.getDocumentsByWorkerId(workerProfile.id);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('company/:companyId')
+  async getDocumentsByCompanyId(
+    @Request() req: RequestWithUser,
+    @Param('companyId') companyId: number,
+  ): Promise<Document[]> {
+    const userId = req.user.sub;
+
+    const isInCompany = await this.companiesService.isUserInCompany(userId, companyId);
+    if (!isInCompany) {
+      throw new BadRequestException("Vous n'avez pas les droits pour accéder à cette entreprise");
+    }
+
+    return this.documentsService.getDocumentsByCompanyId(companyId);
   }
 
   @HttpCode(HttpStatus.OK)
