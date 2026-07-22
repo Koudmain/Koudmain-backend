@@ -115,7 +115,7 @@ jobs:
       - run: npm run db:test:migrate:ci
       - run: npm run db:test:seed:ci
       - run: npm run test:e2e:ci
-  
+
   label-cleanup:
     name: "Label cleanup"
     needs: [force-ci, unit-tests, e2e-tests]
