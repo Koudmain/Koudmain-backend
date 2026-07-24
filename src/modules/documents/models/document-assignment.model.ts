@@ -1,4 +1,5 @@
 import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Optional } from 'sequelize';
 import { Document } from './document.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
@@ -14,6 +15,8 @@ export interface DocumentAssignmentAttributes {
   verified: boolean;
 }
 
+export type DocumentAssignmentCreationAttributes = Optional<DocumentAssignmentAttributes, 'id'>;
+
 @Table({
   tableName: 'document_assignment',
   underscored: true,
@@ -21,7 +24,7 @@ export interface DocumentAssignmentAttributes {
   updatedAt: false,
 })
 export class DocumentAssignment
-  extends Model<DocumentAssignment, DocumentAssignmentAttributes>
+  extends Model<DocumentAssignment, DocumentAssignmentCreationAttributes>
   implements DocumentAssignmentAttributes
 {
   @Column({

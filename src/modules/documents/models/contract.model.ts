@@ -24,49 +24,49 @@ export class Contract extends Model<Contract, ContractAttributes> implements Con
     primaryKey: true,
     allowNull: false,
   })
-  documentId: number;
+  declare documentId: number;
 
   @Column({
     type: DataType.ENUM(...Object.values(DocumentCategory)),
     allowNull: false,
     defaultValue: DocumentCategory.CONTRACT,
   })
-  documentCategory: DocumentCategory;
+  declare documentCategory: DocumentCategory;
 
   @ForeignKey(() => Mission)
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
   })
-  missionId: number;
+  declare missionId: number;
 
   @Column({
     type: DataType.DATE,
     allowNull: true,
   })
-  signedAt: Date;
+  declare signedAt: Date | null;
 
   @Column({
     type: DataType.STRING,
     allowNull: true,
   })
-  workerSignatureId: string;
+  declare workerSignatureId: string | null;
 
   @Column({
     type: DataType.STRING,
     allowNull: true,
   })
-  employerSignatureId: string;
+  declare employerSignatureId: string | null;
 
   @Column({
     type: DataType.STRING,
     allowNull: true,
   })
-  status: string;
+  declare status: string | null;
 
   @BelongsTo(() => Document, 'documentId')
-  document: Document;
+  declare document: Document;
 
   @BelongsTo(() => Mission, 'missionId')
-  mission: Mission;
+  declare mission: Mission;
 }

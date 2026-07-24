@@ -1,22 +1,26 @@
-import { IsEnum, IsString, IsOptional, IsNumber, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsString, IsOptional, IsNumber, IsBoolean, IsDateString } from 'class-validator';
 import { DocumentCategory } from '@/modules/documents/models/document.model';
-import { SignatureProvider } from '@/modules/documents/models/signature-envelope.model';
+import {
+  SignatureStatus,
+  SignatureProvider,
+} from '@/modules/documents/models/signature-envelope.model';
 
-export class CreateDocumentDto {
+export class UpdateDocumentDto {
   @IsString()
-  @IsNotEmpty()
-  name: string;
+  @IsOptional()
+  name?: string;
 
   @IsString()
   @IsOptional()
   originalFilename?: string;
 
   @IsString()
-  @IsNotEmpty()
-  filePath: string;
+  @IsOptional()
+  filePath?: string;
 
   @IsEnum(DocumentCategory)
-  category: DocumentCategory;
+  @IsOptional()
+  category?: DocumentCategory;
 
   @IsNumber()
   @IsOptional()
@@ -26,40 +30,29 @@ export class CreateDocumentDto {
   @IsOptional()
   mimeType?: string;
 
-  @IsNumber()
+  @IsBoolean()
   @IsOptional()
-  workerId?: number;
-
-  @IsNumber()
-  @IsOptional()
-  companyId?: number;
-
-  @IsNumber()
-  @IsOptional()
-  userId?: number;
-
-  @IsString()
-  @IsOptional()
-  assignmentType?: string;
-
-  @IsNumber()
-  @IsOptional()
-  conversationId?: number;
-
-  @IsNumber()
-  @IsOptional()
-  missionId?: number;
-
-  @IsNumber()
-  @IsOptional()
-  publicationId?: number;
+  verified?: boolean;
 
   @IsString()
   @IsOptional()
   contractStatus?: string;
+
+  @IsDateString()
+  @IsOptional()
+  signedAt?: Date;
+
   @IsString()
   @IsOptional()
-  invoiceNumber?: string;
+  workerSignatureId?: string;
+
+  @IsString()
+  @IsOptional()
+  employerSignatureId?: string;
+
+  @IsString()
+  @IsOptional()
+  invoiceStatus?: string;
 
   @IsNumber()
   @IsOptional()
@@ -73,11 +66,15 @@ export class CreateDocumentDto {
   @IsOptional()
   feeAmount?: number;
 
-  @IsString()
+  @IsEnum(SignatureStatus)
   @IsOptional()
-  externalDocumentId?: string;
+  signatureStatus?: SignatureStatus;
 
   @IsEnum(SignatureProvider)
   @IsOptional()
   signatureProvider?: SignatureProvider;
+
+  @IsString()
+  @IsOptional()
+  externalDocumentId?: string;
 }

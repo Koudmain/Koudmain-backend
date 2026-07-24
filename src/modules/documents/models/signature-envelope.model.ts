@@ -23,12 +23,23 @@ export enum SignatureStatus {
   EXPIRED = 'EXPIRED',
 }
 
+export interface SignatureEnvelopeAttributes {
+  id?: number;
+  documentId: number;
+  provider: SignatureProvider;
+  externalDocumentId: string;
+  status: SignatureStatus;
+}
+
 @Table({
   tableName: 'signature_envelope',
   underscored: true,
   timestamps: true,
 })
-export class SignatureEnvelope extends Model<SignatureEnvelope> {
+export class SignatureEnvelope
+  extends Model<SignatureEnvelope, SignatureEnvelopeAttributes>
+  implements SignatureEnvelopeAttributes
+{
   @Column({
     type: DataType.INTEGER,
     primaryKey: true,

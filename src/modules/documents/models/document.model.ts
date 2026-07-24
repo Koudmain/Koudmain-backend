@@ -1,4 +1,5 @@
 import { Table, Column, Model, DataType, HasOne, HasMany, Unique } from 'sequelize-typescript';
+import { Optional } from 'sequelize';
 import { Contract } from './contract.model';
 import { Invoice } from './invoice.model';
 import { DocumentAssignment } from './document-assignment.model';
@@ -24,13 +25,21 @@ export interface DocumentAttributes {
   createdAt?: Date;
 }
 
+export type DocumentCreationAttributes = Optional<
+  DocumentAttributes,
+  'id' | 'createdAt' | 'updatedAt'
+>;
+
 @Table({
   tableName: 'document',
   underscored: true,
   timestamps: true,
   updatedAt: false,
 })
-export class Document extends Model<Document, DocumentAttributes> implements DocumentAttributes {
+export class Document
+  extends Model<Document, DocumentCreationAttributes>
+  implements DocumentAttributes
+{
   @Column({
     type: DataType.INTEGER,
     primaryKey: true,

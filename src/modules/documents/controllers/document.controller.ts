@@ -6,13 +6,19 @@ import {
   Post,
   Get,
   Param,
+  Patch,
   Delete,
+  Query,
   BadRequestException,
+  NotFoundException,
   Request,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { DocumentsService } from '@/modules/documents/services/document.service';
 import { Document } from '@/modules/documents/models/document.model';
 import { CreateDocumentDto } from '@/modules/documents/dtos/create-document.dto';
+import { UpdateDocumentDto } from '@/modules/documents/dtos/update-document.dto';
+import { QueryDocumentDto } from '@/modules/documents/dtos/query-document.dto';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { type RequestWithUser } from '@/common/types/request.type';
@@ -31,88 +37,89 @@ export class DocumentsController {
     private readonly companiesService: CompaniesService,
   ) {}
 
+  // POST /document
   @HttpCode(HttpStatus.CREATED)
-  @Post('create')
-  async create(@Body() createDto: CreateDocumentDto): Promise<PostDocumentResponseDto> {
-    const document: Document | null = await this.documentsService.create(createDto);
-
-    if (!document) {
-      throw new BadRequestException('Une erreur est survenue lors de la création du document');
-    }
-
-    const res: PostDocumentResponseDto = {
-      message: 'Document créé avec succès',
-      id: document.id,
-      createdAt: document.createdAt,
-    };
-
-    return res;
+  @Post()
+  async create(@Body() createDto: CreateDocumentDto): Promise<Document> {
+    return this.documentsService.create(createDto);
   }
 
+  // GET /document
   @HttpCode(HttpStatus.OK)
-  @Get('/')
-  async get(): Promise<Document[]> {
-    return this.documentsService.getAll();
+  @Get()
+  async findAll(@Query() query: QueryDocumentDto): Promise<Document[]> {
+    return this.documentsService.findAll(query);
   }
 
+  // GET /document/user/me
   @HttpCode(HttpStatus.OK)
-  @Get(':id')
-  async getById(@Param('id') id: number): Promise<Document> {
-    const document: Document | null = await this.documentsService.getById(id);
-
-    if (!document) {
-      throw new BadRequestException('Document non trouvé');
-    }
-
-    return document;
-  }
-
-  @HttpCode(HttpStatus.OK)
-  @Get('user')
+  @Get('user/me')
   async getDocumentsByUserId(@Request() req: RequestWithUser): Promise<Document[]> {
     const userId = req.user.sub;
-
-    return this.documentsService.getDocumentsByUserId(userId);
+    return this.documentsService.getByUserId(userId);
   }
 
+  // GET /document/worker/me
   @HttpCode(HttpStatus.OK)
-  @Get('worker')
+  @Get('worker/me')
   async getDocumentsByWorkerId(@Request() req: RequestWithUser): Promise<Document[]> {
     const userId = req.user.sub;
-
     const workerProfile = await this.workersService.getWorkerByUserId(userId);
     if (!workerProfile) {
       throw new BadRequestException('Profil de travailleur non trouvé pour cet utilisateur');
     }
-
-    return this.documentsService.getDocumentsByWorkerId(workerProfile.id);
+    return this.documentsService.getByWorkerId(workerProfile.id);
   }
 
+  // GET /document/company/:companyId
   @HttpCode(HttpStatus.OK)
   @Get('company/:companyId')
   async getDocumentsByCompanyId(
     @Request() req: RequestWithUser,
-    @Param('companyId') companyId: number,
+    @Param('companyId', ParseIntPipe) companyId: number,
   ): Promise<Document[]> {
     const userId = req.user.sub;
-
     const isInCompany = await this.companiesService.isUserInCompany(userId, companyId);
     if (!isInCompany) {
       throw new BadRequestException("Vous n'avez pas les droits pour accéder à cette entreprise");
     }
-
-    return this.documentsService.getDocumentsByCompanyId(companyId);
+    return this.documentsService.getByCompanyId(companyId);
   }
 
+  // GET /document/mission/:missionId
   @HttpCode(HttpStatus.OK)
-  @Delete('/delete/:id')
-  async delete(@Param('id') id: number) {
-    await this.documentsService.delete(id);
+  @Get('mission/:missionId')
+  async getDocumentsByMissionId(
+    @Param('missionId', ParseIntPipe) missionId: number,
+  ): Promise<Document[]> {
+    return this.documentsService.getByMissionId(missionId);
+  }
 
-    const res = {
-      message: 'Document supprimé avec succès',
-    };
+  // GET /document/:id
+  @HttpCode(HttpStatus.OK)
+  @Get(':id')
+  async getById(@Param('id', ParseIntPipe) id: number): Promise<Document> {
+    const document = await this.documentsService.getById(id);
+    if (!document) {
+      throw new NotFoundException(`Document #${id} non trouvé`);
+    }
+    return document;
+  }
 
-    return res;
+  // PATCH /document/:id
+  @HttpCode(HttpStatus.OK)
+  @Patch(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateDocumentDto,
+  ): Promise<Document> {
+    return this.documentsService.update(id, updateDto);
+  }
+
+  // DELETE /document/:id
+  @HttpCode(HttpStatus.OK)
+  @Delete(':id')
+  async delete(@Param('id', ParseIntPipe) id: number): Promise<{ message: string; id: number }> {
+    return this.documentsService.delete(id);
   }
 }

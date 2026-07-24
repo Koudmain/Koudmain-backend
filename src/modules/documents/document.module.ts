@@ -8,6 +8,8 @@ import { DocumentContext } from './models/document-context.model';
 import { SignatureEnvelope } from './models/signature-envelope.model';
 import { WorkersModule } from '@/modules/workers/workers.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';
+import { DocumentsController } from './controllers/document.controller';
+import { DocumentsService } from './services/document.service';
 
 @Module({
   imports: [
@@ -22,7 +24,8 @@ import { CompaniesModule } from '@/modules/companies/companies.module';
       SignatureEnvelope,
     ]),
   ],
-  controllers: [],
-  providers: [],
+  controllers: [DocumentsController],
+  providers: [DocumentsService],
+  exports: [DocumentsService],
 })
 export class DocumentsModule {}
