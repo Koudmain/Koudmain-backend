@@ -1,17 +1,18 @@
 import { Table, Column, Model, DataType, HasOne, HasMany, Unique } from 'sequelize-typescript';
 import { Optional } from 'sequelize';
-import { Contract } from './contract.model';
-import { Invoice } from './invoice.model';
-import { DocumentAssignment } from './document-assignment.model';
-import { DocumentContext } from './document-context.model';
-import { Message } from '@/modules/chat/models/message.model';
-import { SignatureEnvelope } from './signature-envelope.model';
 
 export enum DocumentCategory {
   CONTRACT = 'CONTRACT',
   INVOICE = 'INVOICE',
   OTHER = 'OTHER',
 }
+
+import { Contract } from './contract.model';
+import { Invoice } from './invoice.model';
+import { DocumentAssignment } from './document-assignment.model';
+import { DocumentContext } from './document-context.model';
+import { Message } from '@/modules/chat/models/message.model';
+import { SignatureEnvelope } from './signature-envelope.model';
 
 export interface DocumentAttributes {
   id: number;

@@ -3,8 +3,20 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
+    await queryInterface.dropTable('signature_envelope', { force: true });
+    await queryInterface.dropTable('document_context', { force: true });
+    await queryInterface.dropTable('document_assignment', { force: true });
+    await queryInterface.dropTable('invoice', { force: true });
+    await queryInterface.dropTable('contract', { force: true });
     await queryInterface.dropTable('worker_document', { force: true });
     await queryInterface.dropTable('company_document', { force: true });
+    await queryInterface.dropTable('document', { force: true });
+
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_document_category CASCADE;`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_contract_document_category CASCADE;`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_invoice_document_category CASCADE;`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_signature_envelope_provider CASCADE;`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS enum_signature_envelope_status CASCADE;`);
 
     await queryInterface.sequelize.query(`
       DO $$ BEGIN
@@ -50,7 +62,7 @@ module.exports = {
         allowNull: false
       },
       category: {
-        type: Sequelize.ENUM('CONTRACT', 'INVOICE', 'OTHER'),
+        type: 'document_category',
         allowNull: false
       },
       size_bytes: {
@@ -81,7 +93,7 @@ module.exports = {
         allowNull: false
       },
       document_category: {
-        type: Sequelize.ENUM('CONTRACT', 'INVOICE', 'OTHER'),
+        type: 'document_category',
         allowNull: false,
         defaultValue: 'CONTRACT'
       },
@@ -127,7 +139,7 @@ module.exports = {
         allowNull: false
       },
       document_category: {
-        type: Sequelize.ENUM('CONTRACT', 'INVOICE', 'OTHER'),
+        type: 'document_category',
         allowNull: false,
         defaultValue: 'INVOICE'
       },
@@ -279,7 +291,7 @@ module.exports = {
         onDelete: 'CASCADE'
       },
       provider: {
-        type: Sequelize.ENUM('DOCUMENSO', 'DOCUSIGN', 'YOUSIGN'),
+        type: 'signature_provider',
         allowNull: false,
         defaultValue: 'DOCUMENSO'
       },
@@ -289,7 +301,7 @@ module.exports = {
         unique: true
       },
       status: {
-        type: Sequelize.ENUM('PENDING', 'PARTIALLY_SIGNED', 'COMPLETED', 'DECLINED', 'EXPIRED'),
+        type: 'signature_status',
         allowNull: false,
         defaultValue: 'PENDING'
       },

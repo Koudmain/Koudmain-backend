@@ -7,10 +7,20 @@ FROM node:24-alpine AS base
 
 # Set environment variables
 ARG LOCAL_IP
-ENV LOCAL_IP=${LOCAL_IP}
-
 # Set the working directory inside the container
 WORKDIR /usr/src/app
+
+# Install Chromium and required libraries for Puppeteer on Alpine
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
