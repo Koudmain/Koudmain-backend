@@ -49,7 +49,7 @@ export class PublicationController {
 
   @HttpCode(HttpStatus.OK)
   @Put('/update/:id')
-  async update(@Param('id') id: number, @Body() updateDto: Record<string, any>) {
+  async update(@Param('id') id: number, @Body() updateDto: Record<string, unknown>) {
     const pubId: Publication | null = await this.publicationService.update(id, updateDto);
 
     if (!pubId) {
