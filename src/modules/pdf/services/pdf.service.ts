@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as handlebars from 'handlebars';
 import puppeteer, { Browser } from 'puppeteer';
-import { CdduContractData } from '../dtos/cddu-data.dto';
+import { CdduContractData } from '@/modules/pdf/dtos/cddu-data.dto';
 
 @Injectable()
 export class PdfService implements OnModuleDestroy {
@@ -33,7 +33,7 @@ export class PdfService implements OnModuleDestroy {
     }
   }
 
-  compileTemplate(templateName: string, data: Record<string, any>): string {
+  compileTemplate(templateName: string, data: Record<string, unknown> | object): string {
     const templatePath = path.resolve(__dirname, '../templates', `${templateName}.hbs`);
 
     const altTemplatePath = path.resolve(
@@ -81,8 +81,31 @@ export class PdfService implements OnModuleDestroy {
     }
   }
 
-  async generateCddu(data: CdduContractData): Promise<Buffer> {
-    const html = this.compileTemplate('cddu', data);
+  getAvailableTemplates(): string[] {
+    const templatesDir = path.resolve(__dirname, '../templates');
+    const altTemplatesDir = path.resolve(process.cwd(), 'src/modules/pdf/templates');
+    const targetDir = fs.existsSync(templatesDir) ? templatesDir : altTemplatesDir;
+
+    if (!fs.existsSync(targetDir)) return [];
+    return fs
+      .readdirSync(targetDir)
+      .filter((file) => file.endsWith('.hbs'))
+      .map((file) => file.replace('.hbs', ''));
+  }
+
+  templateExists(templateName: string): boolean {
+    return this.getAvailableTemplates().includes(templateName.toLowerCase());
+  }
+
+  async generatePdfFromTemplate(
+    templateName: string,
+    data: Record<string, unknown> | object,
+  ): Promise<Buffer> {
+    const html = this.compileTemplate(templateName, data);
     return this.generatePdfFromHtml(html);
+  }
+
+  async generateCddu(data: CdduContractData): Promise<Buffer> {
+    return this.generatePdfFromTemplate('cddu', data);
   }
 }
