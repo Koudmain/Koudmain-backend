@@ -3,436 +3,1048 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.sequelize.query(`
-      CREATE EXTENSION IF NOT EXISTS postgis;
-
-      CREATE TABLE "address" (
-        "id" serial PRIMARY KEY,
-        "street_number" varchar(10),
-        "street_name" varchar(255),
-        "zip_code" varchar(10),
-        "city" varchar(100),
-        "country" varchar(100) DEFAULT 'France',
-        "latitude" numeric(9,6),
-        "longitude" numeric(9,6),
-        "full_address" text,
-        "geom" geography(Point, 4326)
-      );
-
-      CREATE TABLE "user" (
-        "id" serial PRIMARY KEY,
-        "first_name" varchar(255),
-        "last_name" varchar(255),
-        "profile_picture_url" varchar(255),
-        "email" varchar UNIQUE,
-        "password" varchar,
-        "is_worker_active" boolean DEFAULT false,
-        "is_employer_active" boolean DEFAULT false,
-        "created_at" timestamp DEFAULT (now())
-      );
-
-      CREATE TABLE "refresh_session" (
-        "id" serial PRIMARY KEY,
-        "user_id" integer NOT NULL REFERENCES "user"("id") ON DELETE CASCADE,
-        "token_hash" text NOT NULL,
-        "expires_at" timestamp NOT NULL,
-        "revoked_at" timestamp,
-        "created_at" timestamp NOT NULL DEFAULT (now())
-      );
-
-      CREATE UNIQUE INDEX refresh_session_user_id_not_revoked ON "refresh_session" ("user_id")
-      WHERE "revoked_at" IS NULL;
-
-      CREATE INDEX ON "refresh_session" ("user_id");
-
-      CREATE INDEX ON "refresh_session" ("expires_at");
-
-      CREATE TABLE "worker_profile" (
-        "id" serial PRIMARY KEY,
-        "user_id" integer,
-        "address_id" integer,
-        "max_distance_km" integer DEFAULT 20,
-        "skills_description" text,
-        "identity_verified" boolean DEFAULT false,
-        "iban" varchar,
-        "average_rating" numeric
-      );
-
-      CREATE TABLE "wallet" (
-        "id" serial PRIMARY KEY,
-        "worker_id" integer,
-        "balance" numeric(10,2) DEFAULT 0,
-        "updated_at" timestamp
-      );
-
-      CREATE TABLE "wallet_transaction" (
-        "id" serial PRIMARY KEY,
-        "wallet_id" integer,
-        "amount" numeric(10,2),
-        "type" varchar,
-        "status" varchar,
-        "reference_id" integer,
-        "created_at" timestamp DEFAULT (now())
-      );
-
-      CREATE TABLE "company" (
-        "id" serial PRIMARY KEY,
-        "name" varchar(255),
-        "address_id" integer,
-        "siret_number" varchar(20) UNIQUE,
-        "kbis_document_url" varchar(255),
-        "is_premium" boolean DEFAULT false,
-        "created_at" timestamp DEFAULT (now())
-      );
-
-      CREATE TABLE "company_member" (
-        "id" serial PRIMARY KEY,
-        "company_id" integer,
-        "user_id" integer,
-        "role" varchar(50)
-      );
-
-      CREATE TABLE "skill" (
-        "id" serial PRIMARY KEY,
-        "name" varchar(255) UNIQUE,
-        "category_id" integer
-      );
-
-      CREATE INDEX idx_skill_category_id ON "skill" ("category_id");
-
-      CREATE TABLE "worker_skill" (
-        "worker_id" integer,
-        "skill_id" integer,
-        PRIMARY KEY ("worker_id", "skill_id")
-      );
-
-      CREATE TABLE "publication" (
-        "id" serial PRIMARY KEY,
-        "company_id" integer,
-        "created_by_user_id" integer,
-        "address_id" integer,
-        "title" varchar(255),
-        "description" text,
-        "hourly_rate" numeric(10,2),
-        "starting_date" timestamp,
-        "ending_date" timestamp,
-        "status" varchar(50),
-        "views" bigint NOT NULL DEFAULT '0',
-        "clicks" bigint NOT NULL DEFAULT '0',
-        "auto_accept" boolean DEFAULT false,
-        "highlighted" boolean DEFAULT false,
-        "created_at" timestamp DEFAULT (now()),
-        "updated_at" timestamp DEFAULT (now())
-      );
-
-      CREATE TABLE "publication_skill" (
-        "publication_id" integer,
-        "skill_id" integer,
-        PRIMARY KEY ("publication_id", "skill_id")
-      );
-
-      CREATE TABLE "application" (
-        "id" serial PRIMARY KEY,
-        "publication_id" integer,
-        "worker_id" integer,
-        "status" varchar(50),
-        "created_at" timestamp DEFAULT (now())
-      );
-
-      CREATE TABLE "mission" (
-        "id" serial PRIMARY KEY,
-        "publication_id" integer,
-        "worker_id" integer,
-        "company_id" integer,
-        "final_price" numeric(10,2),
-        "payment_status" varchar(50),
-        "contract_signed_at" timestamp,
-        "status" varchar(50)
-      );
-
-      CREATE TABLE "review" (
-        "id" serial PRIMARY KEY,
-        "mission_id" integer,
-        "reviewer_id" integer,
-        "rated_id" integer,
-        "rating" integer,
-        "comment" text,
-        "type" varchar(20),
-        "created_at" timestamp DEFAULT (now())
-      );
-
-      CREATE TABLE "conversation" (
-        "id" serial PRIMARY KEY,
-        "publication_id" integer,
-        "worker_id" integer,
-        "company_id" integer,
-        "updated_at" timestamp,
-        "status" varchar DEFAULT 'active'
-      );
-
-      CREATE TABLE "conversation_settings" (
-        "user_id" integer NOT NULL,
-        "conversation_id" integer NOT NULL,
-        "is_pinned" boolean DEFAULT false,
-        "is_deleted" boolean DEFAULT false,
-        PRIMARY KEY ("user_id", "conversation_id"),
-        FOREIGN KEY ("user_id") REFERENCES "user" ("id") ON DELETE CASCADE,
-        FOREIGN KEY ("conversation_id") REFERENCES "conversation" ("id") ON DELETE CASCADE
-      );
-
-      CREATE INDEX idx_conv_settings_user_id ON "conversation_settings"("user_id");
-
-      CREATE TABLE "message" (
-        "id" serial PRIMARY KEY,
-        "conversation_id" integer,
-        "sender_id" integer,
-        "content_text" text,
-        "file_url" varchar,
-        "message_type" varchar,
-        "created_at" timestamp DEFAULT (now())
-      );
-
-      CREATE TABLE "message_status" (
-        "id" serial PRIMARY KEY,
-        "message_id" integer,
-        "user_id" integer,
-        "read_at" timestamp,
-        "is_hidden" boolean DEFAULT false
-      );
-
-      CREATE TABLE "document" (
-        "id" serial PRIMARY KEY,
-        "file_path" varchar,
-        "mime_type" varchar,
-        "size_bytes" integer,
-        "created_at" timestamp
-      );
-
-      CREATE TABLE "worker_document" (
-        "id" serial PRIMARY KEY,
-        "worker_id" integer,
-        "document_id" integer,
-        "type" varchar,
-        "verified" boolean DEFAULT false
-      );
-
-      CREATE TABLE "company_document" (
-        "id" serial PRIMARY KEY,
-        "company_id" integer,
-        "document_id" integer,
-        "type" varchar,
-        "verified" boolean DEFAULT false
-      );
-
-      CREATE TABLE "contract" (
-        "id" serial PRIMARY KEY,
-        "mission_id" integer,
-        "file_path" varchar,
-        "signed_at" timestamp,
-        "worker_signature_id" varchar,
-        "employer_signature_id" varchar,
-        "status" varchar
-      );
-
-      CREATE TABLE "invoice" (
-        "id" serial PRIMARY KEY,
-        "mission_id" integer,
-        "invoice_number" varchar UNIQUE,
-        "amount_ht" numeric(10,2),
-        "amount_ttc" numeric(10,2),
-        "fee_amount" numeric(10,2),
-        "file_path" varchar,
-        "status" varchar,
-        "created_at" timestamp
-      );
-
-      CREATE TABLE "skill_category" (
-        "id" serial PRIMARY KEY,
-        "name" varchar(255) UNIQUE
-      );
-
-      CREATE UNIQUE INDEX ON "company_member" ("company_id", "user_id");
-
-      CREATE UNIQUE INDEX ON "message_status" ("message_id", "user_id");
-
-      COMMENT ON COLUMN "address"."latitude" IS 'Essentiel pour le matching';
-
-      COMMENT ON COLUMN "address"."longitude" IS 'Essentiel pour le matching';
-
-      COMMENT ON COLUMN "user"."is_worker_active" IS 'Accès à l''App Worker';
-
-      COMMENT ON COLUMN "user"."is_employer_active" IS 'Accès à l''App Enterprise';
-
-      COMMENT ON COLUMN "worker_profile"."max_distance_km" IS 'Rayon de recherche';
-
-      COMMENT ON COLUMN "wallet"."balance" IS 'Solde disponible pour virement';
-
-      COMMENT ON COLUMN "wallet_transaction"."amount" IS 'Positif pour un gain, négatif pour un virement sortant';
-
-      COMMENT ON COLUMN "wallet_transaction"."type" IS 'MISSION_PAYMENT, WITHDRAWAL, REFUND';
-
-      COMMENT ON COLUMN "wallet_transaction"."status" IS 'PENDING, COMPLETED, FAILED';
-
-      COMMENT ON COLUMN "wallet_transaction"."reference_id" IS 'ID de la mission ou de l''invoice liée';
-
-      COMMENT ON COLUMN "company"."is_premium" IS 'Abonnement visibilité';
-
-      COMMENT ON COLUMN "company_member"."role" IS 'Owner, Manager, Staff';
-
-      COMMENT ON COLUMN "publication"."address_id" IS 'Par défaut celle de la company, mais peut varier';
-
-      COMMENT ON COLUMN "publication"."hourly_rate" IS 'Base pour le calcul des frais';
-
-      COMMENT ON COLUMN "publication"."status" IS 'Open, Closed, Urgent';
-
-      COMMENT ON COLUMN "application"."status" IS 'Pending, Accepted, Rejected';
-
-      COMMENT ON COLUMN "mission"."final_price" IS 'Prix total après commission';
-
-      COMMENT ON COLUMN "mission"."payment_status" IS 'Pending, Paid, Disputed';
-
-      COMMENT ON COLUMN "mission"."contract_signed_at" IS 'Signature électronique';
-
-      COMMENT ON COLUMN "mission"."status" IS 'Planned, In_Progress, Completed, Cancelled';
-
-      COMMENT ON COLUMN "review"."rating" IS '1 à 5';
-
-      COMMENT ON COLUMN "review"."type" IS 'Worker_to_Company or Company_to_Worker';
-
-      COMMENT ON COLUMN "conversation"."updated_at" IS 'Date du dernier message pour le tri';
-
-      COMMENT ON COLUMN "message"."sender_id" IS 'L''humain réel qui envoie';
-
-      COMMENT ON COLUMN "message"."file_url" IS 'Lien S3 pour Audio ou Image';
-
-      COMMENT ON COLUMN "message"."message_type" IS 'TEXT, IMAGE, AUDIO';
-
-      COMMENT ON COLUMN "message_status"."read_at" IS 'Si null, message non lu';
-
-      COMMENT ON COLUMN "message_status"."is_hidden" IS 'Suppression individuelle';
-
-      COMMENT ON COLUMN "document"."file_path" IS 'Chemin sur le serveur S3';
-
-      COMMENT ON COLUMN "document"."mime_type" IS 'pdf, png...';
-
-      COMMENT ON COLUMN "worker_document"."type" IS 'IDENTITY, RIB, DIPLOMA';
-
-      COMMENT ON COLUMN "company_document"."type" IS 'KBIS, COMPANY_RIB';
-
-      COMMENT ON COLUMN "contract"."status" IS 'PENDING, SIGNED, EXPIRED';
-
-      COMMENT ON COLUMN "invoice"."fee_amount" IS 'Ta commission';
-
-      COMMENT ON COLUMN "invoice"."status" IS 'UNPAID, PAID, CANCELLED';
-
-      COMMENT ON TABLE "skill_category" IS 'Catégories pour organiser les compétences';
-
-      ALTER TABLE "worker_profile" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "worker_profile" ADD FOREIGN KEY ("address_id") REFERENCES "address" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "wallet" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "wallet_transaction" ADD FOREIGN KEY ("wallet_id") REFERENCES "wallet" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "company" ADD FOREIGN KEY ("address_id") REFERENCES "address" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "company_member" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "company_member" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "worker_skill" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "worker_skill" ADD FOREIGN KEY ("skill_id") REFERENCES "skill" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "publication" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "publication" ADD FOREIGN KEY ("created_by_user_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "publication" ADD FOREIGN KEY ("address_id") REFERENCES "address" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "publication_skill" ADD FOREIGN KEY ("publication_id") REFERENCES "publication" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "publication_skill" ADD FOREIGN KEY ("skill_id") REFERENCES "skill" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "application" ADD FOREIGN KEY ("publication_id") REFERENCES "publication" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "application" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "mission" ADD FOREIGN KEY ("publication_id") REFERENCES "publication" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "mission" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "mission" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "review" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "review" ADD FOREIGN KEY ("reviewer_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "review" ADD FOREIGN KEY ("rated_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "conversation" ADD FOREIGN KEY ("publication_id") REFERENCES "publication" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "conversation" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "conversation" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "message" ADD FOREIGN KEY ("conversation_id") REFERENCES "conversation" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "message" ADD FOREIGN KEY ("sender_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "message_status" ADD FOREIGN KEY ("message_id") REFERENCES "message" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "message_status" ADD FOREIGN KEY ("user_id") REFERENCES "user" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "worker_document" ADD FOREIGN KEY ("worker_id") REFERENCES "worker_profile" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "worker_document" ADD FOREIGN KEY ("document_id") REFERENCES "document" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "company_document" ADD FOREIGN KEY ("company_id") REFERENCES "company" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "company_document" ADD FOREIGN KEY ("document_id") REFERENCES "document" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "contract" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "invoice" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "skill" ADD FOREIGN KEY ("category_id") REFERENCES "skill_category" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-      ALTER TABLE "address" ADD COLUMN IF NOT EXISTS "geom" geography(Point, 4326);
-
-      CREATE INDEX IF NOT EXISTS "idx_address_geom" ON "address" USING GIST ("geom");
-    `);
+    await queryInterface.sequelize.query('CREATE EXTENSION IF NOT EXISTS postgis;');
+
+    await queryInterface.createTable('address', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      street_number: {
+        type: Sequelize.STRING(10),
+        allowNull: true,
+      },
+      street_name: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+      },
+      zip_code: {
+        type: Sequelize.STRING(10),
+        allowNull: true,
+      },
+      city: {
+        type: Sequelize.STRING(100),
+        allowNull: true,
+      },
+      country: {
+        type: Sequelize.STRING(100),
+        defaultValue: 'France',
+        allowNull: true,
+      },
+      latitude: {
+        type: Sequelize.DECIMAL(9, 6),
+        allowNull: true,
+        comment: 'Essentiel pour le matching',
+      },
+      longitude: {
+        type: Sequelize.DECIMAL(9, 6),
+        allowNull: true,
+        comment: 'Essentiel pour le matching',
+      },
+      full_address: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      geom: {
+        type: Sequelize.GEOGRAPHY('POINT', 4326),
+        allowNull: true,
+      },
+    });
+
+    await queryInterface.addIndex('address', ['geom'], {
+      name: 'idx_address_geom',
+      using: 'GIST',
+    });
+
+    await queryInterface.createTable('user', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      first_name: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+      },
+      last_name: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+      },
+      profile_picture_url: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+      },
+      email: {
+        type: Sequelize.STRING,
+        unique: true,
+        allowNull: true,
+      },
+      password: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      is_worker_active: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+        comment: "Accès à l'App Worker",
+      },
+      is_employer_active: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+        comment: "Accès à l'App Enterprise",
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+    });
+
+    await queryInterface.createTable('refresh_session', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+      },
+      token_hash: {
+        type: Sequelize.TEXT,
+        allowNull: false,
+      },
+      expires_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+      revoked_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+    });
+
+    await queryInterface.addIndex('refresh_session', ['user_id'], {
+      name: 'refresh_session_user_id_not_revoked',
+      unique: true,
+      where: { revoked_at: null },
+    });
+
+    await queryInterface.addIndex('refresh_session', ['user_id']);
+    await queryInterface.addIndex('refresh_session', ['expires_at']);
+
+    await queryInterface.createTable('worker_profile', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      address_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'address',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      max_distance_km: {
+        type: Sequelize.INTEGER,
+        defaultValue: 20,
+        comment: 'Rayon de recherche',
+      },
+      skills_description: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      identity_verified: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+      },
+      iban: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      average_rating: {
+        type: Sequelize.DECIMAL,
+        allowNull: true,
+      },
+    });
+
+    await queryInterface.createTable('wallet', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      worker_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'worker_profile',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      balance: {
+        type: Sequelize.DECIMAL(10, 2),
+        defaultValue: 0,
+        comment: 'Solde disponible pour virement',
+      },
+      updated_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+    });
+
+    await queryInterface.createTable('wallet_transaction', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      wallet_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'wallet',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      amount: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+        comment: 'Positif pour un gain, négatif pour un virement sortant',
+      },
+      type: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'MISSION_PAYMENT, WITHDRAWAL, REFUND',
+      },
+      status: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'PENDING, COMPLETED, FAILED',
+      },
+      reference_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        comment: "ID de la mission ou de l'invoice liée",
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+    });
+
+    await queryInterface.createTable('company', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      name: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+      },
+      address_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'address',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      siret_number: {
+        type: Sequelize.STRING(20),
+        unique: true,
+        allowNull: true,
+      },
+      kbis_document_url: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+      },
+      is_premium: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+        comment: 'Abonnement visibilité',
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+    });
+
+    await queryInterface.createTable('company_member', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      company_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'company',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      role: {
+        type: Sequelize.STRING(50),
+        allowNull: true,
+        comment: 'Owner, Manager, Staff',
+      },
+    });
+
+    await queryInterface.addIndex('company_member', ['company_id', 'user_id'], {
+      unique: true,
+    });
+
+    await queryInterface.createTable(
+      'skill_category',
+      {
+        id: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          autoIncrement: true,
+          allowNull: false,
+        },
+        name: {
+          type: Sequelize.STRING(255),
+          unique: true,
+          allowNull: true,
+        },
+      },
+      {
+        comment: 'Catégories pour organiser les compétences',
+      },
+    );
+
+    await queryInterface.createTable('skill', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      name: {
+        type: Sequelize.STRING(255),
+        unique: true,
+        allowNull: true,
+      },
+      category_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'skill_category',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+    });
+
+    await queryInterface.addIndex('skill', ['category_id'], {
+      name: 'idx_skill_category_id',
+    });
+
+    await queryInterface.createTable('worker_skill', {
+      worker_id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        references: {
+          model: 'worker_profile',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      skill_id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        references: {
+          model: 'skill',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+    });
+
+    await queryInterface.createTable('publication', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      company_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'company',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      created_by_user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      address_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'address',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+        comment: 'Par défaut celle de la company, mais peut varier',
+      },
+      title: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+      },
+      description: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      hourly_rate: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+        comment: 'Base pour le calcul des frais',
+      },
+      starting_date: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+      ending_date: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+      status: {
+        type: Sequelize.STRING(50),
+        allowNull: true,
+        comment: 'Open, Closed, Urgent',
+      },
+      views: {
+        type: Sequelize.BIGINT,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      clicks: {
+        type: Sequelize.BIGINT,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      auto_accept: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+      },
+      highlighted: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+      updated_at: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+    });
+
+    await queryInterface.createTable('publication_skill', {
+      publication_id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        references: {
+          model: 'publication',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      skill_id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        references: {
+          model: 'skill',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+    });
+
+    await queryInterface.createTable('application', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      publication_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'publication',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      worker_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'worker_profile',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      status: {
+        type: Sequelize.STRING(50),
+        allowNull: true,
+        comment: 'Pending, Accepted, Rejected',
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+    });
+
+    await queryInterface.createTable('mission', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      publication_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'publication',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      worker_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'worker_profile',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      company_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'company',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      final_price: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+        comment: 'Prix total après commission',
+      },
+      payment_status: {
+        type: Sequelize.STRING(50),
+        allowNull: true,
+        comment: 'Pending, Paid, Disputed',
+      },
+      contract_signed_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+        comment: 'Signature électronique',
+      },
+      status: {
+        type: Sequelize.STRING(50),
+        allowNull: true,
+        comment: 'Planned, In_Progress, Completed, Cancelled',
+      },
+    });
+
+    await queryInterface.createTable('review', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      mission_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'mission',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      reviewer_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      rated_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      rating: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        comment: '1 à 5',
+      },
+      comment: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      type: {
+        type: Sequelize.STRING(20),
+        allowNull: true,
+        comment: 'Worker_to_Company or Company_to_Worker',
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+    });
+
+    await queryInterface.createTable('conversation', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      publication_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'publication',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      worker_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'worker_profile',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      company_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'company',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      updated_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+        comment: 'Date du dernier message pour le tri',
+      },
+      status: {
+        type: Sequelize.STRING,
+        defaultValue: 'active',
+      },
+    });
+
+    await queryInterface.createTable('conversation_settings', {
+      user_id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        allowNull: false,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+      },
+      conversation_id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        allowNull: false,
+        references: {
+          model: 'conversation',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+      },
+      is_pinned: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+      },
+      is_deleted: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+      },
+    });
+
+    await queryInterface.addIndex('conversation_settings', ['user_id'], {
+      name: 'idx_conv_settings_user_id',
+    });
+
+    await queryInterface.createTable('message', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      conversation_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'conversation',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      sender_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+        comment: "L'humain réel qui envoie",
+      },
+      content_text: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      file_url: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'Lien S3 pour Audio ou Image',
+      },
+      message_type: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'TEXT, IMAGE, AUDIO',
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+      },
+    });
+
+    await queryInterface.createTable('message_status', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      message_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'message',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'user',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      read_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+        comment: 'Si null, message non lu',
+      },
+      is_hidden: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+        comment: 'Suppression individuelle',
+      },
+    });
+
+    await queryInterface.addIndex('message_status', ['message_id', 'user_id'], {
+      unique: true,
+    });
+
+    await queryInterface.createTable('document', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      file_path: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'Chemin sur le serveur S3',
+      },
+      mime_type: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'pdf, png...',
+      },
+      size_bytes: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+    });
+
+    await queryInterface.createTable('worker_document', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      worker_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'worker_profile',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      document_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'document',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      type: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'IDENTITY, RIB, DIPLOMA',
+      },
+      verified: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+      },
+    });
+
+    await queryInterface.createTable('company_document', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      company_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'company',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      document_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'document',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      type: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'KBIS, COMPANY_RIB',
+      },
+      verified: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+      },
+    });
+
+    await queryInterface.createTable('contract', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      mission_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'mission',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      file_path: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      signed_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+      worker_signature_id: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      employer_signature_id: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      status: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'PENDING, SIGNED, EXPIRED',
+      },
+    });
+
+    await queryInterface.createTable('invoice', {
+      id: {
+        type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      mission_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'mission',
+          key: 'id',
+        },
+        deferrable: Sequelize.Deferrable.INITIALLY_IMMEDIATE,
+      },
+      invoice_number: {
+        type: Sequelize.STRING,
+        unique: true,
+        allowNull: true,
+      },
+      amount_ht: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+      },
+      amount_ttc: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+      },
+      fee_amount: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+        comment: 'Ta commission',
+      },
+      file_path: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      status: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        comment: 'UNPAID, PAID, CANCELLED',
+      },
+      created_at: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      },
+    });
   },
 
   async down(queryInterface, Sequelize) {
-    await queryInterface.sequelize.query(`
-      DROP TABLE IF EXISTS "invoice" CASCADE;
-      DROP TABLE IF EXISTS "contract" CASCADE;
-      DROP TABLE IF EXISTS "company_document" CASCADE;
-      DROP TABLE IF EXISTS "worker_document" CASCADE;
-      DROP TABLE IF EXISTS "document" CASCADE;
-      DROP TABLE IF EXISTS "message_status" CASCADE;
-      DROP TABLE IF EXISTS "message" CASCADE;
-      DROP TABLE IF EXISTS "conversation_settings" CASCADE;
-      DROP TABLE IF EXISTS "conversation" CASCADE;
-      DROP TABLE IF EXISTS "review" CASCADE;
-      DROP TABLE IF EXISTS "mission" CASCADE;
-      DROP TABLE IF EXISTS "application" CASCADE;
-      DROP TABLE IF EXISTS "publication_skill" CASCADE;
-      DROP TABLE IF EXISTS "publication" CASCADE;
-      DROP TABLE IF EXISTS "worker_skill" CASCADE;
-      DROP TABLE IF EXISTS "skill" CASCADE;
-      DROP TABLE IF EXISTS "skill_category" CASCADE;
-      DROP TABLE IF EXISTS "company_member" CASCADE;
-      DROP TABLE IF EXISTS "company" CASCADE;
-      DROP TABLE IF EXISTS "wallet_transaction" CASCADE;
-      DROP TABLE IF EXISTS "wallet" CASCADE;
-      DROP TABLE IF EXISTS "worker_profile" CASCADE;
-      DROP TABLE IF EXISTS "refresh_session" CASCADE;
-      DROP TABLE IF EXISTS "user" CASCADE;
-      DROP TABLE IF EXISTS "address" CASCADE;
-      DROP EXTENSION IF EXISTS postgis CASCADE;
-    `);
+    await queryInterface.dropTable('invoice');
+    await queryInterface.dropTable('contract');
+    await queryInterface.dropTable('company_document');
+    await queryInterface.dropTable('worker_document');
+    await queryInterface.dropTable('document');
+    await queryInterface.dropTable('message_status');
+    await queryInterface.dropTable('message');
+    await queryInterface.dropTable('conversation_settings');
+    await queryInterface.dropTable('conversation');
+    await queryInterface.dropTable('review');
+    await queryInterface.dropTable('mission');
+    await queryInterface.dropTable('application');
+    await queryInterface.dropTable('publication_skill');
+    await queryInterface.dropTable('publication');
+    await queryInterface.dropTable('worker_skill');
+    await queryInterface.dropTable('skill');
+    await queryInterface.dropTable('skill_category');
+    await queryInterface.dropTable('company_member');
+    await queryInterface.dropTable('company');
+    await queryInterface.dropTable('wallet_transaction');
+    await queryInterface.dropTable('wallet');
+    await queryInterface.dropTable('worker_profile');
+    await queryInterface.dropTable('refresh_session');
+    await queryInterface.dropTable('user');
+    await queryInterface.dropTable('address');
+    await queryInterface.sequelize.query('DROP EXTENSION IF EXISTS postgis CASCADE;');
   },
 };
+
