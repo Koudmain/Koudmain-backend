@@ -5,6 +5,7 @@ import { AuthService } from '@/modules/auth/services/auth.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { RegisterDto } from '@/modules/auth/models/register.model';
 import { publicRoute } from '@/decorators/public.decorator';
+import { IsEmail, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 type JwtPayload = {
   sub: number;
@@ -14,9 +15,13 @@ type AuthenticatedRequest = ExpressRequest & { user: JwtPayload };
 
 export class SignInDto {
   @ApiProperty({ example: 'user@example.com', description: 'Adresse email' })
+  @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @ApiProperty({ example: 'Password123!', description: 'Mot de passe' })
+  @IsString()
+  @IsNotEmpty()
   password: string;
 }
 
@@ -27,19 +32,27 @@ export type AuthTokenResponse = {
 
 export class RefreshDto {
   @ApiProperty({ example: 'eyJhbGciOiJIUzI1Ni...', description: 'Refresh token JWT' })
+  @IsString()
+  @IsNotEmpty()
   refreshToken: string;
 }
 
 export class VerifyEmailDto {
   @ApiProperty({ example: 1, description: "ID de l'utilisateur" })
+  @IsNumber()
+  @IsNotEmpty()
   userId: number;
 
   @ApiProperty({ example: '123456', description: 'Code de vérification à 6 chiffres' })
+  @IsString()
+  @IsNotEmpty()
   code: string;
 }
 
 export class ResendVerificationDto {
   @ApiProperty({ example: 1, description: "ID de l'utilisateur" })
+  @IsNumber()
+  @IsNotEmpty()
   userId: number;
 }
 
