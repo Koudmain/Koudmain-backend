@@ -11,6 +11,7 @@ import { SkillCategory } from '@/modules/skill-category/models/skill-category.mo
 import { Publication } from '@/modules/publication/models/publication.model';
 import { PublicationSkill } from '@/modules/publication/models/publication-skill.model';
 import { IsOptional, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 @Table({ tableName: 'skill', timestamps: false })
 export class Skill extends Model {
@@ -32,9 +33,11 @@ export class Skill extends Model {
 }
 
 export class PostSkillDto {
+  @ApiProperty({ example: 'Service en salle', description: 'Nom de la compétence' })
   @IsString()
   name: string;
 
+  @ApiPropertyOptional({ example: 1, description: 'ID de la catégorie associée' })
   @IsOptional()
   category_id?: number | null;
 }
