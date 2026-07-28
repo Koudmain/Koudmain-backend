@@ -8,6 +8,14 @@ import {
   Request,
   BadRequestException,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { UsersService } from './services/users.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -22,6 +30,8 @@ interface RequestWithUser extends ExpressRequest {
   };
 }
 
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(
@@ -29,6 +39,26 @@ export class UsersController {
     private readonly usersService: UsersService,
   ) {}
 
+  @ApiOperation({
+    summary: "Mettre à jour l'avatar utilisateur",
+    description: 'Upload une nouvelle photo de profil.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Fichier image pour la photo de profil',
+        },
+      },
+      required: ['image'],
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Avatar mis à jour avec succès.' })
+  @ApiResponse({ status: 400, description: 'Fichier manquant ou invalide.' })
   @Patch('me/avatar')
   @UseInterceptors(FileInterceptor('image'))
   async uploadAvatar(@UploadedFile() file: Express.Multer.File, @Request() req: RequestWithUser) {
@@ -46,6 +76,11 @@ export class UsersController {
     };
   }
 
+  @ApiOperation({
+    summary: 'Obtenir ses propres informations',
+    description: "Retourne le profil public de l'utilisateur connecté.",
+  })
+  @ApiResponse({ status: 200, description: 'Profil récupéré.' })
   @Get('me')
   async getMe(@Request() req: RequestWithUser) {
     const userId = req.user.sub;
@@ -53,6 +88,27 @@ export class UsersController {
     return this.usersService.findOneByIdPublic(userId);
   }
 
+  @ApiOperation({
+    summary: 'Mettre à jour son profil',
+    description:
+      "Modifie les informations de profil de l'utilisateur connecté et optionnellement son avatar.",
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        first_name: { type: 'string', example: 'Jean' },
+        last_name: { type: 'string', example: 'Dupont' },
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Nouvelle photo de profil (optionnelle)',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Profil mis à jour avec succès.' })
   @Patch('me')
   @UseInterceptors(FileInterceptor('image'))
   async updateMe(
@@ -77,6 +133,11 @@ export class UsersController {
     return this.usersService.findOneByIdPublic(userId);
   }
 
+  @ApiOperation({
+    summary: 'Lister tous les utilisateurs',
+    description: 'Retourne la liste de tous les utilisateurs.',
+  })
+  @ApiResponse({ status: 200, description: 'Liste des utilisateurs récupérée.' })
   @Get()
   findAll() {
     return this.usersService.findAll();

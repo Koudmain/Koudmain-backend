@@ -75,44 +75,60 @@ export class Publication extends Model {
   declare updatedAt: Date;
 }
 
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
 export class PostPublicationDto {
+  @ApiPropertyOptional({ example: 1, description: "ID de l'entreprise rattachée" })
   @IsOptional()
   @IsNumber()
   declare companyId?: number;
 
+  @ApiPropertyOptional({ example: 1, description: 'ID du créateur' })
   @IsOptional()
   @IsNumber()
   declare createdByUserId?: number;
 
+  @ApiPropertyOptional({ example: 1, description: "ID de l'adresse du lieu de travail" })
   @IsOptional()
   @IsNumber()
   declare address_id?: number;
 
+  @ApiProperty({ example: 'Serveur de restaurant (H/F)', description: "Titre de l'offre" })
   @IsString()
   declare title: string;
 
+  @ApiPropertyOptional({
+    example: 'Recherche serveur expérimenté pour le service du soir.',
+    description: 'Description détaillée',
+  })
   @IsOptional()
   @IsString()
   declare description?: string;
 
+  @ApiProperty({ example: 15.5, description: 'Taux horaire en Euros' })
   @IsNumber()
   declare hourly_rate: number;
 
+  @ApiProperty({ example: '2026-08-01T09:00:00.000Z', description: 'Date et heure de début' })
   @IsString()
   declare starting_date: string;
 
+  @ApiProperty({ example: '2026-08-01T17:00:00.000Z', description: 'Date et heure de fin' })
   @IsString()
   declare ending_date: string;
 
+  @ApiPropertyOptional({ example: [1, 2, 3], description: 'Liste des IDs de compétences requises' })
   @IsOptional()
   @IsArray()
   @IsNumber({}, { each: true })
   declare skills?: number[];
 
+  @ApiPropertyOptional({ example: false, description: 'Accepter automatiquement les candidatures' })
   @IsOptional()
   @IsBoolean()
   declare autoAccept?: boolean;
 
+  @ApiPropertyOptional({ example: false, description: "Mettre en avant l'annonce" })
   @IsOptional()
   @IsBoolean()
   declare highlight?: boolean;

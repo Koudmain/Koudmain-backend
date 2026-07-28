@@ -4,6 +4,7 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": false,
-    "assets": ["**/*.html"]
+    "assets": ["**/*.html"],
+    "plugins": ["@nestjs/swagger"]
   }
 }
