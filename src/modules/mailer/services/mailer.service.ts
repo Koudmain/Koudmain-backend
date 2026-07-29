@@ -5,6 +5,7 @@ import {
   MAILJET_CLIENT,
   MAILJET_VERIFICATION_TEMPLATE_ID,
 } from '@/modules/mailer/mailer.constants';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -36,37 +37,49 @@ type MailjetClient = {
 };
 
 export class SendEmailInput {
+  @ApiProperty({ example: 'test@example.com', description: 'Adresse email du destinataire' })
   @IsEmail()
   toEmail!: string;
 
+  @ApiPropertyOptional({ example: 'Jean Dupont', description: 'Nom du destinataire' })
   @IsOptional()
   @IsString()
   toName?: string;
 
+  @ApiPropertyOptional({ example: 'Sujet du mail', description: 'Objet du message' })
   @IsOptional()
   @IsString()
   subject?: string;
 
+  @ApiPropertyOptional({ example: 'Contenu en texte brut', description: 'Corps du mail (texte)' })
   @IsOptional()
   @IsString()
   text?: string;
 
+  @ApiPropertyOptional({ example: '<p>Contenu HTML</p>', description: 'Corps du mail (HTML)' })
   @IsOptional()
   @IsString()
   html?: string;
 
+  @ApiPropertyOptional({ example: 'reply@example.com', description: 'Adresse email de réponse' })
   @IsOptional()
   @IsEmail()
   replyToEmail?: string;
 
+  @ApiPropertyOptional({ example: 'Support', description: "Nom pour l'adresse de réponse" })
   @IsOptional()
   @IsString()
   replyToName?: string;
 
+  @ApiPropertyOptional({ example: 12345, description: 'ID de template Mailjet' })
   @IsOptional()
   @IsNumber()
   templateId?: number;
 
+  @ApiPropertyOptional({
+    example: { code: '123456' },
+    description: 'Variables dynamiques pour le template',
+  })
   @IsOptional()
   @IsObject()
   variables?: Record<string, unknown>;
