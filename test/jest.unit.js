@@ -1,45 +1,43 @@
 const sharedConfig = require('./jest.config');
 
 module.exports = {
-  ...sharedConfig,
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'cobertura'],
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!*/node_modules/**',
-    '!<rootDir>/src/main.ts',
-    '!<rootDir>/src/modules/database/database.service.ts',
-    '!**/*.model.(t|j)s',
-    '!**/*.module.(t|j)s',
-  ],
-  reporters: [
-    'default',
-    'jest-sonar',
-    [
-      'jest-junit',
-      {
-        outputDirectory: 'test-reports/junit',
-        outputName: 'test-results.xml',
-      },
+    ...sharedConfig,
+    coverageDirectory: 'coverage',
+    coverageReporters: ['text', 'lcov', 'cobertura'],
+    collectCoverageFrom: [
+        'src/**/*.ts',
+        '!*/node_modules/**',
+        '!<rootDir>/src/main.ts',
+        '!<rootDir>/src/modules/database/database.service.ts',
     ],
-    [
-      '@jest-performance-reporter/core',
-      {
-        errorAfterMs: 1000,
-        warnAfterMs: 500,
-        logLevel: 'warn',
-        maxItems: 5,
-        jsonReportPath: 'test-reports/performance-report.json',
-        csvReportPath: 'test-reports/performance-report.csv',
-      },
+    reporters: [
+        'default',
+        'jest-sonar',
+        [
+            'jest-junit',
+            {
+                outputDirectory: 'test-reports/junit',
+                outputName: 'test-results.xml',
+            },
+        ],
+        [
+            '@jest-performance-reporter/core',
+            {
+                errorAfterMs: 1000,
+                warnAfterMs: 500,
+                logLevel: 'warn',
+                maxItems: 5,
+                jsonReportPath: 'test-reports/performance-report.json',
+                csvReportPath: 'test-reports/performance-report.csv',
+            },
+        ],
     ],
-  ],
-  coverageThreshold: {
-    global: {
-      branches: 60,
-      functions: 60,
-      lines: 80,
-      statements: 60,
+    coverageThreshold: {
+        global: {
+            branches: 60,
+            functions: 60,
+            lines: 80,
+            statements: 60,
+        },
     },
-  },
 };
