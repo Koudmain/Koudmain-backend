@@ -14,17 +14,17 @@ module.exports = {
           q: 'Lyon, France',
           lat: BELLECOUR_LAT,
           lon: BELLECOUR_LNG,
-          limit: 50
-        }
+          limit: 50,
+        },
       });
 
       const features = response.data?.features || [];
       if (features.length === 0) {
-        console.log("Aucune adresse récupérée de la BAN. Fin du seed.");
+        console.log('Aucune adresse récupérée de la BAN. Fin du seed.');
         return;
       }
 
-      const validFeatures = features.filter(feature => {
+      const validFeatures = features.filter((feature) => {
         const props = feature.properties;
         const coords = feature.geometry?.coordinates;
         return coords && coords.length >= 2 && props.postcode?.startsWith('69');
@@ -36,16 +36,16 @@ module.exports = {
       }
 
       const finalFeatures = validFeatures.slice(0, TOTAL_A_PRENDRE);
-      const addressesToInsert = finalFeatures.map(feature => {
+      const addressesToInsert = finalFeatures.map((feature) => {
         const props = feature.properties;
         const [longitude, latitude] = feature.geometry.coordinates;
 
         return {
-          street_number: props.housenumber || "",
+          street_number: props.housenumber || '',
           street_name: props.street || props.name,
           zip_code: props.postcode,
           city: props.city,
-          country: "France",
+          country: 'France',
           latitude: latitude,
           longitude: longitude,
           full_address: props.label,
@@ -57,14 +57,13 @@ module.exports = {
         await queryInterface.bulkInsert('address', addressesToInsert, {});
         console.log(`${addressesToInsert.length} vraies adresses insérées en BDD avec succès !`);
       }
-
     } catch (error) {
-      console.error("Échec lors du seeding des adresses :", error.message);
+      console.error('Échec lors du seeding des adresses :', error.message);
     }
   },
 
   async down(queryInterface, Sequelize) {
     await queryInterface.bulkDelete('address', { city: 'Lyon' }, {});
-    console.log("Adresses de Lyon nettoyées.");
-  }
+    console.log('Adresses de Lyon nettoyées.');
+  },
 };
