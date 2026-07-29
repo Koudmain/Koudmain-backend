@@ -10,6 +10,14 @@ import {
   Post,
   Res,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiProduces,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ClassConstructor, plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { type Response } from 'express';
@@ -22,13 +30,20 @@ const TEMPLATE_DTO_MAP: Record<string, ClassConstructor<object>> = {
   invoice: InvoiceDataDto,
 };
 
+@ApiTags('PDF')
+@ApiBearerAuth()
 @Controller('pdf')
 export class PdfController {
   constructor(private readonly pdfService: PdfService) {}
 
-  /**
-   * GET /pdf/test-cddu
-   */
+  @ApiOperation({
+    summary: 'Générer un exemple de contrat CDDU au format PDF',
+    description:
+      'Génère et renvoie un fichier PDF de démonstration avec des données d exemple pour le modèle CDDU.',
+  })
+  @ApiProduces('application/pdf')
+  @ApiResponse({ status: 200, description: 'Fichier PDF généré avec succès.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
   @HttpCode(HttpStatus.OK)
   @Get('test-cddu')
   @Header('Content-Type', 'application/pdf')
@@ -65,9 +80,23 @@ export class PdfController {
     res.end(pdfBuffer);
   }
 
-  /**
-   * POST /pdf/generate/:template
-   */
+  @ApiOperation({
+    summary: 'Générer un PDF dynamique selon un template',
+    description:
+      'Génère un fichier PDF à partir du template spécifié (ex: cddu, invoice) et des données fournies dans le corps de la requête.',
+  })
+  @ApiParam({
+    name: 'template',
+    description: 'Nom du template (ex: cddu, invoice)',
+    example: 'cddu',
+  })
+  @ApiProduces('application/pdf')
+  @ApiResponse({ status: 200, description: 'Fichier PDF généré et renvoyé.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Template introuvable ou données transmises invalides.',
+  })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
   @HttpCode(HttpStatus.OK)
   @Post('generate/:template')
   async generatePdf(
