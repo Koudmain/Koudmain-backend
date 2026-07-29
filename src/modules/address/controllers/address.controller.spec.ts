@@ -70,7 +70,7 @@ describe('AddressController', () => {
         maxLat: '2',
         minLng: '3',
         maxLng: '4',
-      } as GetMapAddressesDto;
+      };
       const rows = [{ id: 1, latitude: 1.5, longitude: 3.5 }];
       mockAddressService.getAddressesInZone.mockResolvedValue(rows);
 
