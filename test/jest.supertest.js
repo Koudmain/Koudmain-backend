@@ -5,6 +5,6 @@ module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   testRegex: '.supertest-spec.ts$',
   transform: {
-      '^.+\\.(t|j)s$': 'ts-jest',
+    '^.+\\.(t|j)s$': 'ts-jest',
   },
 };
