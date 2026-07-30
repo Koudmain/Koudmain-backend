@@ -1,18 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChatController } from './chat.controller';
 import { ChatService } from '@/modules/chat/services/chat.service';
-import type { Request as ExpressRequest } from 'express';
+import { type RequestWithUser } from '@/common/types/request.type';
 
 describe('ChatController', () => {
   let controller: ChatController;
   let service: jest.Mocked<ChatService>;
-
-  interface RequestWithUser extends ExpressRequest {
-    user: {
-      sub: number;
-      email: string;
-    };
-  }
 
   const mockRequest = {
     user: { sub: 1, email: 'test@example.com' },

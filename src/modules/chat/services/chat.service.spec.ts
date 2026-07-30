@@ -13,7 +13,7 @@ import { Publication } from '@/modules/publication/models/publication.model';
 import { RedisPubService } from './redis-pub.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 
-type MockModel<T = any> = {
+type MockModel<T = unknown> = {
   [P in keyof T]?: jest.Mock;
 } & {
   create: jest.Mock;

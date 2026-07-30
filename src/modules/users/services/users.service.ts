@@ -26,8 +26,12 @@ export class UsersService {
   }
 
   async create(user: Partial<User>, options?: { transaction?: Transaction }) {
-    const maxId = await this.userModel.max('id');
-    const nextId = user.id ?? (typeof maxId === 'number' ? maxId : 0) + 1;
+    let nextId = user.id;
+
+    if (nextId === undefined || nextId === null) {
+      const maxId = await this.userModel.max('id');
+      nextId = (typeof maxId === 'number' ? maxId : 0) + 1;
+    }
 
     return this.userModel.create(
       {
