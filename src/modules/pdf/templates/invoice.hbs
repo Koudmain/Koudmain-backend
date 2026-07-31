@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Facture {{invoiceNumber}}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      margin: 0;
+      padding: 30px 40px;
+      font-size: 10pt;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 2px solid #3b82f6;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+    .title {
+      font-size: 20pt;
+      font-weight: bold;
+      color: #1e40af;
+    }
+    .meta-info {
+      text-align: right;
+      font-size: 9pt;
+      color: #64748b;
+    }
+    .parties {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 30px;
+    }
+    .box {
+      width: 48%;
+      background: #f8fafc;
+      padding: 12px 15px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+    }
+    .box-title {
+      font-size: 8pt;
+      text-transform: uppercase;
+      font-weight: bold;
+      color: #64748b;
+      margin-bottom: 5px;
+    }
+    .box-name {
+      font-size: 11pt;
+      font-weight: bold;
+      color: #0f172a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 25px;
+    }
+    th {
+      background: #3b82f6;
+      color: white;
+      text-align: left;
+      padding: 8px 10px;
+      font-size: 9pt;
+    }
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 9.5pt;
+    }
+    .text-right {
+      text-align: right;
+    }
+    .totals {
+      width: 40%;
+      margin-left: auto;
+      margin-bottom: 30px;
+    }
+    .totals table td {
+      border: none;
+      padding: 4px 8px;
+    }
+    .total-row {
+      font-weight: bold;
+      font-size: 11pt;
+      background: #eff6ff;
+      color: #1e40af;
+    }
+    .footer {
+      position: fixed;
+      bottom: 20px;
+      left: 40px;
+      right: 40px;
+      text-align: center;
+      font-size: 8pt;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="title">FACTURE</div>
+      <div>N° {{invoiceNumber}}</div>
+    </div>
+    <div class="meta-info">
+      <div>Date : {{date}}</div>
+      {{#if dueDate}}<div>Échéance : {{dueDate}}</div>{{/if}}
+    </div>
+  </div>
+
+  <div class="parties">
+    <div class="box">
+      <div class="box-title">Émetteur</div>
+      <div class="box-name">{{issuer.name}}</div>
+      <div>{{issuer.address}}</div>
+      {{#if issuer.siret}}<div>SIRET : {{issuer.siret}}</div>{{/if}}
+      {{#if issuer.email}}<div>Email : {{issuer.email}}</div>{{/if}}
+    </div>
+    <div class="box">
+      <div class="box-title">Client</div>
+      <div class="box-name">{{client.name}}</div>
+      <div>{{client.address}}</div>
+      {{#if client.siret}}<div>SIRET : {{client.siret}}</div>{{/if}}
+      {{#if client.email}}<div>Email : {{client.email}}</div>{{/if}}
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th class="text-right">Qté</th>
+        <th class="text-right">Prix Unit. HT</th>
+        <th class="text-right">Total HT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each items}}
+      <tr>
+        <td>{{this.description}}</td>
+        <td class="text-right">{{this.quantity}}</td>
+        <td class="text-right">{{this.unitPriceHt}} €</td>
+        <td class="text-right">{{this.totalHt}} €</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <table>
+      <tr>
+        <td>Total HT</td>
+        <td class="text-right">{{totalHt}} €</td>
+      </tr>
+      <tr>
+        <td>TVA</td>
+        <td class="text-right">{{tvaAmount}} €</td>
+      </tr>
+      <tr class="total-row">
+        <td>Total TTC</td>
+        <td class="text-right">{{totalTtc}} €</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    Facture générée par Koudmain Platform - Merci pour votre confiance.
+  </div>
+
+</body>
+</html>

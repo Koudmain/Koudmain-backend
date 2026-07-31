@@ -46,6 +46,7 @@ describe('GeocodingService', () => {
 
       const result = await service.getCoordsFromAddress(addressSample);
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockedAxios.get).toHaveBeenCalledWith('https://nominatim.openstreetmap.org/search', {
         params: { q: addressSample, format: 'json', limit: 1 },
         headers: { 'User-Agent': 'KoudmainApp/1.0' },

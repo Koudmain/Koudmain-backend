@@ -5,13 +5,7 @@ import { DriveService } from '../drive/drive.service';
 import { BadRequestException } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Readable } from 'stream';
-
-interface RequestWithUser {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { RequestWithUser } from '@/common/types/request.type';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -95,7 +89,7 @@ describe('UsersController', () => {
       mockDriveService.uploadImage.mockResolvedValue('https://drive.com/new.png');
       mockUserService.update.mockResolvedValue([1]);
 
-      const dto: UpdateUserDto = { firstName: 'John' };
+      const dto: UpdateUserDto = { first_name: 'John' };
       await controller.updateMe(mockRequest, dto, mockFile);
 
       expect(mockDriveService.deleteFile).toHaveBeenCalledWith('https://drive.com/old.png');
