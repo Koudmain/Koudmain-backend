@@ -83,7 +83,7 @@ export class PublicationController {
   @ApiResponse({ status: 200, description: 'Publication éditée avec succès.' })
   @ApiResponse({ status: 400, description: 'Publication non trouvée.' })
   @Put('/update/:id')
-  async update(@Param('id') id: number, @Body() updateDto: Record<string, unknown>) {
+  async update(@Param('id') id: number, @Body() updateDto: Record<string, any>) {
     const pubId: Publication | null = await this.publicationService.update(id, updateDto);
 
     if (!pubId) {

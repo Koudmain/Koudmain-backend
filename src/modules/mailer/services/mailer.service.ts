@@ -17,7 +17,7 @@ type MailjetSendMessage = {
   HTMLPart?: string;
   TemplateID?: number;
   TemplateLanguage?: boolean;
-  Variables?: Record<string, unknown>;
+  Variables?: Record<string, any>;
   TemplateErrorReporting?: { Email: string; Name?: string };
   TemplateErrorDeliver?: boolean;
   ReplyTo?: { Email: string; Name?: string };
@@ -82,7 +82,7 @@ export class SendEmailInput {
   })
   @IsOptional()
   @IsObject()
-  variables?: Record<string, unknown>;
+  variables?: Record<string, any>;
 }
 
 @Injectable()
