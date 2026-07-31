@@ -64,6 +64,12 @@ export class Contract extends Model<Contract, ContractAttributes> implements Con
   })
   declare status: string | null;
 
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
+
+  @Column({ field: 'updated_at', type: DataType.DATE })
+  declare updatedAt: Date;
+
   @BelongsTo(() => Document, 'documentId')
   declare document: Document;
 

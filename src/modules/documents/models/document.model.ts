@@ -35,7 +35,6 @@ export type DocumentCreationAttributes = Optional<
   tableName: 'document',
   underscored: true,
   timestamps: true,
-  updatedAt: false,
 })
 export class Document
   extends Model<Document, DocumentCreationAttributes>

@@ -16,7 +16,7 @@ export interface InvoiceAttributes {
 @Table({
   tableName: 'invoice',
   underscored: true,
-  timestamps: false,
+  timestamps: true,
 })
 export class Invoice extends Model<Invoice, InvoiceAttributes> implements InvoiceAttributes {
   @ForeignKey(() => Document)
@@ -71,6 +71,12 @@ export class Invoice extends Model<Invoice, InvoiceAttributes> implements Invoic
     allowNull: true,
   })
   declare status: string | null;
+
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
+
+  @Column({ field: 'updated_at', type: DataType.DATE })
+  declare updatedAt: Date;
 
   @BelongsTo(() => Document, 'documentId')
   declare document: Document;

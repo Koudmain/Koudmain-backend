@@ -9,9 +9,7 @@ import {
   Patch,
   Delete,
   Query,
-  BadRequestException,
   NotFoundException,
-  Request,
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -20,9 +18,6 @@ import { Document } from '@/modules/documents/models/document.model';
 import { CreateDocumentDto } from '@/modules/documents/dtos/create-document.dto';
 import { UpdateDocumentDto } from '@/modules/documents/dtos/update-document.dto';
 import { QueryDocumentDto } from '@/modules/documents/dtos/query-document.dto';
-import { WorkersService } from '@/modules/workers/services/workers.service';
-import { CompaniesService } from '@/modules/companies/services/companies.service';
-import { type RequestWithUser } from '@/common/types/request.type';
 
 export class PostDocumentResponseDto {
   declare message: string;
@@ -34,11 +29,7 @@ export class PostDocumentResponseDto {
 @ApiBearerAuth()
 @Controller('document')
 export class DocumentsController {
-  constructor(
-    private readonly documentsService: DocumentsService,
-    private readonly workersService: WorkersService,
-    private readonly companiesService: CompaniesService,
-  ) {}
+  constructor(private readonly documentsService: DocumentsService) {}
 
   @ApiOperation({
     summary: 'Créer un nouveau document',
@@ -65,67 +56,6 @@ export class DocumentsController {
   @Get()
   async findAll(@Query() query: QueryDocumentDto): Promise<Document[]> {
     return this.documentsService.findAll(query);
-  }
-
-  @ApiOperation({
-    summary: "Récupérer les documents de l'utilisateur connecté",
-    description: "Récupère la liste des documents rattachés à l'utilisateur actuellement connecté.",
-  })
-  @ApiResponse({ status: 200, description: 'Liste des documents de utilisateur récupérée.' })
-  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
-  @HttpCode(HttpStatus.OK)
-  @Get('user/me')
-  async getDocumentsByUserId(@Request() req: RequestWithUser): Promise<Document[]> {
-    const userId = req.user.sub;
-    return this.documentsService.getByUserId(userId);
-  }
-
-  @ApiOperation({
-    summary: 'Récupérer les documents du travailleur connecté',
-    description:
-      'Récupère la liste des documents rattachés au profil de travailleur de utilisateur actuellement connecté.',
-  })
-  @ApiResponse({ status: 200, description: 'Liste des documents du travailleur récupérée.' })
-  @ApiResponse({
-    status: 400,
-    description: 'Profil de travailleur non trouvé pour cet utilisateur.',
-  })
-  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
-  @HttpCode(HttpStatus.OK)
-  @Get('worker/me')
-  async getDocumentsByWorkerId(@Request() req: RequestWithUser): Promise<Document[]> {
-    const userId = req.user.sub;
-    const workerProfile = await this.workersService.getWorkerByUserId(userId);
-    if (!workerProfile) {
-      throw new BadRequestException('Profil de travailleur non trouvé pour cet utilisateur');
-    }
-    return this.documentsService.getByWorkerId(workerProfile.id);
-  }
-
-  @ApiOperation({
-    summary: "Récupérer les documents d'une entreprise",
-    description:
-      'Récupère la liste des documents rattachés à une entreprise spécifique si utilisateur a les droits.',
-  })
-  @ApiParam({ name: 'companyId', description: "ID de l'entreprise", example: 1 })
-  @ApiResponse({ status: 200, description: "Documents de l'entreprise récupérés." })
-  @ApiResponse({
-    status: 400,
-    description: "Vous n'avez pas les droits pour accéder à cette entreprise.",
-  })
-  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
-  @HttpCode(HttpStatus.OK)
-  @Get('company/:companyId')
-  async getDocumentsByCompanyId(
-    @Request() req: RequestWithUser,
-    @Param('companyId', ParseIntPipe) companyId: number,
-  ): Promise<Document[]> {
-    const userId = req.user.sub;
-    const isInCompany = await this.companiesService.isUserInCompany(userId, companyId);
-    if (!isInCompany) {
-      throw new BadRequestException("Vous n'avez pas les droits pour accéder à cette entreprise");
-    }
-    return this.documentsService.getByCompanyId(companyId);
   }
 
   @ApiOperation({
