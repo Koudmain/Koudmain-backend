@@ -9,8 +9,7 @@ CREATE TABLE "address" (
   "country" varchar(100) DEFAULT 'France',
   "latitude" numeric(9,6),
   "longitude" numeric(9,6),
-  "full_address" text,
-  "geom" geography(Point, 4326)
+  "full_address" text
 );
 
 CREATE TABLE "user" (
@@ -199,8 +198,7 @@ CREATE TABLE "document" (
   "file_path" varchar,
   "mime_type" varchar,
   "size_bytes" integer,
-  "created_at" timestamp DEFAULT (now()),
-  "updated_at" timestamp DEFAULT (now())
+  "created_at" timestamp
 );
 
 CREATE TABLE "worker_document" (
@@ -226,9 +224,7 @@ CREATE TABLE "contract" (
   "signed_at" timestamp,
   "worker_signature_id" varchar,
   "employer_signature_id" varchar,
-  "status" varchar,
-  "created_at" timestamp DEFAULT (now()),
-  "updated_at" timestamp DEFAULT (now())
+  "status" varchar
 );
 
 CREATE TABLE "invoice" (
@@ -240,8 +236,7 @@ CREATE TABLE "invoice" (
   "fee_amount" numeric(10,2),
   "file_path" varchar,
   "status" varchar,
-  "created_at" timestamp DEFAULT (now()),
-  "updated_at" timestamp DEFAULT (now())
+  "created_at" timestamp
 );
 
 CREATE TABLE "skill_category" (
@@ -396,7 +391,3 @@ ALTER TABLE "contract" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id"
 ALTER TABLE "invoice" ADD FOREIGN KEY ("mission_id") REFERENCES "mission" ("id") DEFERRABLE INITIALLY IMMEDIATE;
 
 ALTER TABLE "skill" ADD FOREIGN KEY ("category_id") REFERENCES "skill_category" ("id") DEFERRABLE INITIALLY IMMEDIATE;
-
-ALTER TABLE "address" ADD COLUMN IF NOT EXISTS "geom" geography(Point, 4326);
-
-CREATE INDEX IF NOT EXISTS "idx_address_geom" ON "address" USING GIST ("geom");
