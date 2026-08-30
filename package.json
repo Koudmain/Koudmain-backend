@@ -37,13 +37,13 @@
     "db:backup:schema": "docker exec -t koudmain-db pg_dump -U ${DB_USER:-postgres} -h ${DB_HOST:-localhost} -p ${DB_PORT:-5432} -s ${DB_NAME:-koudmain} > backup_schema_$(date +%Y%m%d_%H%M%S).sql"
   },
   "dependencies": {
-    "@nestjs/common": "^11.0.1",
+    "@nestjs/common": "^11.2.1",
     "@nestjs/config": "^4.0.3",
-    "@nestjs/core": "^11.0.1",
+    "@nestjs/core": "^11.2.1",
     "@nestjs/jwt": "^11.0.2",
-    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-express": "^11.2.1",
     "@nestjs/sequelize": "^11.0.1",
-    "@nestjs/swagger": "^11.4.6",
+    "@nestjs/swagger": "^11.4.7",
     "@sequelize/postgres": "^7.0.0-alpha.48",
     "axios": "^1.16.0",
     "bcrypt": "^6.0.0",
