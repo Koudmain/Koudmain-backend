@@ -10,6 +10,7 @@ concurrency:
 
 jobs:
   events:
+    if: github.actor != 'dependabot[bot]'
     name: "Events & Automation"
     uses: Koudmain/.github/.github/workflows/orchestrator-events.yml@main
     permissions:
