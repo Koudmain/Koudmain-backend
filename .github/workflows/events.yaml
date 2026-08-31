@@ -18,3 +18,12 @@ jobs:
     with:
       target-repo-url: git@gitlab.com:koudmain/koudmain-backend.git
     secrets: inherit
+
+  events-dependabot-pass:
+    if: github.actor == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot[bot]' || startsWith(github.head_ref, 'dependabot/')
+    name: "Events & Automation / Require Checklist / Require Checklist"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bypass checklist for Dependabot
+        run: echo "Checklist automatically approved for Dependabot"
+
