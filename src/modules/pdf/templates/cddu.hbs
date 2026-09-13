@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Contrat CDDU - {{contractRef}}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 15mm 20mm 15mm;
+    }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.5;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+    .logo-title {
+      font-size: 18pt;
+      font-weight: bold;
+      color: #2563eb;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .contract-title {
+      font-size: 14pt;
+      font-weight: bold;
+      margin-top: 10px;
+      color: #0f172a;
+    }
+    .ref-number {
+      font-size: 9pt;
+      color: #64748b;
+      margin-top: 5px;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .parties-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 25px;
+    }
+    .parties-table td {
+      width: 50%;
+      vertical-align: top;
+      padding: 12px;
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+    }
+    .party-title {
+      font-weight: bold;
+      font-size: 11pt;
+      color: #1e293b;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .article-title {
+      font-weight: bold;
+      font-size: 11pt;
+      color: #1e293b;
+      margin-top: 15px;
+      margin-bottom: 6px;
+    }
+    .article-content {
+      text-align: justify;
+      margin-bottom: 10px;
+    }
+    .highlight {
+      font-weight: bold;
+    }
+    .signature-section {
+      margin-top: 40px;
+      page-break-inside: avoid;
+    }
+    .signature-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .signature-table td {
+      width: 50%;
+      vertical-align: top;
+      padding: 15px;
+      border: 1px dashed #cbd5e1;
+      height: 120px;
+    }
+    .signature-tag {
+      margin-top: 15px;
+      font-size: 10pt;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 6px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 8pt;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo-title">KOUDMAIN</div>
+    <div class="contract-title">CONTRAT DE TRAVAIL À DURÉE DÉTERMINÉE D'USAGE (CDDU)</div>
+    <div class="ref-number">Réf : {{contractRef}} | Fait le {{createdDate}}</div>
+  </div>
+
+  <div class="section">
+    <table class="parties-table">
+      <tr>
+        <td>
+          <div class="party-title">ENTREPRISE EMPLOYEUR</div>
+          <strong>{{employer.name}}</strong><br />
+          SIRET : {{employer.siret}}<br />
+          Adresse : {{employer.address}}<br />
+          Représentée par : {{employer.representative}}
+        </td>
+        <td>
+          <div class="party-title">LE / LA SALARIÉ(E)</div>
+          <strong>{{employee.firstName}} {{employee.lastName}}</strong><br />
+          N° Sec. Sociale : {{employee.nir}}<br />
+          Né(e) le : {{employee.birthDate}}<br />
+          Adresse : {{employee.address}}
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="article-title">ARTICLE 1 – OBJET & QUALIFICATION</div>
+    <div class="article-content">
+      Le présent contrat à durée déterminée est conclu à titre d'usage (CDDU) en application de l'article L. 1242-2 3° du Code du Travail. Le/La salarié(e) est engagé(e) en qualité de <span class="highlight">{{jobTitle}}</span> pour la réalisation de la mission suivante : <span class="highlight">{{missionDescription}}</span>.
+    </div>
+
+    <div class="article-title">ARTICLE 2 – DURÉE DU CONTRAT</div>
+    <div class="article-content">
+      Le présent contrat prend effet le <span class="highlight">{{startDate}}</span> et se terminera le <span class="highlight">{{endDate}}</span>. La durée totale de la mission est fixée à <span class="highlight">{{totalHours}} heures</span>.
+    </div>
+
+    <div class="article-title">ARTICLE 3 – RÉMUNÉRATION</div>
+    <div class="article-content">
+      En contrepartie de son activité, le/la salarié(e) percevra un taux horaire brut de <span class="highlight">{{hourlyRate}} €</span>, soit une rémunération brute totale de <span class="highlight">{{totalGrossSalary}} €</span>. À cette rémunération s'ajoutera une indemnité compensatrice de congés payés égale à 10% de la rémunération brute totale.
+    </div>
+
+    <div class="article-title">ARTICLE 4 – LIEU D'EXÉCUTION</div>
+    <div class="article-content">
+      La mission s'effectuera à l'adresse suivante : <span class="highlight">{{missionLocation}}</span>.
+    </div>
+  </div>
+
+  <div class="signature-section">
+    <table class="signature-table">
+      <tr>
+        <td>
+          <strong>Pour l'Employeur</strong><br />
+          <span style="font-size: 9pt; color: #64748b;">Signature et tampon</span>
+          <div class="signature-tag">[SIGNATURE_EMPLOYEUR]</div>
+        </td>
+        <td>
+          <strong>Le / La Salarié(e)</strong><br />
+          <span style="font-size: 9pt; color: #64748b;">Signature précédée de "Lu et approuvé"</span>
+          <div class="signature-tag">[SIGNATURE_SALARIE]</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    Document généré par Koudmain Platform - Contrat CDDU conforme à la législation en vigueur.
+  </div>
+
+</body>
+</html>

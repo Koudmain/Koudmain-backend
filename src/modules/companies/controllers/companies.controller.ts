@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Put, Request } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
@@ -11,8 +11,6 @@ interface RequestWithUser extends ExpressRequest {
   };
 }
 
-@ApiTags('Companies')
-@ApiBearerAuth()
 @Controller('companies')
 export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}

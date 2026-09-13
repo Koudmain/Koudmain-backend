@@ -3,7 +3,9 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.sequelize.query(`CREATE TYPE "user_role" AS ENUM ('WORKER', 'EMPLOYER');`);
+    await queryInterface.sequelize.query(
+      `CREATE TYPE "user_role" AS ENUM ('WORKER', 'EMPLOYER');`,
+    );
 
     await queryInterface.addColumn('user', 'phone_number', {
       type: Sequelize.STRING(20),
@@ -34,7 +36,11 @@ module.exports = {
       allowNull: true,
     });
 
-    await queryInterface.renameColumn('worker_profile', 'max_distance_km', 'work_radius');
+    await queryInterface.renameColumn(
+      'worker_profile',
+      'max_distance_km',
+      'work_radius',
+    );
 
     await queryInterface.createTable('worker_job', {
       worker_id: {
@@ -134,7 +140,11 @@ module.exports = {
     await queryInterface.removeColumn('company', 'owner_position');
     await queryInterface.dropTable('worker_job');
 
-    await queryInterface.renameColumn('worker_profile', 'work_radius', 'max_distance_km');
+    await queryInterface.renameColumn(
+      'worker_profile',
+      'work_radius',
+      'max_distance_km',
+    );
     await queryInterface.removeColumn('worker_profile', 'bio');
 
     await queryInterface.addColumn('user', 'is_employer_active', {

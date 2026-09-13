@@ -8,15 +8,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Request as ExpressRequest } from 'express';
 import { ChatService } from '@/modules/chat/services/chat.service';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { type RequestWithUser } from '@/common/types/request.type';
 
 export class CreateConversationDto {
   @ApiProperty({ example: 1, description: 'ID de la publication' })
