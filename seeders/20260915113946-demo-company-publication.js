@@ -3,14 +3,6 @@ const { faker } = require('@faker-js/faker');
 
 const DEMO_EMPLOYER_EMAIL = 'employer1@koudmain.fr';
 
-const DEFAULT_SKILLS = [
-  { name: 'Service en salle' },
-  { name: 'Cuisine' },
-  { name: 'Bar' },
-  { name: 'Plonge' },
-  { name: 'Accueil clientèle' },
-];
-
 const PUBLICATIONS_DATA = [
   {
     title: 'Serveur H/F',
@@ -102,16 +94,11 @@ module.exports = {
       return;
     }
 
-    let skillRows = (await queryInterface.sequelize.query(`SELECT id, name FROM skill;`))[0];
+    const skillRows = (await queryInterface.sequelize.query(`SELECT id, name FROM skill;`))[0];
     if (skillRows.length === 0) {
-      const maxSkillIdQuery = await queryInterface.sequelize.query(
-        `SELECT MAX(id) as max_id FROM skill;`,
+      console.log(
+        'Aucune compétence trouvée en base (lancez le seeder demo-skills avant celui-ci). Les publications seront créées sans compétence associée.',
       );
-      let nextSkillId = Number(maxSkillIdQuery[0][0]?.max_id || 0) + 1;
-      const skillsToInsert = DEFAULT_SKILLS.map((skill) => ({ id: nextSkillId++, ...skill }));
-
-      await queryInterface.bulkInsert('skill', skillsToInsert, {});
-      skillRows = skillsToInsert;
     }
 
     const maxPublicationIdQuery = await queryInterface.sequelize.query(
@@ -147,13 +134,15 @@ module.exports = {
     await queryInterface.bulkInsert('publication', publicationsToInsert, {});
 
     const publicationSkills = [];
-    publicationsToInsert.forEach((pub) => {
-      const numSkills = faker.number.int({ min: 1, max: Math.min(3, skillRows.length) });
-      const pickedSkills = faker.helpers.arrayElements(skillRows, numSkills);
-      pickedSkills.forEach((skill) => {
-        publicationSkills.push({ publication_id: pub.id, skill_id: skill.id });
+    if (skillRows.length > 0) {
+      publicationsToInsert.forEach((pub) => {
+        const numSkills = faker.number.int({ min: 1, max: Math.min(3, skillRows.length) });
+        const pickedSkills = faker.helpers.arrayElements(skillRows, numSkills);
+        pickedSkills.forEach((skill) => {
+          publicationSkills.push({ publication_id: pub.id, skill_id: skill.id });
+        });
       });
-    });
+    }
 
     if (publicationSkills.length > 0) {
       await queryInterface.bulkInsert('publication_skill', publicationSkills, {});
@@ -181,8 +170,6 @@ module.exports = {
       await queryInterface.bulkDelete('publication_skill', { publication_id: pubIds }, {});
       await queryInterface.bulkDelete('publication', { id: pubIds }, {});
     }
-
-    await queryInterface.bulkDelete('skill', { name: DEFAULT_SKILLS.map((s) => s.name) }, {});
 
     console.log('Publications de démonstration supprimées.');
   },
