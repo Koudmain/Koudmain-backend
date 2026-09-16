@@ -27,6 +27,8 @@ describe('Chat System (e2e)', () => {
   let pubId: number;
   let convId: number;
   let workerId: number;
+  let chatSkillCategoryId: number;
+  let chatSkillId: number;
 
   beforeAll(async () => {
     try {
@@ -61,15 +63,22 @@ describe('Chat System (e2e)', () => {
 
       sequelize = app.get<Sequelize>(getConnectionToken());
 
-      await sequelize.query(
-        `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
-      );
-      await sequelize.query(
-        `INSERT INTO "skill" (id, name, category_id) VALUES (0, 'Skill E2E Chat Test', 1) ON CONFLICT DO NOTHING;`,
-      );
-
       authToken = await getAuthTokenForEmployer(app, 'employer1@koudmain.fr');
       console.log('Auth token obtenu pour les tests E2E', authToken);
+
+      // Create our own category/skill instead of hardcoded ids (0, 1), which can collide with
+      // rows already seeded in the database (dev-parity seeders, other e2e suites, ...).
+      const suffix = Date.now();
+      const [categoryInsert] = await sequelize.query(
+        `INSERT INTO "skill_category" (name) VALUES ('E2E Chat Test Category ${suffix}') RETURNING id;`,
+      );
+      chatSkillCategoryId = (categoryInsert[0] as { id: number }).id;
+
+      const skillResponse = await request(app.getHttpServer())
+        .post('/skill/create')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: `Skill E2E Chat Test ${suffix}`, category_id: chatSkillCategoryId });
+      chatSkillId = (skillResponse.body as { id: number }).id;
     } catch (error) {
       console.error('Erreur Sequelize détaillée :', error);
       process.exit(1);
@@ -77,9 +86,28 @@ describe('Chat System (e2e)', () => {
   });
 
   afterAll(async () => {
-    await sequelize.query('TRUNCATE TABLE "message" RESTART IDENTITY CASCADE;');
-    await sequelize.query('TRUNCATE TABLE "conversation" RESTART IDENTITY CASCADE;');
-    await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
+    // Only remove the rows this suite created, so it stays safe to run against a database
+    // that already contains other data (dev-parity seeders, fixtures from other suites, ...).
+    if (convId) {
+      await sequelize.query(
+        `DELETE FROM "message_status" WHERE message_id IN (SELECT id FROM "message" WHERE conversation_id = ${convId});`,
+      );
+      await sequelize.query(`DELETE FROM "message" WHERE conversation_id = ${convId};`);
+      await sequelize.query(
+        `DELETE FROM "conversation_settings" WHERE conversation_id = ${convId};`,
+      );
+      await sequelize.query(`DELETE FROM "conversation" WHERE id = ${convId};`);
+    }
+    if (pubId) {
+      await sequelize.query(`DELETE FROM "publication_skill" WHERE publication_id = ${pubId};`);
+      await sequelize.query(`DELETE FROM "publication" WHERE id = ${pubId};`);
+    }
+    if (chatSkillId) {
+      await sequelize.query(`DELETE FROM "skill" WHERE id = ${chatSkillId};`);
+    }
+    if (chatSkillCategoryId) {
+      await sequelize.query(`DELETE FROM "skill_category" WHERE id = ${chatSkillCategoryId};`);
+    }
     await app.close();
   });
 
@@ -118,7 +146,7 @@ describe('Chat System (e2e)', () => {
         hourly_rate: 50,
         starting_date: new Date().toISOString(),
         ending_date: new Date(Date.now() + 86400000).toISOString(),
-        skills: [0],
+        skills: [chatSkillId],
       });
 
     const pubBody = pubRes.body as { id: number };
