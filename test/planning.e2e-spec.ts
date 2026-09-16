@@ -101,11 +101,7 @@ describe('Planning (e2e)', () => {
     );
     workerName = `${(workerUserRows[0] as any).first_name} ${(workerUserRows[0] as any).last_name}`;
 
-    // Create publication in current date range (employer owns it).
-    // The "publication" table's id is assigned manually elsewhere (PublicationService,
-    // seeders) via MAX(id) + 1 instead of the serial default, which is never advanced by
-    // those inserts — so we follow the same convention here to avoid colliding with an
-    // existing row.
+    // Create a publication for the employer and an accepted application for the worker
     const now = new Date();
     const startingDate = new Date(now.getFullYear(), now.getMonth(), 1);
     const endingDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);

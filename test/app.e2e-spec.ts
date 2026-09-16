@@ -21,10 +21,6 @@ describe('AppController (e2e)', () => {
   let sequelize: Sequelize;
   let accessToken: string;
 
-  // Every fixture below is created by the test itself and referenced by the id/name the
-  // API/DB actually returned, instead of assuming the tables are empty and hardcoding ids
-  // (e.g. `1`, `999`) — those assumptions break as soon as other data (seeders, other e2e
-  // suites, ...) already populated the shared database.
   let publicationCategoryId: number;
   let publicationSkillId: number;
   let publicationSkillName: string;
@@ -73,8 +69,6 @@ describe('AppController (e2e)', () => {
   });
 
   afterAll(async () => {
-    // Only remove the rows this suite created, so it stays safe to run against a database
-    // that already contains other data (dev-parity seeders, fixtures from other suites, ...).
     if (publicationId) {
       await sequelize.query(
         `DELETE FROM "publication_skill" WHERE publication_id = ${publicationId};`,

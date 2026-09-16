@@ -66,8 +66,6 @@ describe('Chat System (e2e)', () => {
       authToken = await getAuthTokenForEmployer(app, 'employer1@koudmain.fr');
       console.log('Auth token obtenu pour les tests E2E', authToken);
 
-      // Create our own category/skill instead of hardcoded ids (0, 1), which can collide with
-      // rows already seeded in the database (dev-parity seeders, other e2e suites, ...).
       const suffix = Date.now();
       const [categoryInsert] = await sequelize.query(
         `INSERT INTO "skill_category" (name) VALUES ('E2E Chat Test Category ${suffix}') RETURNING id;`,
@@ -86,8 +84,6 @@ describe('Chat System (e2e)', () => {
   });
 
   afterAll(async () => {
-    // Only remove the rows this suite created, so it stays safe to run against a database
-    // that already contains other data (dev-parity seeders, fixtures from other suites, ...).
     if (convId) {
       await sequelize.query(
         `DELETE FROM "message_status" WHERE message_id IN (SELECT id FROM "message" WHERE conversation_id = ${convId});`,
