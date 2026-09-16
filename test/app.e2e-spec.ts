@@ -21,6 +21,20 @@ describe('AppController (e2e)', () => {
   let sequelize: Sequelize;
   let accessToken: string;
 
+  // Every fixture below is created by the test itself and referenced by the id/name the
+  // API/DB actually returned, instead of assuming the tables are empty and hardcoding ids
+  // (e.g. `1`, `999`) — those assumptions break as soon as other data (seeders, other e2e
+  // suites, ...) already populated the shared database.
+  let publicationCategoryId: number;
+  let publicationSkillId: number;
+  let publicationSkillName: string;
+  let publicationId: number;
+
+  let standaloneCategoryId: number;
+  let standaloneCategoryName: string;
+  let standaloneSkillId: number;
+  let standaloneSkillName: string;
+
   beforeAll(async () => {
     try {
       const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -59,10 +73,26 @@ describe('AppController (e2e)', () => {
   });
 
   afterAll(async () => {
-    await sequelize.query('TRUNCATE TABLE "publication" RESTART IDENTITY CASCADE;');
-    await sequelize.query('TRUNCATE TABLE "publication_skill" RESTART IDENTITY CASCADE;');
-    await sequelize.query('TRUNCATE TABLE "skill" RESTART IDENTITY CASCADE;');
-    await sequelize.query('TRUNCATE TABLE "skill_category" RESTART IDENTITY CASCADE;');
+    // Only remove the rows this suite created, so it stays safe to run against a database
+    // that already contains other data (dev-parity seeders, fixtures from other suites, ...).
+    if (publicationId) {
+      await sequelize.query(
+        `DELETE FROM "publication_skill" WHERE publication_id = ${publicationId};`,
+      );
+      await sequelize.query(`DELETE FROM "publication" WHERE id = ${publicationId};`);
+    }
+    if (publicationSkillId) {
+      await sequelize.query(`DELETE FROM "skill" WHERE id = ${publicationSkillId};`);
+    }
+    if (publicationCategoryId) {
+      await sequelize.query(`DELETE FROM "skill_category" WHERE id = ${publicationCategoryId};`);
+    }
+    if (standaloneSkillId) {
+      await sequelize.query(`DELETE FROM "skill" WHERE id = ${standaloneSkillId};`);
+    }
+    if (standaloneCategoryId) {
+      await sequelize.query(`DELETE FROM "skill_category" WHERE id = ${standaloneCategoryId};`);
+    }
     await app.close();
   });
 
@@ -82,35 +112,48 @@ describe('AppController (e2e)', () => {
   });
 
   it('should create a publication with associated skills', async () => {
-    await sequelize.query(
-      `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
-    );
-    await sequelize.query(
-      `INSERT INTO "skill" (id, name, category_id) VALUES (999, 'Skill E2E Publication Test', 1) ON CONFLICT DO NOTHING;`,
-    );
+    const suffix = Date.now();
+    const categoryName = `E2E Publication Test Category ${suffix}`;
+    publicationSkillName = `Skill E2E Publication Test ${suffix}`;
 
+    const categoryInsert = await sequelize.query(
+      `INSERT INTO "skill_category" (name) VALUES ('${categoryName}') RETURNING id;`,
+    );
+    publicationCategoryId = (categoryInsert[0][0] as { id: number }).id;
+
+    const skillResponse = await request(app.getHttpServer())
+      .post('/skill/create')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ name: publicationSkillName, category_id: publicationCategoryId });
+
+    expect(skillResponse.status).toBe(201);
+    publicationSkillId = (skillResponse.body as { id: number }).id;
+
+    const publicationTitle = `E2E Database Test ${suffix}`;
     const response = await request(app.getHttpServer())
       .post('/publication/create')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
-        title: 'E2E Database Test',
-        description: "This shouldn\'t be mocked!",
+        title: publicationTitle,
+        description: "This shouldn't be mocked!",
         hourly_rate: 25.5,
         starting_date: new Date(),
         ending_date: new Date(),
-        skills: [999],
+        skills: [publicationSkillId],
       });
 
     expect(response.status).toBe(201);
+    publicationId = (response.body as { id: number }).id;
 
     const dbCheck = await sequelize.query(
-      `SELECT * FROM "publication" WHERE title = 'E2E Database Test';`,
+      `SELECT * FROM "publication" WHERE id = ${publicationId};`,
     );
     expect(dbCheck[0].length).toBe(1);
+    expect((dbCheck[0][0] as any).title).toBe(publicationTitle);
     expect((dbCheck[0][0] as any).description).toBe("This shouldn't be mocked!");
 
     const relCheck = await sequelize.query(
-      `SELECT * FROM "publication_skill" WHERE publication_id = 1;`,
+      `SELECT * FROM "publication_skill" WHERE publication_id = ${publicationId};`,
     );
     expect(relCheck[0].length).toBe(1);
   });
@@ -122,72 +165,80 @@ describe('AppController (e2e)', () => {
       .send({});
 
     expect(response.status).toBe(200);
-
     expect(response.body).toBeInstanceOf(Array);
 
-    const first_pub: Record<string, any> = response.body[0] ? response.body[0] : undefined;
+    const createdPublication = (response.body as Array<Record<string, any>>).find(
+      (pub) => pub.id === publicationId,
+    );
 
-    if (first_pub) {
-      expect(first_pub.id).toBe(1);
-      expect(first_pub.skills).toBeInstanceOf(Array);
-      expect(first_pub.skills[0].id).toBe(999);
-      expect(first_pub.skills[0].name).toBe('Skill E2E Publication Test');
-    }
+    expect(createdPublication).toBeDefined();
+    expect(createdPublication?.skills).toBeInstanceOf(Array);
+    expect(createdPublication?.skills[0].id).toBe(publicationSkillId);
+    expect(createdPublication?.skills[0].name).toBe(publicationSkillName);
   });
 
-  it('should edit the title and skills of the first publication previously added by the test', async () => {
+  it('should edit the title and skills of the publication previously added by the test', async () => {
     const response = await request(app.getHttpServer())
-      .put('/publication/update/1')
+      .put(`/publication/update/${publicationId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ title: 'Updated Title', skills: [] });
 
     expect(response.status).toBe(200);
 
-    const dbCheck = await sequelize.query(`SELECT * FROM "publication" WHERE id = 1;`);
+    const dbCheck = await sequelize.query(
+      `SELECT * FROM "publication" WHERE id = ${publicationId};`,
+    );
     expect(dbCheck[0].length).toBe(1);
     expect((dbCheck[0][0] as any).title).toBe('Updated Title');
 
     const skillCheck = await sequelize.query(
-      `SELECT * FROM "publication_skill" WHERE publication_id = 1;`,
+      `SELECT * FROM "publication_skill" WHERE publication_id = ${publicationId};`,
     );
     expect(skillCheck[0].length).toBe(0);
   });
 
-  it('should delete the first publication previously added by the test', async () => {
+  it('should delete the publication previously added by the test', async () => {
     const response = await request(app.getHttpServer())
-      .delete('/publication/delete/1')
+      .delete(`/publication/delete/${publicationId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({});
 
     expect(response.status).toBe(200);
 
-    const dbCheck = await sequelize.query(`SELECT * FROM "publication" WHERE id = 1;`);
+    const dbCheck = await sequelize.query(
+      `SELECT * FROM "publication" WHERE id = ${publicationId};`,
+    );
     expect(dbCheck[0].length).toBe(0);
 
-    // Clean up pre-inserted skill and category so downstream skill tests run on a pristine state
-    await sequelize.query('TRUNCATE TABLE "skill" RESTART IDENTITY CASCADE;');
-    await sequelize.query('TRUNCATE TABLE "skill_category" RESTART IDENTITY CASCADE;');
+    // The publication row is gone; clear the id so afterAll doesn't try to delete it again.
+    publicationId = undefined as unknown as number;
   });
 
   it('should create a skill without any foreign Key constraint field', async () => {
-    await sequelize.query(
-      `INSERT INTO "skill_category" (id, name) VALUES (1, 'Test Category') ON CONFLICT DO NOTHING;`,
+    const suffix = Date.now();
+    standaloneCategoryName = `E2E Skill Test Category ${suffix}`;
+    standaloneSkillName = `Skill TEST E2E ${suffix}`;
+
+    const categoryInsert = await sequelize.query(
+      `INSERT INTO "skill_category" (name) VALUES ('${standaloneCategoryName}') RETURNING id;`,
     );
+    standaloneCategoryId = (categoryInsert[0][0] as { id: number }).id;
 
     const response = await request(app.getHttpServer())
       .post('/skill/create')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
-        name: 'Skill TEST E2E',
-        category_id: 1,
+        name: standaloneSkillName,
+        category_id: standaloneCategoryId,
       });
 
     expect(response.status).toBe(201);
+    standaloneSkillId = (response.body as { id: number }).id;
 
-    const dbCheck = await sequelize.query(`SELECT * FROM "skill" WHERE name = 'Skill TEST E2E';`);
+    const dbCheck = await sequelize.query(`SELECT * FROM "skill" WHERE id = ${standaloneSkillId};`);
     expect(dbCheck[0].length).toBe(1);
-    expect((dbCheck[0][0] as any).name).toBe('Skill TEST E2E');
-    expect((dbCheck[0][0] as any).category_id).toBe(1);
+    expect((dbCheck[0][0] as any).name).toBe(standaloneSkillName);
+    expect((dbCheck[0][0] as any).category_id).toBe(standaloneCategoryId);
   });
 
   it('should get all skill previously added by the test', async () => {
@@ -197,19 +248,18 @@ describe('AppController (e2e)', () => {
       .send({});
 
     expect(response.status).toBe(200);
-
     expect(response.body).toBeInstanceOf(Array);
 
-    const first_skill: Record<string, any> = response.body[0] ? response.body[0] : undefined;
-
-    if (first_skill) {
-      expect(first_skill.id).toBe(1);
-    }
+    const createdSkill = (response.body as Array<Record<string, any>>).find(
+      (skill) => skill.id === standaloneSkillId,
+    );
+    expect(createdSkill).toBeDefined();
+    expect(createdSkill?.name).toBe(standaloneSkillName);
   });
 
-  it('should get the first skill previously added by the test', async () => {
+  it('should get the skill previously added by the test', async () => {
     const response = await request(app.getHttpServer())
-      .get('/skill/get/1')
+      .get(`/skill/get/${standaloneSkillId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({});
 
@@ -217,16 +267,18 @@ describe('AppController (e2e)', () => {
 
     const skill = response.body;
 
-    expect(skill.id).toBe(1);
-    expect(skill.name).toBe('Skill TEST E2E');
+    expect(skill.id).toBe(standaloneSkillId);
+    expect(skill.name).toBe(standaloneSkillName);
     expect(skill.category).toStrictEqual(
-      SkillCategory.build({ id: 1, name: 'Test Category' }).get({ plain: true }),
+      SkillCategory.build({ id: standaloneCategoryId, name: standaloneCategoryName }).get({
+        plain: true,
+      }),
     );
   });
 
   it('should get skills by category ID', async () => {
     const response = await request(app.getHttpServer())
-      .get('/skill/category/1')
+      .get(`/skill/category/${standaloneCategoryId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .send({});
 
@@ -234,7 +286,9 @@ describe('AppController (e2e)', () => {
     expect(response.body).toBeInstanceOf(Array);
     expect(response.body.length).toBeGreaterThan(0);
     expect(response.body[0].category).toStrictEqual(
-      SkillCategory.build({ id: 1, name: 'Test Category' }).get({ plain: true }),
+      SkillCategory.build({ id: standaloneCategoryId, name: standaloneCategoryName }).get({
+        plain: true,
+      }),
     );
   });
 });
