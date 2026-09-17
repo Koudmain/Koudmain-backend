@@ -54,6 +54,46 @@ const PUBLICATIONS_DATA = [
     startHour: 11,
     durationHours: 4,
   },
+  {
+    title: 'Hôte/Hôtesse d\'accueil événementiel',
+    description:
+      "Recherchons une personne souriante et organisée pour l'accueil des invités lors d'un événement d'entreprise. Bonne présentation exigée.",
+    hourly_rate: 13,
+    status: 'Ouverte',
+    startOffsetDays: 8,
+    startHour: 17,
+    durationHours: 5,
+  },
+  {
+    title: 'Livreur à vélo H/F',
+    description:
+      "Recherchons un livreur disponible immédiatement pour renforcer l'équipe lors d'un pic de commandes. Vélo personnel apprécié mais non obligatoire.",
+    hourly_rate: 12.5,
+    status: 'Urgente',
+    startOffsetDays: 0,
+    startHour: 12,
+    durationHours: 3,
+  },
+  {
+    title: 'Aide pâtissier H/F',
+    description:
+      "Poste d'aide pâtissier pour la préparation des commandes du week-end. Rigueur et sens du détail requis.",
+    hourly_rate: 13.8,
+    status: 'Ouverte',
+    startOffsetDays: 5,
+    startHour: 6,
+    durationHours: 6,
+  },
+  {
+    title: 'Agent d\'entretien H/F',
+    description:
+      "Poste d'agent d'entretien pour le nettoyage des locaux en fin de service. Mission ponctuelle déjà pourvue, publication conservée à titre d'archive.",
+    hourly_rate: 11.5,
+    status: 'Fermée',
+    startOffsetDays: -5,
+    startHour: 20,
+    durationHours: 2,
+  },
 ];
 
 async function getTargetCompany(queryInterface) {
