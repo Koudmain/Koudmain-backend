@@ -9,6 +9,9 @@ import { SignatureEnvelope } from './models/signature-envelope.model';
 import { WorkersModule } from '@/modules/workers/workers.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';
 import { DocumentsController } from './controllers/document.controller';
+import { UserDocumentsController } from './controllers/user-documents.controller';
+import { WorkerDocumentsController } from './controllers/worker-documents.controller';
+import { CompanyDocumentsController } from './controllers/company-documents.controller';
 import { DocumentsService } from './services/document.service';
 
 @Module({
@@ -24,7 +27,12 @@ import { DocumentsService } from './services/document.service';
       SignatureEnvelope,
     ]),
   ],
-  controllers: [DocumentsController],
+  controllers: [
+    DocumentsController,
+    UserDocumentsController,
+    WorkerDocumentsController,
+    CompanyDocumentsController,
+  ],
   providers: [DocumentsService],
   exports: [DocumentsService],
 })

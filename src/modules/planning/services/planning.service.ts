@@ -16,6 +16,8 @@ export class PlanningService {
   constructor(
     @InjectModel(User)
     private readonly userModel: typeof User,
+    @InjectModel(Publication)
+    private readonly publicationModel: typeof Publication,
     @InjectModel(Application)
     private readonly applicationModel: typeof Application,
     @InjectModel(CompanyMember)
@@ -89,60 +91,60 @@ export class PlanningService {
       throw new ForbiddenException('Utilisateur non autorisé pour cette company');
     }
 
-    const applications = await this.applicationModel.findAll({
+    const publications = await this.publicationModel.findAll({
+      where: {
+        companyId: activeCompanyId,
+        starting_date: {
+          [Op.lte]: filterEndDate,
+        },
+        ending_date: {
+          [Op.gte]: filterStartDate,
+        },
+      },
       include: [
         {
-          model: Publication,
-          as: 'publication',
-          required: true,
+          model: Company,
+          as: 'company',
+          required: false,
+        },
+        {
+          model: Application,
+          as: 'applications',
+          required: false,
           where: {
-            companyId: activeCompanyId,
-            starting_date: {
-              [Op.lte]: filterEndDate,
-            },
-            ending_date: {
-              [Op.gte]: filterStartDate,
+            status: {
+              [Op.in]: ['Accepted'],
             },
           },
           include: [
             {
-              model: Company,
-              as: 'company',
-              required: false,
-            },
-          ],
-        },
-        {
-          model: WorkerProfile,
-          as: 'workerProfile',
-          required: true,
-          include: [
-            {
-              model: User,
-              as: 'user',
+              model: WorkerProfile,
+              as: 'workerProfile',
               required: true,
               include: [
                 {
-                  model: Review,
-                  as: 'reviews',
-                  required: false,
+                  model: User,
+                  as: 'user',
+                  required: true,
+                  include: [
+                    {
+                      model: Review,
+                      as: 'reviews',
+                      required: false,
+                    },
+                  ],
                 },
               ],
             },
           ],
         },
       ],
-      where: {
-        status: {
-          [Op.in]: ['Accepted'],
-        },
-      },
-      order: [['publication', 'starting_date', 'ASC']],
+      order: [['starting_date', 'ASC']],
     });
 
-    return applications.map((app) => {
-      const pub = app.publication;
-      const worker = app.workerProfile?.user;
+    return publications.map((pub) => {
+      const acceptedApplication = pub.applications?.[0];
+      const worker = acceptedApplication?.workerProfile?.user;
       const reviews = worker?.reviews || [];
       const totalRating = reviews.reduce((sum: number, r: Review) => sum + r.rating, 0);
       const workerRating = reviews.length > 0 ? totalRating / reviews.length : 0;

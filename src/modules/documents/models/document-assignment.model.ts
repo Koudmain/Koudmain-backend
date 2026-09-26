@@ -21,7 +21,6 @@ export type DocumentAssignmentCreationAttributes = Optional<DocumentAssignmentAt
   tableName: 'document_assignment',
   underscored: true,
   timestamps: true,
-  updatedAt: false,
 })
 export class DocumentAssignment
   extends Model<DocumentAssignment, DocumentAssignmentCreationAttributes>
@@ -74,6 +73,12 @@ export class DocumentAssignment
     defaultValue: false,
   })
   declare verified: boolean;
+
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
+
+  @Column({ field: 'updated_at', type: DataType.DATE })
+  declare updatedAt: Date;
 
   @BelongsTo(() => Document, 'documentId')
   document: Document;

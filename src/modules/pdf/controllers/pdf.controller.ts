@@ -12,9 +12,9 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiParam,
-  ApiProduces,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -39,11 +39,11 @@ export class PdfController {
   @ApiOperation({
     summary: 'Générer un exemple de contrat CDDU au format PDF',
     description:
-      'Génère et renvoie un fichier PDF de démonstration avec des données d exemple pour le modèle CDDU.',
+      'Génère et retourne un exemple de contrat CDDU pré-rempli au format PDF pour test visuel ou prévisualisation directe.',
   })
-  @ApiProduces('application/pdf')
   @ApiResponse({ status: 200, description: 'Fichier PDF généré avec succès.' })
   @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 500, description: 'Erreur lors du rendu du PDF.' })
   @HttpCode(HttpStatus.OK)
   @Get('test-cddu')
   @Header('Content-Type', 'application/pdf')
@@ -81,22 +81,22 @@ export class PdfController {
   }
 
   @ApiOperation({
-    summary: 'Générer un PDF dynamique selon un template',
+    summary: "Générer un document PDF dynamique à partir d'un template",
     description:
-      'Génère un fichier PDF à partir du template spécifié (ex: cddu, invoice) et des données fournies dans le corps de la requête.',
+      'Génère un document PDF à partir du template spécifié (`cddu`, `invoice`) et des données transmises dans le body.',
   })
   @ApiParam({
     name: 'template',
-    description: 'Nom du template (ex: cddu, invoice)',
+    description: 'Nom du template Handlebars (ex: cddu, invoice)',
     example: 'cddu',
   })
-  @ApiProduces('application/pdf')
-  @ApiResponse({ status: 200, description: 'Fichier PDF généré et renvoyé.' })
-  @ApiResponse({
-    status: 400,
-    description: 'Template introuvable ou données transmises invalides.',
+  @ApiBody({
+    description: 'Données nécessaires à la génération du PDF selon le template sélectionné.',
   })
+  @ApiResponse({ status: 200, description: 'Fichier PDF généré avec succès.' })
+  @ApiResponse({ status: 400, description: 'Nom de template inconnu ou données invalides.' })
   @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 500, description: 'Erreur serveur lors de la génération du PDF.' })
   @HttpCode(HttpStatus.OK)
   @Post('generate/:template')
   async generatePdf(

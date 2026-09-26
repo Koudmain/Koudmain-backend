@@ -77,6 +77,12 @@ export class SignatureEnvelope
   })
   declare status: SignatureStatus;
 
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
+
+  @Column({ field: 'updated_at', type: DataType.DATE })
+  declare updatedAt: Date;
+
   @BelongsTo(() => Document, 'documentId')
   document: Document;
 }
