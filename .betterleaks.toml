@@ -1,0 +1,17 @@
+[allowlist]
+description = "Global allowlist for tests, mock credentials, and CI configs"
+paths = [
+  '''test/.*''',
+  '''.*\.spec\.ts$''',
+  '''.*\.e2e-spec\.ts$''',
+  '''\.github/workflows/.*''',
+  '''script/.*''',
+  '''\.env\.example$'''
+]
+stopwords = [
+  "password123",
+  "redispassword",
+  "test-access-secret",
+  "test-refresh-secret",
+  "change-me"
+]
