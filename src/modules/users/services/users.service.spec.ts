@@ -76,7 +76,6 @@ describe('UsersService', () => {
     it('should pass down the transaction option', async () => {
       mockUserModel.max.mockResolvedValue(0);
 
-      // Remplacement de {} as any par le type Transaction de Sequelize
       const fakeTransaction = {} as Transaction;
 
       await service.create({ email: 'tx@test.com' }, { transaction: fakeTransaction });

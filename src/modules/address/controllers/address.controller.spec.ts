@@ -1,15 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AddressController } from './address.controller';
 import { AddressService } from '@/modules/address/services/address.service';
-import type { Request as ExpressRequest } from 'express';
 import { CreateAddressDto, GetMapAddressesDto } from '@/modules/address/address.dto';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { type RequestWithUser } from '@/common/types/request.type';
 
 describe('AddressController', () => {
   let controller: AddressController;
@@ -70,7 +63,7 @@ describe('AddressController', () => {
         maxLat: '2',
         minLng: '3',
         maxLng: '4',
-      } as GetMapAddressesDto;
+      };
       const rows = [{ id: 1, latitude: 1.5, longitude: 3.5 }];
       mockAddressService.getAddressesInZone.mockResolvedValue(rows);
 

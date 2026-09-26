@@ -12,13 +12,7 @@ import { Address } from '@/modules/address/address.model';
 import { Sequelize } from 'sequelize-typescript';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import { UserRole } from '@/modules/users/models/user.model';
-import {
-  RegisterDto,
-  WorkerProfileDto,
-  EmployerProfileDto,
-  OwnerPosition,
-  CompanyType,
-} from '@/modules/auth/models/register.model';
+import { RegisterDto, OwnerPosition, CompanyType } from '@/modules/auth/models/register.model';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt', () => ({
@@ -185,7 +179,7 @@ describe('AuthService', () => {
         skillCategoryIds: [1],
         bio: 'Plombier expérimenté',
         workRadius: 30,
-      } as WorkerProfileDto,
+      },
     };
 
     const baseEmployerDto: RegisterDto = {
@@ -201,7 +195,7 @@ describe('AuthService', () => {
         companyType: CompanyType.CAFE_BAR,
         ownerPosition: OwnerPosition.HR,
         desiredJobIds: [1, 2],
-      } as EmployerProfileDto,
+      },
     };
 
     it('should throw ConflictException if email already exists and is verified', async () => {
