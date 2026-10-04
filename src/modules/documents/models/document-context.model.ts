@@ -26,38 +26,38 @@ export class DocumentContext
     primaryKey: true,
     allowNull: false,
   })
-  documentId: number;
+  declare documentId: number;
 
   @ForeignKey(() => Publication)
   @Column({
     type: DataType.INTEGER,
     allowNull: true,
   })
-  publicationId: number | null;
+  declare publicationId: number | null;
 
   @ForeignKey(() => Conversation)
   @Column({
     type: DataType.INTEGER,
     allowNull: true,
   })
-  conversationId: number | null;
+  declare conversationId: number | null;
 
   @ForeignKey(() => Mission)
   @Column({
     type: DataType.INTEGER,
     allowNull: true,
   })
-  missionId: number | null;
+  declare missionId: number | null;
 
   @BelongsTo(() => Document, 'documentId')
-  document: Document;
+  declare document: Document;
 
   @BelongsTo(() => Publication, 'publicationId')
-  publication: Publication;
+  declare publication: Publication;
 
   @BelongsTo(() => Conversation, 'conversationId')
-  conversation: Conversation;
+  declare conversation: Conversation;
 
   @BelongsTo(() => Mission, 'missionId')
-  mission: Mission;
+  declare mission: Mission;
 }

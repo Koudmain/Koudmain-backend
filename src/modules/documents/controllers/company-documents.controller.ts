@@ -1,5 +1,5 @@
 import {
-  BadRequestException,
+  ForbiddenException,
   Controller,
   Get,
   HttpCode,
@@ -30,7 +30,7 @@ export class CompanyDocumentsController {
   })
   @ApiParam({ name: 'companyId', description: "ID de l'entreprise", example: 1 })
   @ApiResponse({ status: 200, description: "Documents de l'entreprise récupérés." })
-  @ApiResponse({ status: 400, description: "L'utilisateur n'a pas accès à cette entreprise." })
+  @ApiResponse({ status: 403, description: "L'utilisateur n'a pas accès à cette entreprise." })
   @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
   @HttpCode(HttpStatus.OK)
   @Get(':companyId')
@@ -41,8 +41,8 @@ export class CompanyDocumentsController {
     const userId = req.user.sub;
     const isInCompany = await this.companiesService.isUserInCompany(userId, companyId);
     if (!isInCompany) {
-      throw new BadRequestException("Vous n'avez pas les droits pour accéder à cette entreprise");
+      throw new ForbiddenException("Vous n'avez pas les droits pour accéder à cette entreprise");
     }
-    return this.documentsService.getByCompanyId(companyId);
+    return this.documentsService.findAll(userId, { companyId });
   }
 }

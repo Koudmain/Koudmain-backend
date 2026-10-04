@@ -12,12 +12,8 @@ module.exports = {
     const [workers] = await queryInterface.sequelize.query(
       `SELECT id, user_id FROM "worker_profile";`,
     );
-    const [companies] = await queryInterface.sequelize.query(
-      `SELECT id, name FROM "company";`,
-    );
-    const [missions] = await queryInterface.sequelize.query(
-      `SELECT id FROM "mission";`,
-    );
+    const [companies] = await queryInterface.sequelize.query(`SELECT id, name FROM "company";`);
+    const [missions] = await queryInterface.sequelize.query(`SELECT id FROM "mission";`);
 
     const userList = users || [];
     const workerList = workers || [];
@@ -41,7 +37,7 @@ module.exports = {
         name: `Pièce d'identité - ${u.first_name || 'Utilisateur'} ${u.last_name || u.id}`,
         original_filename: `cni_${u.id}_${faker.string.alphanumeric(5)}.pdf`,
         file_path: `https://storage.koudmain.fr/docs/users/${u.id}/cni.pdf`,
-        category: 'OTHER',
+        category: 'IDENTITY',
         size_bytes: faker.number.int({ min: 500000, max: 3000000 }),
         mime_type: 'application/pdf',
         created_at: now,
@@ -94,7 +90,7 @@ module.exports = {
         name: `RIB - Profil Worker #${w.id}`,
         original_filename: `rib_worker_${w.id}.pdf`,
         file_path: `https://storage.koudmain.fr/docs/workers/${w.id}/rib.pdf`,
-        category: 'OTHER',
+        category: 'RIB',
         size_bytes: faker.number.int({ min: 100000, max: 800000 }),
         mime_type: 'application/pdf',
         created_at: now,
@@ -125,7 +121,7 @@ module.exports = {
         name: certName,
         original_filename: `certification_${w.id}.pdf`,
         file_path: `https://storage.koudmain.fr/docs/workers/${w.id}/diploma.pdf`,
-        category: 'OTHER',
+        category: 'DIPLOMA',
         size_bytes: faker.number.int({ min: 800000, max: 4000000 }),
         mime_type: 'application/pdf',
         created_at: now,
@@ -153,7 +149,7 @@ module.exports = {
         name: `Extrait KBIS - ${c.name || 'Entreprise #' + c.id}`,
         original_filename: `kbis_company_${c.id}.pdf`,
         file_path: `https://storage.koudmain.fr/docs/companies/${c.id}/kbis.pdf`,
-        category: 'OTHER',
+        category: 'KBIS',
         size_bytes: faker.number.int({ min: 1200000, max: 5000000 }),
         mime_type: 'application/pdf',
         created_at: now,
@@ -178,7 +174,7 @@ module.exports = {
         name: `RIB Société - ${c.name || 'Entreprise #' + c.id}`,
         original_filename: `rib_company_${c.id}.pdf`,
         file_path: `https://storage.koudmain.fr/docs/companies/${c.id}/rib.pdf`,
-        category: 'OTHER',
+        category: 'RIB',
         size_bytes: faker.number.int({ min: 200000, max: 900000 }),
         mime_type: 'application/pdf',
         created_at: now,
@@ -272,6 +268,21 @@ module.exports = {
         created_at: now,
         updated_at: now,
       });
+    });
+
+    const storageFolders = {
+      CONTRACT: 'contracts',
+      INVOICE: 'invoices',
+      IDENTITY: 'identity',
+      RIB: 'rib',
+      DIPLOMA: 'diplomas',
+      KBIS: 'kbis',
+      OTHER: 'others',
+    };
+    documentsToInsert.forEach((doc) => {
+      doc.file_path = `${storageFolders[doc.category]}/${doc.id}`;
+      doc.version_id = 'seed';
+      doc.checksum_sha256 = '0'.repeat(64);
     });
 
     if (documentsToInsert.length > 0) {

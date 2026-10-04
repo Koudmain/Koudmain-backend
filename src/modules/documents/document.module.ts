@@ -8,16 +8,19 @@ import { DocumentContext } from './models/document-context.model';
 import { SignatureEnvelope } from './models/signature-envelope.model';
 import { WorkersModule } from '@/modules/workers/workers.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';
+import { S3Module } from '@/modules/s3/s3.module';
 import { DocumentsController } from './controllers/document.controller';
 import { UserDocumentsController } from './controllers/user-documents.controller';
 import { WorkerDocumentsController } from './controllers/worker-documents.controller';
 import { CompanyDocumentsController } from './controllers/company-documents.controller';
 import { DocumentsService } from './services/document.service';
+import { DocumentAccessService } from './services/document-access.service';
 
 @Module({
   imports: [
     WorkersModule,
     CompaniesModule,
+    S3Module,
     SequelizeModule.forFeature([
       Document,
       Contract,
@@ -33,7 +36,7 @@ import { DocumentsService } from './services/document.service';
     WorkerDocumentsController,
     CompanyDocumentsController,
   ],
-  providers: [DocumentsService],
+  providers: [DocumentsService, DocumentAccessService],
   exports: [DocumentsService],
 })
 export class DocumentsModule {}

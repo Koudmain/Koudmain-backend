@@ -4,6 +4,10 @@ import { Optional } from 'sequelize';
 export enum DocumentCategory {
   CONTRACT = 'CONTRACT',
   INVOICE = 'INVOICE',
+  IDENTITY = 'IDENTITY',
+  RIB = 'RIB',
+  DIPLOMA = 'DIPLOMA',
+  KBIS = 'KBIS',
   OTHER = 'OTHER',
 }
 
@@ -22,6 +26,8 @@ export interface DocumentAttributes {
   category: DocumentCategory;
   sizeBytes: number | null;
   mimeType: string | null;
+  versionId: string;
+  checksumSha256: string;
   updatedAt?: Date;
   createdAt?: Date;
 }
@@ -85,6 +91,18 @@ export class Document
   })
   declare mimeType: string | null;
 
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+  })
+  declare versionId: string;
+
+  @Column({
+    type: DataType.STRING(64),
+    allowNull: false,
+  })
+  declare checksumSha256: string;
+
   @Column({ field: 'created_at', type: DataType.DATE })
   declare createdAt: Date;
 
@@ -92,20 +110,20 @@ export class Document
   declare updatedAt: Date;
 
   @HasOne(() => Contract, 'documentId')
-  contract: Contract;
+  declare contract: Contract;
 
   @HasOne(() => Invoice, 'documentId')
-  invoice: Invoice;
+  declare invoice: Invoice;
 
   @HasMany(() => DocumentAssignment, 'documentId')
-  assignments: DocumentAssignment[];
+  declare assignments: DocumentAssignment[];
 
   @HasOne(() => DocumentContext, 'documentId')
-  context: DocumentContext;
+  declare context: DocumentContext;
 
   @HasOne(() => SignatureEnvelope, 'documentId')
-  signatureEnvelope: SignatureEnvelope;
+  declare signatureEnvelope: SignatureEnvelope;
 
   @HasMany(() => Message, 'documentId')
-  messages: Message[];
+  declare messages: Message[];
 }

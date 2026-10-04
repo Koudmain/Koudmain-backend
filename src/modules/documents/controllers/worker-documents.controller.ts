@@ -37,6 +37,6 @@ export class WorkerDocumentsController {
     if (!workerProfile) {
       throw new BadRequestException('Profil de travailleur non trouvé pour cet utilisateur');
     }
-    return this.documentsService.getByWorkerId(workerProfile.id);
+    return this.documentsService.findAll(userId, { workerId: workerProfile.id });
   }
 }
