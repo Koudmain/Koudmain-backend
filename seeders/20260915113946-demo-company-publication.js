@@ -55,7 +55,7 @@ const PUBLICATIONS_DATA = [
     durationHours: 4,
   },
   {
-    title: 'Hôte/Hôtesse d\'accueil événementiel',
+    title: "Hôte/Hôtesse d'accueil événementiel",
     description:
       "Recherchons une personne souriante et organisée pour l'accueil des invités lors d'un événement d'entreprise. Bonne présentation exigée.",
     hourly_rate: 13,
@@ -85,7 +85,7 @@ const PUBLICATIONS_DATA = [
     durationHours: 6,
   },
   {
-    title: 'Agent d\'entretien H/F',
+    title: "Agent d'entretien H/F",
     description:
       "Poste d'agent d'entretien pour le nettoyage des locaux en fin de service. Mission ponctuelle déjà pourvue, publication conservée à titre d'archive.",
     hourly_rate: 11.5,
