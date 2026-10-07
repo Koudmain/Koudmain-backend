@@ -2,7 +2,7 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up(queryInterface, Sequelize) {
     await queryInterface.removeConstraint('worker_profile', 'worker_profile_user_id_fkey');
     await queryInterface.removeConstraint('worker_profile', 'worker_profile_user_id_fkey1');
     await queryInterface.addConstraint('worker_profile', {
@@ -17,7 +17,7 @@ module.exports = {
     });
   },
 
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
     await queryInterface.removeConstraint('worker_profile', 'worker_profile_user_id_fkey');
-  }
+  },
 };
