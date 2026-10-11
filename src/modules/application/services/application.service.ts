@@ -17,6 +17,7 @@ import { Address } from '@/modules/address/address.model';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { ChatService } from '@/modules/chat/services/chat.service';
 import { ApplyDto } from '@/modules/application/dto/apply.dto';
+import { CheckEligibilityResponseDto } from '@/modules/application/dto/check-eligibility-response.dto';
 import { ApplicationErrorCode } from '@/modules/application/enums/application-error-code.enum';
 
 @Injectable()
@@ -63,6 +64,72 @@ export class ApplicationService {
     return {
       isComplete: missing.length === 0,
       missing,
+    };
+  }
+
+  /**
+   * Check if a worker is eligible to apply for a publication (KYC complete, not expired, not already applied).
+   * @param userId - The ID of the user (worker) checking eligibility
+   * @param publicationId - The ID of the publication to check
+   * @returns An object indicating whether the worker can apply and any reasons/missing documents if not
+   */
+  async checkEligibility(
+    userId: number,
+    publicationId: number,
+  ): Promise<CheckEligibilityResponseDto> {
+    const worker = await this.workersService.getWorkerByUserId(userId);
+    if (!worker) {
+      throw new NotFoundException({
+        code: ApplicationErrorCode.WORKER_PROFILE_NOT_FOUND,
+        message: 'Profil travailleur introuvable',
+      });
+    }
+
+    const publication = await this.publicationModel.findByPk(publicationId);
+    if (!publication) {
+      throw new NotFoundException({
+        code: ApplicationErrorCode.PUBLICATION_NOT_FOUND,
+        message: 'Offre introuvable',
+      });
+    }
+
+    // Check if the publication has expired
+    if (publication.ending_date && new Date(publication.ending_date) < new Date()) {
+      return {
+        canApply: false,
+        reason: ApplicationErrorCode.OFFER_EXPIRED,
+        message: 'Cette offre a déjà expiré',
+      };
+    }
+
+    // Check if the worker has already applied to this publication
+    const existingApplication = await this.applicationModel.findOne({
+      where: {
+        publicationId,
+        workerId: worker.id,
+      },
+    });
+    if (existingApplication) {
+      return {
+        canApply: false,
+        reason: ApplicationErrorCode.ALREADY_APPLIED,
+        message: 'Vous avez déjà postulé à cette offre',
+      };
+    }
+
+    // Check if the worker has completed all required KYC documents
+    const kycResult = await this.checkWorkerKyc(worker.id);
+    if (!kycResult.isComplete) {
+      return {
+        canApply: false,
+        reason: ApplicationErrorCode.KYC_REQUIRED,
+        message: `Documents KYC manquants ou non validés : ${kycResult.missing.join(', ')}.`,
+        missingDocuments: kycResult.missing,
+      };
+    }
+
+    return {
+      canApply: true,
     };
   }
 

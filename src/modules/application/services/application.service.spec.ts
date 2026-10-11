@@ -242,6 +242,89 @@ describe('ApplicationService', () => {
     });
   });
 
+  describe('checkEligibility', () => {
+    const userId = 1;
+    const publicationId = 5;
+    const workerProfile = { id: 10, userId };
+    const publication = { id: 5, ending_date: null };
+
+    it('doit retourner canApply: true si tout est valide', async () => {
+      mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
+      mockPublicationModel.findByPk.mockResolvedValue(publication);
+      mockApplicationModel.findOne.mockResolvedValue(null);
+      mockWorkerDocumentModel.findAll.mockResolvedValue([
+        { type: WorkerDocumentType.IDENTITY },
+        { type: WorkerDocumentType.NIR },
+        { type: WorkerDocumentType.PROOF_OF_ADDRESS },
+        { type: WorkerDocumentType.RIB },
+      ]);
+
+      const result = await service.checkEligibility(userId, publicationId);
+      expect(result).toEqual({ canApply: true });
+    });
+
+    it('doit lever NotFoundException si profil worker introuvable', async () => {
+      mockWorkersService.getWorkerByUserId.mockResolvedValue(null);
+
+      await expect(service.checkEligibility(userId, publicationId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('doit lever NotFoundException si publication introuvable', async () => {
+      mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
+      mockPublicationModel.findByPk.mockResolvedValue(null);
+
+      await expect(service.checkEligibility(userId, publicationId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('doit retourner canApply: false avec OFFER_EXPIRED si offre expirée', async () => {
+      mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
+      mockPublicationModel.findByPk.mockResolvedValue({
+        id: 5,
+        ending_date: new Date(Date.now() - 1000 * 60),
+      });
+
+      const result = await service.checkEligibility(userId, publicationId);
+      expect(result).toMatchObject({
+        canApply: false,
+        reason: ApplicationErrorCode.OFFER_EXPIRED,
+      });
+    });
+
+    it('doit retourner canApply: false avec ALREADY_APPLIED si déjà postulé', async () => {
+      mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
+      mockPublicationModel.findByPk.mockResolvedValue(publication);
+      mockApplicationModel.findOne.mockResolvedValue({ id: 99 });
+
+      const result = await service.checkEligibility(userId, publicationId);
+      expect(result).toMatchObject({
+        canApply: false,
+        reason: ApplicationErrorCode.ALREADY_APPLIED,
+      });
+    });
+
+    it('doit retourner canApply: false avec KYC_REQUIRED et missingDocuments si KYC incomplet', async () => {
+      mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
+      mockPublicationModel.findByPk.mockResolvedValue(publication);
+      mockApplicationModel.findOne.mockResolvedValue(null);
+      mockWorkerDocumentModel.findAll.mockResolvedValue([{ type: WorkerDocumentType.IDENTITY }]);
+
+      const result = await service.checkEligibility(userId, publicationId);
+      expect(result).toMatchObject({
+        canApply: false,
+        reason: ApplicationErrorCode.KYC_REQUIRED,
+        missingDocuments: [
+          WorkerDocumentType.NIR,
+          WorkerDocumentType.PROOF_OF_ADDRESS,
+          WorkerDocumentType.RIB,
+        ],
+      });
+    });
+  });
+
   describe('getMyApplications', () => {
     it('doit lister les candidatures du profil worker', async () => {
       mockWorkersService.getWorkerByUserId.mockResolvedValue({ id: 10 });

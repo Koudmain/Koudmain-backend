@@ -15,6 +15,7 @@ import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@ne
 import { ApplicationService } from '@/modules/application/services/application.service';
 import { ApplyDto } from '@/modules/application/dto/apply.dto';
 import { UpdateApplicationStatusDto } from '@/modules/application/dto/update-application-status.dto';
+import { CheckEligibilityResponseDto } from '@/modules/application/dto/check-eligibility-response.dto';
 import { currentUser } from '@/decorators/current-user.decorator';
 import type { JwtPayload } from '@/decorators/current-user.decorator';
 
@@ -24,11 +25,36 @@ import type { JwtPayload } from '@/decorators/current-user.decorator';
 export class ApplicationController {
   constructor(private readonly applicationService: ApplicationService) {}
 
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Vérifier l'éligibilité à postuler",
+    description:
+      'Vérifie en amont si le travailleur connecté peut postuler à une offre (statut KYC, offre active, non-doublon).',
+  })
+  @ApiParam({ name: 'publicationId', description: 'ID de la publication', type: Number })
+  @ApiResponse({
+    status: 200,
+    description: "Résultat de la vérification d'éligibilité.",
+    type: CheckEligibilityResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Utilisateur non authentifié.' })
+  @ApiResponse({ status: 404, description: 'Offre ou profil travailleur non trouvé.' })
+  @Get('check/:publicationId')
+  async checkEligibility(
+    @currentUser() user: JwtPayload,
+    @Param('publicationId', ParseIntPipe) publicationId: number,
+  ) {
+    if (!user?.sub) {
+      throw new UnauthorizedException('Utilisateur non authentifié');
+    }
+    return this.applicationService.checkEligibility(Number(user.sub), publicationId);
+  }
+
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Postuler à une offre',
     description:
-      'Permet au travailleur connecté de postuler à une offre d’emploi avec un message optionnel.',
+      "Permet au travailleur connecté de postuler à une offre d'emploi avec un message optionnel.",
   })
   @ApiResponse({ status: 201, description: 'Candidature enregistrée avec succès.' })
   @ApiResponse({ status: 400, description: 'Offre expirée ou requête invalide.' })
@@ -63,9 +89,9 @@ export class ApplicationController {
 
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Candidatures d’une publication',
+    summary: "Candidatures d'une publication",
     description:
-      'Permet à l’entreprise propriétaire d’une annonce de consulter l’ensemble des candidatures reçues.',
+      "Permet à l'entreprise propriétaire d'une annonce de consulter l'ensemble des candidatures reçues.",
   })
   @ApiParam({ name: 'publicationId', description: 'ID de la publication', type: Number })
   @ApiResponse({ status: 200, description: 'Candidatures récupérées avec succès.' })
@@ -84,8 +110,8 @@ export class ApplicationController {
 
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Mettre à jour le statut d’une candidature',
-    description: 'Permet à l’entreprise d’accepter ou de rejeter une candidature.',
+    summary: "Mettre à jour le statut d'une candidature",
+    description: "Permet à l'entreprise d'accepter ou de rejeter une candidature.",
   })
   @ApiParam({ name: 'id', description: 'ID de la candidature', type: Number })
   @ApiResponse({ status: 200, description: 'Statut mis à jour avec succès.' })
@@ -107,7 +133,7 @@ export class ApplicationController {
   @ApiOperation({
     summary: 'Annuler une candidature',
     description:
-      'Permet au travailleur d’annuler sa propre candidature tant qu’elle est en attente.',
+      "Permet au travailleur d'annuler sa propre candidature tant qu'elle est en attente.",
   })
   @ApiParam({ name: 'id', description: 'ID de la candidature à annuler', type: Number })
   @ApiResponse({ status: 200, description: 'Candidature annulée avec succès.' })

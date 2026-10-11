@@ -6,6 +6,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import type { JwtPayload } from '@/decorators/current-user.decorator';
 
 const mockApplicationService = {
+  checkEligibility: jest.fn(),
   apply: jest.fn(),
   getMyApplications: jest.fn(),
   getApplicationsByPublication: jest.fn(),
@@ -33,6 +34,24 @@ describe('ApplicationController', () => {
 
   it('doit être défini', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('checkEligibility', () => {
+    it('doit appeler ApplicationService.checkEligibility avec sub et publicationId', async () => {
+      const mockResult = { canApply: true };
+      mockApplicationService.checkEligibility.mockResolvedValue(mockResult);
+
+      const res = await controller.checkEligibility({ sub: 42 }, 10);
+
+      expect(mockApplicationService.checkEligibility).toHaveBeenCalledWith(42, 10);
+      expect(res).toBe(mockResult);
+    });
+
+    it('doit lever UnauthorizedException si user est absent', async () => {
+      await expect(
+        controller.checkEligibility(undefined as unknown as JwtPayload, 10),
+      ).rejects.toThrow(UnauthorizedException);
+    });
   });
 
   describe('apply', () => {
