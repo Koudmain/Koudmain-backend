@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty } from 'class-validator';
-import { ApplicationStatus } from '../models/application.model';
+import { ApplicationStatus } from '@/modules/application/models/application.model';
 
 export class UpdateApplicationStatusDto {
   @ApiProperty({

@@ -6,7 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { Application, ApplicationStatus } from '../models/application.model';
+import { Application, ApplicationStatus } from '@/modules/application/models/application.model';
 import { Publication } from '@/modules/publication/models/publication.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { WorkerDocument, WorkerDocumentType } from '@/modules/workers/models/worker-document.model';
@@ -16,7 +16,8 @@ import { User } from '@/modules/users/models/user.model';
 import { Address } from '@/modules/address/address.model';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { ChatService } from '@/modules/chat/services/chat.service';
-import { ApplyDto } from '../dto/apply.dto';
+import { ApplyDto } from '@/modules/application/dto/apply.dto';
+import { ApplicationErrorCode } from '@/modules/application/enums/application-error-code.enum';
 
 @Injectable()
 export class ApplicationService {
@@ -25,8 +26,6 @@ export class ApplicationService {
     private readonly applicationModel: typeof Application,
     @InjectModel(Publication)
     private readonly publicationModel: typeof Publication,
-    @InjectModel(WorkerProfile)
-    private readonly workerProfileModel: typeof WorkerProfile,
     @InjectModel(WorkerDocument)
     private readonly workerDocumentModel: typeof WorkerDocument,
     @InjectModel(CompanyMember)
@@ -37,6 +36,8 @@ export class ApplicationService {
 
   /**
    * Check if the worker has a verified KYC document (identity document)
+   * @param workerId - The ID of the worker
+   * @returns A boolean indicating whether the worker has a verified KYC document
    */
   async checkWorkerKyc(workerId: number): Promise<boolean> {
     const doc = await this.workerDocumentModel.findOne({
@@ -59,26 +60,36 @@ export class ApplicationService {
   async apply(userId: number, dto: ApplyDto): Promise<Application> {
     const worker = await this.workersService.getWorkerByUserId(userId);
     if (!worker) {
-      throw new NotFoundException('Profil travailleur introuvable');
+      throw new NotFoundException({
+        code: ApplicationErrorCode.WORKER_PROFILE_NOT_FOUND,
+        message: 'Profil travailleur introuvable',
+      });
     }
 
     // Check if the worker has a verified identity document
     const isVerified = await this.checkWorkerKyc(worker.id);
     if (!isVerified) {
-      throw new ForbiddenException(
-        "Votre pièce d'identité (KYC) doit être validée pour pouvoir postuler.",
-      );
+      throw new ForbiddenException({
+        code: ApplicationErrorCode.KYC_REQUIRED,
+        message: "Votre pièce d'identité (KYC) doit être validée pour pouvoir postuler.",
+      });
     }
 
     // Check if the publication exists
     const publication = await this.publicationModel.findByPk(dto.publicationId);
     if (!publication) {
-      throw new NotFoundException('Offre introuvable');
+      throw new NotFoundException({
+        code: ApplicationErrorCode.PUBLICATION_NOT_FOUND,
+        message: 'Offre introuvable',
+      });
     }
 
     // Check if the publication has expired
     if (publication.ending_date && new Date(publication.ending_date) < new Date()) {
-      throw new BadRequestException('Cette offre a déjà expiré');
+      throw new BadRequestException({
+        code: ApplicationErrorCode.OFFER_EXPIRED,
+        message: 'Cette offre a déjà expiré',
+      });
     }
 
     // Check if the worker has already applied to this publication
@@ -89,31 +100,37 @@ export class ApplicationService {
       },
     });
     if (existingApplication) {
-      throw new ConflictException('Vous avez déjà postulé à cette offre');
+      throw new ConflictException({
+        code: ApplicationErrorCode.ALREADY_APPLIED,
+        message: 'Vous avez déjà postulé à cette offre',
+      });
     }
 
-    // Create the application
+    // Check message length limit (150 chars maximum)
+    if (dto.message && dto.message.length > 150) {
+      throw new BadRequestException({
+        code: ApplicationErrorCode.MESSAGE_TOO_LONG,
+        message: 'Le message ne doit pas dépasser 150 caractères',
+      });
+    }
+
+    // If a message is provided, create a chat conversation and send the message to the company FIRST
+    if (dto.message && dto.message.trim().length > 0 && publication.companyId) {
+      const conversation = await this.chatService.findOrCreateConversation(
+        publication.id,
+        worker.id,
+        publication.companyId,
+      );
+      await this.chatService.sendMessage(userId, conversation.id, dto.message.trim());
+    }
+
+    // Create the application after the message has been sent
     const application = await this.applicationModel.create({
       publicationId: dto.publicationId,
       workerId: worker.id,
       status: ApplicationStatus.PENDING,
       createdAt: new Date(),
     });
-
-    // If a message is provided, create a chat conversation and send the message to the company
-    if (dto.message && dto.message.trim().length > 0 && publication.companyId) {
-      try {
-        const conversation = await this.chatService.findOrCreateConversation(
-          publication.id,
-          worker.id,
-          publication.companyId,
-        );
-        await this.chatService.sendMessage(userId, conversation.id, dto.message.trim());
-      } catch (error) {
-        // Log l'erreur mais ne pas faire échouer la création de la candidature si le chat a un souci
-        console.error("Erreur lors de l'envoi du message de candidature:", error);
-      }
-    }
 
     return application;
   }
@@ -126,7 +143,10 @@ export class ApplicationService {
   async getMyApplications(userId: number): Promise<Application[]> {
     const worker = await this.workersService.getWorkerByUserId(userId);
     if (!worker) {
-      throw new NotFoundException('Profil travailleur introuvable');
+      throw new NotFoundException({
+        code: ApplicationErrorCode.WORKER_PROFILE_NOT_FOUND,
+        message: 'Profil travailleur introuvable',
+      });
     }
 
     return this.applicationModel.findAll({
@@ -153,7 +173,10 @@ export class ApplicationService {
   ): Promise<Application[]> {
     const publication = await this.publicationModel.findByPk(publicationId);
     if (!publication) {
-      throw new NotFoundException('Offre introuvable');
+      throw new NotFoundException({
+        code: ApplicationErrorCode.PUBLICATION_NOT_FOUND,
+        message: 'Offre introuvable',
+      });
     }
 
     // Verify rights: the user must be a member of the company or the creator of the publication
@@ -165,9 +188,10 @@ export class ApplicationService {
     });
 
     if (!isMember && publication.createdByUserId !== userId) {
-      throw new ForbiddenException(
-        "Vous n'êtes pas autorisé à consulter les candidatures de cette offre",
-      );
+      throw new ForbiddenException({
+        code: ApplicationErrorCode.NOT_AUTHORIZED,
+        message: "Vous n'êtes pas autorisé à consulter les candidatures de cette offre",
+      });
     }
 
     return this.applicationModel.findAll({
@@ -204,7 +228,10 @@ export class ApplicationService {
     });
 
     if (!application) {
-      throw new NotFoundException('Candidature introuvable');
+      throw new NotFoundException({
+        code: ApplicationErrorCode.APPLICATION_NOT_FOUND,
+        message: 'Candidature introuvable',
+      });
     }
 
     // Verify rights: the user must be a member of the company or the creator of the publication
@@ -216,9 +243,10 @@ export class ApplicationService {
     });
 
     if (!isMember && application.publication.createdByUserId !== userId) {
-      throw new ForbiddenException(
-        "Vous n'êtes pas autorisé à modifier le statut de cette candidature",
-      );
+      throw new ForbiddenException({
+        code: ApplicationErrorCode.NOT_AUTHORIZED,
+        message: "Vous n'êtes pas autorisé à modifier le statut de cette candidature",
+      });
     }
 
     application.status = status;
@@ -236,20 +264,32 @@ export class ApplicationService {
   async cancel(userId: number, applicationId: number): Promise<{ message: string }> {
     const worker = await this.workersService.getWorkerByUserId(userId);
     if (!worker) {
-      throw new NotFoundException('Profil travailleur introuvable');
+      throw new NotFoundException({
+        code: ApplicationErrorCode.WORKER_PROFILE_NOT_FOUND,
+        message: 'Profil travailleur introuvable',
+      });
     }
 
     const application = await this.applicationModel.findByPk(applicationId);
     if (!application) {
-      throw new NotFoundException('Candidature introuvable');
+      throw new NotFoundException({
+        code: ApplicationErrorCode.APPLICATION_NOT_FOUND,
+        message: 'Candidature introuvable',
+      });
     }
 
     if (application.workerId !== worker.id) {
-      throw new ForbiddenException('Vous ne pouvez annuler que vos propres candidatures');
+      throw new ForbiddenException({
+        code: ApplicationErrorCode.NOT_AUTHORIZED,
+        message: 'Vous ne pouvez annuler que vos propres candidatures',
+      });
     }
 
     if (application.status !== ApplicationStatus.PENDING) {
-      throw new BadRequestException("Impossible d'annuler une candidature déjà traitée");
+      throw new BadRequestException({
+        code: ApplicationErrorCode.CANNOT_CANCEL_PROCESSED,
+        message: "Impossible d'annuler une candidature déjà traitée",
+      });
     }
 
     await application.destroy();

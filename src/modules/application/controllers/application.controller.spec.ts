@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ApplicationController } from './application.controller';
-import { ApplicationService } from '../services/application.service';
-import { ApplicationStatus } from '../models/application.model';
+import { ApplicationService } from '@/modules/application/services/application.service';
+import { ApplicationStatus } from '@/modules/application/models/application.model';
 import { UnauthorizedException } from '@nestjs/common';
 import type { JwtPayload } from '@/decorators/current-user.decorator';
 

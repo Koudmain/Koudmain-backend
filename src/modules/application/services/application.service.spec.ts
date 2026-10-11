@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { ApplicationService } from './application.service';
-import { Application, ApplicationStatus } from '../models/application.model';
+import { Application, ApplicationStatus } from '@/modules/application/models/application.model';
 import { Publication } from '@/modules/publication/models/publication.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { WorkerDocument } from '@/modules/workers/models/worker-document.model';
@@ -14,6 +14,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import { ApplicationErrorCode } from '@/modules/application/enums/application-error-code.enum';
 
 describe('ApplicationService', () => {
   let service: ApplicationService;
@@ -88,6 +89,7 @@ describe('ApplicationService', () => {
 
     service = module.get<ApplicationService>(ApplicationService);
     jest.clearAllMocks();
+    mockWorkerDocumentModel.findOne.mockResolvedValue({ id: 1, type: 'IDENTITY', verified: true });
   });
 
   it('doit être défini', () => {
@@ -128,18 +130,48 @@ describe('ApplicationService', () => {
       expect(mockChatService.sendMessage).not.toHaveBeenCalled();
     });
 
-    it('doit envoyer un message si le champ message est fourni', async () => {
+    it('doit envoyer le message avant de créer la candidature', async () => {
       mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
       mockPublicationModel.findByPk.mockResolvedValue(publication);
       mockApplicationModel.findOne.mockResolvedValue(null);
-      mockApplicationModel.create.mockResolvedValue({ id: 1 });
       mockChatService.findOrCreateConversation.mockResolvedValue({ id: 99 });
-      mockChatService.sendMessage.mockResolvedValue({ id: 100 });
+
+      const callOrder: string[] = [];
+      mockChatService.sendMessage.mockImplementation(async () => {
+        callOrder.push('sendMessage');
+        return { id: 100 };
+      });
+      mockApplicationModel.create.mockImplementation(async () => {
+        callOrder.push('createApplication');
+        return { id: 1 };
+      });
 
       await service.apply(userId, { publicationId: 5, message: 'Dispo demain !' });
 
       expect(mockChatService.findOrCreateConversation).toHaveBeenCalledWith(5, 10, 2);
       expect(mockChatService.sendMessage).toHaveBeenCalledWith(userId, 99, 'Dispo demain !');
+      expect(mockApplicationModel.create).toHaveBeenCalled();
+      expect(callOrder).toEqual(['sendMessage', 'createApplication']);
+    });
+
+    it('doit lever BadRequestException avec code MESSAGE_TOO_LONG si le message dépasse 150 caractères', async () => {
+      mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
+      mockPublicationModel.findByPk.mockResolvedValue(publication);
+      mockApplicationModel.findOne.mockResolvedValue(null);
+
+      const longMessage = 'a'.repeat(151);
+
+      try {
+        await service.apply(userId, { publicationId: 5, message: longMessage });
+        fail('Devrait lever une exception');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(BadRequestException);
+        expect((err as BadRequestException).getResponse()).toMatchObject({
+          code: ApplicationErrorCode.MESSAGE_TOO_LONG,
+        });
+      }
+      expect(mockChatService.sendMessage).not.toHaveBeenCalled();
+      expect(mockApplicationModel.create).not.toHaveBeenCalled();
     });
 
     it('doit lever NotFoundException si le worker n’existe pas', async () => {
@@ -155,16 +187,22 @@ describe('ApplicationService', () => {
       await expect(service.apply(userId, { publicationId: 5 })).rejects.toThrow(NotFoundException);
     });
 
-    it('doit lever BadRequestException si la publication a expiré', async () => {
+    it('doit lever BadRequestException avec code OFFER_EXPIRED si la publication a expiré', async () => {
       mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
       mockPublicationModel.findByPk.mockResolvedValue({
         id: 5,
         ending_date: new Date(Date.now() - 1000 * 60),
       });
 
-      await expect(service.apply(userId, { publicationId: 5 })).rejects.toThrow(
-        BadRequestException,
-      );
+      try {
+        await service.apply(userId, { publicationId: 5 });
+        fail('Devrait lever une exception');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(BadRequestException);
+        expect((err as BadRequestException).getResponse()).toMatchObject({
+          code: ApplicationErrorCode.OFFER_EXPIRED,
+        });
+      }
     });
 
     it('doit lever ConflictException si déjà postulé', async () => {
@@ -175,13 +213,11 @@ describe('ApplicationService', () => {
       await expect(service.apply(userId, { publicationId: 5 })).rejects.toThrow(ConflictException);
     });
 
-    it('doit lever ForbiddenException si KYC requis et non validé', async () => {
+    it('doit lever ForbiddenException si KYC non validé', async () => {
       mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
       mockWorkerDocumentModel.findOne.mockResolvedValue(null);
 
-      await expect(service.apply(userId, { publicationId: 5 }, true)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.apply(userId, { publicationId: 5 })).rejects.toThrow(ForbiddenException);
     });
   });
 

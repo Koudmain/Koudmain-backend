@@ -12,9 +12,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { ApplicationService } from '../services/application.service';
-import { ApplyDto } from '../dto/apply.dto';
-import { UpdateApplicationStatusDto } from '../dto/update-application-status.dto';
+import { ApplicationService } from '@/modules/application/services/application.service';
+import { ApplyDto } from '@/modules/application/dto/apply.dto';
+import { UpdateApplicationStatusDto } from '@/modules/application/dto/update-application-status.dto';
 import { currentUser } from '@/decorators/current-user.decorator';
 import type { JwtPayload } from '@/decorators/current-user.decorator';
 
