@@ -29,11 +29,7 @@ const UNVERIFIED_KYC_EMAIL = 'worker8@koudmain.fr';
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    const allEmails = [
-      ...VALID_FULL_KYC_EMAILS,
-      PARTIAL_KYC_EMAIL,
-      UNVERIFIED_KYC_EMAIL,
-    ];
+    const allEmails = [...VALID_FULL_KYC_EMAILS, PARTIAL_KYC_EMAIL, UNVERIFIED_KYC_EMAIL];
     const emailsList = allEmails.map((e) => `'${e.replace(/'/g, "''")}'`).join(', ');
 
     // 1. Fetch worker profiles for the target emails
@@ -138,11 +134,7 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    const allEmails = [
-      ...VALID_FULL_KYC_EMAILS,
-      PARTIAL_KYC_EMAIL,
-      UNVERIFIED_KYC_EMAIL,
-    ];
+    const allEmails = [...VALID_FULL_KYC_EMAILS, PARTIAL_KYC_EMAIL, UNVERIFIED_KYC_EMAIL];
 
     const filePaths = [];
     for (const email of allEmails) {
