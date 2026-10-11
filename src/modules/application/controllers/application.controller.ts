@@ -32,7 +32,10 @@ export class ApplicationController {
   })
   @ApiResponse({ status: 201, description: 'Candidature enregistrée avec succès.' })
   @ApiResponse({ status: 400, description: 'Offre expirée ou requête invalide.' })
-  @ApiResponse({ status: 403, description: 'KYC requis non validé.' })
+  @ApiResponse({
+    status: 403,
+    description: 'KYC requis incomplet ou non validé (renvoie code et missingDocuments: string[]).',
+  })
   @ApiResponse({ status: 404, description: 'Offre ou profil travailleur non trouvé.' })
   @ApiResponse({ status: 409, description: 'Candidature déjà existante pour cette offre.' })
   @Post('apply')

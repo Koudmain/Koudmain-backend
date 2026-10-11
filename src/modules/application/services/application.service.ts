@@ -35,26 +35,41 @@ export class ApplicationService {
   ) {}
 
   /**
-   * Check if the worker has a verified KYC document (identity document)
+   * Check if the worker has completed all required KYC documents (IDENTITY, NIR, PROOF_OF_ADDRESS, RIB)
    * @param workerId - The ID of the worker
-   * @returns A boolean indicating whether the worker has a verified KYC document
+   * @returns An object indicating whether KYC is complete and listing any missing or unverified document types
    */
-  async checkWorkerKyc(workerId: number): Promise<boolean> {
-    const doc = await this.workerDocumentModel.findOne({
+  async checkWorkerKyc(
+    workerId: number,
+  ): Promise<{ isComplete: boolean; missing: WorkerDocumentType[] }> {
+    const requiredTypes: WorkerDocumentType[] = [
+      WorkerDocumentType.IDENTITY,
+      WorkerDocumentType.NIR,
+      WorkerDocumentType.PROOF_OF_ADDRESS,
+      WorkerDocumentType.RIB,
+    ];
+
+    const verifiedDocs = await this.workerDocumentModel.findAll({
       where: {
         workerId,
-        type: WorkerDocumentType.IDENTITY,
+        type: requiredTypes,
         verified: true,
       },
     });
-    return !!doc;
+
+    const verifiedTypes = new Set(verifiedDocs.map((d) => d.type as WorkerDocumentType));
+    const missing = requiredTypes.filter((type) => !verifiedTypes.has(type));
+
+    return {
+      isComplete: missing.length === 0,
+      missing,
+    };
   }
 
   /**
-   * Apply to a publication (job offer) as a worker. This method checks for KYC verification if required, ensures the publication exists and is not expired, checks for existing applications, and creates a new application. If a message is provided, it also creates a chat conversation and sends the message to the company.
+   * Apply to a publication (job offer) as a worker. This method checks for full KYC verification, ensures the publication exists and is not expired, checks for existing applications, and creates a new application. If a message is provided, it sends the message to the company first.
    * @param userId - The ID of the user (worker) applying
    * @param dto - The application data transfer object containing publicationId and optional message
-   * @param requireKyc - Whether to enforce KYC verification (default: false)
    * @returns The created Application instance
    */
   async apply(userId: number, dto: ApplyDto): Promise<Application> {
@@ -66,12 +81,13 @@ export class ApplicationService {
       });
     }
 
-    // Check if the worker has a verified identity document
-    const isVerified = await this.checkWorkerKyc(worker.id);
-    if (!isVerified) {
+    // Check if the worker has fully completed and verified their KYC
+    const kycResult = await this.checkWorkerKyc(worker.id);
+    if (!kycResult.isComplete) {
       throw new ForbiddenException({
         code: ApplicationErrorCode.KYC_REQUIRED,
-        message: "Votre pièce d'identité (KYC) doit être validée pour pouvoir postuler.",
+        message: `Documents KYC manquants ou non validés : ${kycResult.missing.join(', ')}.`,
+        missingDocuments: kycResult.missing,
       });
     }
 

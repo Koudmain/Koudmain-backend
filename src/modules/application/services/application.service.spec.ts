@@ -4,7 +4,7 @@ import { ApplicationService } from './application.service';
 import { Application, ApplicationStatus } from '@/modules/application/models/application.model';
 import { Publication } from '@/modules/publication/models/publication.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
-import { WorkerDocument } from '@/modules/workers/models/worker-document.model';
+import { WorkerDocument, WorkerDocumentType } from '@/modules/workers/models/worker-document.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { ChatService } from '@/modules/chat/services/chat.service';
@@ -36,6 +36,7 @@ describe('ApplicationService', () => {
 
   const mockWorkerDocumentModel = {
     findOne: jest.fn(),
+    findAll: jest.fn(),
   };
 
   const mockCompanyMemberModel = {
@@ -89,7 +90,12 @@ describe('ApplicationService', () => {
 
     service = module.get<ApplicationService>(ApplicationService);
     jest.clearAllMocks();
-    mockWorkerDocumentModel.findOne.mockResolvedValue({ id: 1, type: 'IDENTITY', verified: true });
+    mockWorkerDocumentModel.findAll.mockResolvedValue([
+      { type: WorkerDocumentType.IDENTITY },
+      { type: WorkerDocumentType.NIR },
+      { type: WorkerDocumentType.PROOF_OF_ADDRESS },
+      { type: WorkerDocumentType.RIB },
+    ]);
   });
 
   it('doit être défini', () => {
@@ -213,11 +219,26 @@ describe('ApplicationService', () => {
       await expect(service.apply(userId, { publicationId: 5 })).rejects.toThrow(ConflictException);
     });
 
-    it('doit lever ForbiddenException si KYC non validé', async () => {
+    it('doit lever ForbiddenException avec liste des documents manquants si KYC incomplet', async () => {
       mockWorkersService.getWorkerByUserId.mockResolvedValue(workerProfile);
-      mockWorkerDocumentModel.findOne.mockResolvedValue(null);
+      // Only IDENTITY is verified; NIR, PROOF_OF_ADDRESS, and RIB are missing
+      mockWorkerDocumentModel.findAll.mockResolvedValue([{ type: WorkerDocumentType.IDENTITY }]);
 
-      await expect(service.apply(userId, { publicationId: 5 })).rejects.toThrow(ForbiddenException);
+      try {
+        await service.apply(userId, { publicationId: 5 });
+        fail('Devrait lever une ForbiddenException');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(ForbiddenException);
+        const response = (err as ForbiddenException).getResponse() as Record<string, unknown>;
+        expect(response).toMatchObject({
+          code: ApplicationErrorCode.KYC_REQUIRED,
+          missingDocuments: [
+            WorkerDocumentType.NIR,
+            WorkerDocumentType.PROOF_OF_ADDRESS,
+            WorkerDocumentType.RIB,
+          ],
+        });
+      }
     });
   });
 

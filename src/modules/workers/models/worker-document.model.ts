@@ -4,6 +4,8 @@ import { WorkerProfile } from './worker-profile.model';
 export enum WorkerDocumentType {
   IDENTITY = 'IDENTITY',
   RIB = 'RIB',
+  PROOF_OF_ADDRESS = 'PROOF_OF_ADDRESS',
+  NIR = 'NIR',
   DIPLOMA = 'DIPLOMA',
 }
 
