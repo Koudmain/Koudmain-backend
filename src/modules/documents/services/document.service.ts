@@ -24,7 +24,7 @@ import {
   DocumentContext,
   DocumentContextAttributes,
 } from '@/modules/documents/models/document-context.model';
-import { Contract } from '@/modules/documents/models/contract.model';
+import { Contract, ContractStatus } from '@/modules/documents/models/contract.model';
 import { Invoice, InvoiceAttributes } from '@/modules/documents/models/invoice.model';
 import { SignatureEnvelope } from '@/modules/documents/models/signature-envelope.model';
 import { CreateDocumentDto } from '@/modules/documents/dtos/create-document.dto';
@@ -35,6 +35,7 @@ import {
   DocumentActor,
 } from '@/modules/documents/services/document-access.service';
 import { S3Service } from '@/modules/s3/services/s3.service';
+import { ContractGenerationService } from '@/modules/documents/services/contract-generation.service';
 import { PutResult, StorageCategory, StoredObjectRef, StoredVersion } from '@/modules/s3/s3.types';
 
 export interface DocumentDownload {
@@ -77,6 +78,7 @@ export class DocumentsService {
     private sequelize: Sequelize,
     private readonly s3Service: S3Service,
     private readonly accessService: DocumentAccessService,
+    private readonly contractGeneration: ContractGenerationService,
     @InjectModel(Document) private documentModel: typeof Document,
     @InjectModel(DocumentAssignment) private assignmentModel: typeof DocumentAssignment,
     @InjectModel(DocumentContext) private contextModel: typeof DocumentContext,
@@ -90,6 +92,12 @@ export class DocumentsService {
     dto: CreateDocumentDto,
     file: Express.Multer.File,
   ): Promise<Document> {
+    if (dto.category === DocumentCategory.CONTRACT) {
+      throw new BadRequestException(
+        'Un contrat ne se dépose pas: il se génère avec POST /document/mission/:missionId/contract',
+      );
+    }
+
     const actor = await this.accessService.resolveActor(userId);
     const assignment = await this.authorizeCreation(actor, dto);
     const mimeType = DocumentsService.detectMimeType(file.buffer);
@@ -101,7 +109,14 @@ export class DocumentsService {
 
     try {
       return await this.sequelize.transaction(async (transaction) => {
-        await this.insertDocument(dto, file, mimeType, stored, assignment, transaction);
+        await this.insertDocument(
+          dto,
+          { originalFilename: DocumentsService.originalFilename(file), sizeBytes: file.size },
+          mimeType,
+          stored,
+          assignment,
+          transaction,
+        );
 
         return (await this.getById(stored.documentId, transaction))!;
       });
@@ -222,6 +237,12 @@ export class DocumentsService {
     return this.sequelize.transaction(async (transaction) => {
       const document = await this.findReadable(actor, id, transaction);
 
+      if (document.contract) {
+        throw new BadRequestException(
+          'Le fichier d’un contrat ne se remplace pas: régénérez-le avec POST /document/mission/:missionId/contract',
+        );
+      }
+
       await this.assertCanManage(actor, document, 'edit', transaction);
 
       const stored = await this.s3Service.put(
@@ -245,6 +266,62 @@ export class DocumentsService {
     });
   }
 
+  async generateContract(userId: number, missionId: number): Promise<Document> {
+    const actor = await this.accessService.resolveActor(userId);
+    const parties = await this.accessService.missionParties(missionId);
+
+    if (!parties || !DocumentAccessService.isParty(actor, parties)) {
+      throw new NotFoundException(`Mission #${missionId} introuvable`);
+    }
+    if (!DocumentAccessService.isCompanySide(actor, parties)) {
+      throw new ForbiddenException("Seule l'entreprise de la mission peut générer son contrat");
+    }
+
+    const existing = await this.contractModel.findOne({
+      where: { missionId },
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (existing) {
+      return this.regenerateContract(actor, existing.documentId, missionId);
+    }
+
+    const ref: StoredObjectRef = {
+      category: StorageCategory.CONTRACT,
+      documentId: await this.reserveDocumentId(),
+    };
+    const pdf = await this.contractGeneration.generateCddu(missionId, userId, ref.documentId);
+    const stored = await this.s3Service.put(ref, pdf, 'application/pdf');
+
+    try {
+      return await this.sequelize.transaction(async (transaction) => {
+        await this.insertDocument(
+          {
+            name: `Contrat CDDU - mission ${missionId}`,
+            category: DocumentCategory.CONTRACT,
+            missionId,
+          },
+          { originalFilename: `contrat-cddu-${ref.documentId}.pdf`, sizeBytes: pdf.length },
+          'application/pdf',
+          stored,
+          {
+            userId: null,
+            workerId: parties.workerId,
+            companyId: parties.companyId,
+            type: DocumentCategory.CONTRACT,
+            verified: false,
+          },
+          transaction,
+        );
+
+        return (await this.getById(stored.documentId, transaction))!;
+      });
+    } catch (error) {
+      await this.purgeStoredFile(ref);
+      throw error;
+    }
+  }
+
   async getDownloadUrl(
     userId: number,
     id: number,
@@ -265,6 +342,41 @@ export class DocumentsService {
     const document = await this.findOne(userId, id);
 
     return this.s3Service.listVersions(DocumentsService.storageRef(document));
+  }
+
+  private async regenerateContract(
+    actor: DocumentActor,
+    documentId: number,
+    missionId: number,
+  ): Promise<Document> {
+    return this.sequelize.transaction(async (transaction) => {
+      await this.contractModel.findByPk(documentId, { transaction, lock: transaction.LOCK.UPDATE });
+
+      const document = (await this.getById(documentId, transaction))!;
+
+      if (!DocumentsService.isDraft(document)) {
+        throw new ConflictException(DocumentsService.lockedReason(document));
+      }
+
+      const pdf = await this.contractGeneration.generateCddu(missionId, actor.userId, documentId);
+      const stored = await this.s3Service.put(
+        DocumentsService.storageRef(document),
+        pdf,
+        'application/pdf',
+      );
+
+      await document.update(
+        {
+          sizeBytes: pdf.length,
+          mimeType: 'application/pdf',
+          versionId: stored.versionId,
+          checksumSha256: stored.checksum,
+        },
+        { transaction },
+      );
+
+      return (await this.getById(documentId, transaction))!;
+    });
   }
 
   private async authorizeCreation(
@@ -376,11 +488,7 @@ export class DocumentsService {
         );
       }
       if (!DocumentsService.isDraft(document)) {
-        throw new ConflictException(
-          document.contract
-            ? 'Ce contrat est signé: il ne peut plus être modifié ni supprimé'
-            : 'Cette facture est émise: elle ne peut plus être modifiée ni supprimée',
-        );
+        throw new ConflictException(DocumentsService.lockedReason(document));
       }
       return;
     }
@@ -417,7 +525,7 @@ export class DocumentsService {
 
   private async insertDocument(
     dto: CreateDocumentDto,
-    file: Express.Multer.File,
+    file: { originalFilename: string | null; sizeBytes: number },
     mimeType: string,
     stored: PutResult,
     assignment: Omit<DocumentAssignmentCreationAttributes, 'documentId'>,
@@ -429,12 +537,12 @@ export class DocumentsService {
       {
         id: documentId,
         name: dto.name,
-        originalFilename: DocumentsService.originalFilename(file),
+        originalFilename: file.originalFilename,
         filePath: stored.key,
         category: dto.category,
         versionId: stored.versionId,
         checksumSha256: stored.checksum,
-        sizeBytes: file.size,
+        sizeBytes: file.sizeBytes,
         mimeType,
       },
       { transaction },
@@ -460,7 +568,7 @@ export class DocumentsService {
           documentId,
           documentCategory: DocumentCategory.CONTRACT,
           missionId: dto.missionId!,
-          status: 'PENDING',
+          status: ContractStatus.PENDING,
         },
         { transaction },
       );
@@ -526,12 +634,24 @@ export class DocumentsService {
 
   private static isDraft(document: Document): boolean {
     if (document.contract) {
-      return !document.contract.signedAt && (document.contract.status ?? 'PENDING') === 'PENDING';
+      return (
+        !document.contract.signedAt &&
+        (document.contract.status ?? ContractStatus.PENDING) === ContractStatus.PENDING
+      );
     }
     if (document.invoice) {
       return (document.invoice.status ?? 'DRAFT') === 'DRAFT';
     }
     return true;
+  }
+
+  private static lockedReason(document: Document): string {
+    if (!document.contract) {
+      return 'Cette facture est émise: elle ne peut plus être modifiée ni supprimée';
+    }
+    return document.contract.status === ContractStatus.AWAITING_SIGNATURE
+      ? 'Ce contrat est en cours de signature: il ne peut plus être modifié ni supprimé'
+      : 'Ce contrat est signé: il ne peut plus être modifié ni supprimé';
   }
 
   private static detectMimeType(body: Buffer): string {

@@ -35,6 +35,10 @@ import { CreateDocumentDto } from '@/modules/documents/dtos/create-document.dto'
 import { UpdateDocumentDto } from '@/modules/documents/dtos/update-document.dto';
 import { QueryDocumentDto } from '@/modules/documents/dtos/query-document.dto';
 import { DownloadDocumentQueryDto } from '@/modules/documents/dtos/download-document.dto';
+import {
+  DocumentSignatureService,
+  SignatureLink,
+} from '@/modules/documents/services/document-signature.service';
 import { StoredVersion } from '@/modules/s3/s3.types';
 import { type RequestWithUser } from '@/common/types/request.type';
 
@@ -61,12 +65,15 @@ export class PostDocumentResponseDto {
 @ApiExtraModels(CreateDocumentDto)
 @Controller('document')
 export class DocumentsController {
-  constructor(private readonly documentsService: DocumentsService) {}
+  constructor(
+    private readonly documentsService: DocumentsService,
+    private readonly signatureService: DocumentSignatureService,
+  ) {}
 
   @ApiOperation({
     summary: 'Créer un nouveau document',
     description:
-      "Crée un document et stocke son fichier sur S3 (PDF, PNG ou JPEG). Un document personnel ne peut être rattaché qu'à soi, à son profil worker ou à ses entreprises. Un contrat ou une facture exige missionId et ne peut être déposé que par l'entreprise de la mission.",
+      "Crée un document et stocke son fichier sur S3 (PDF, PNG ou JPEG). Un document personnel ne peut être rattaché qu'à soi, à son profil worker ou à ses entreprises. Une facture exige missionId et ne peut être déposée que par l'entreprise de la mission. Un contrat ne se dépose pas: il se génère avec POST /document/mission/:missionId/contract.",
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({ schema: { allOf: [{ $ref: getSchemaPath(CreateDocumentDto) }, FILE_SCHEMA] } })
@@ -116,6 +123,27 @@ export class DocumentsController {
     @Param('missionId', ParseIntPipe) missionId: number,
   ): Promise<Document[]> {
     return this.documentsService.findAll(req.user.sub, { missionId });
+  }
+
+  @ApiOperation({
+    summary: "Générer le contrat d'une mission",
+    description:
+      "Génère le CDDU de la mission à partir des données de la plateforme (entreprise, worker, publication) et le stocke sur S3 comme contrat brouillon. Le membre qui génère apparaît comme représentant de l'entreprise. Si un brouillon existe déjà, il est régénéré en nouvelle version. Réservé à l'entreprise de la mission.",
+  })
+  @ApiParam({ name: 'missionId', description: 'ID de la mission', example: 10 })
+  @ApiResponse({ status: 201, description: 'Contrat généré.' })
+  @ApiResponse({ status: 400, description: 'SIRET, dates ou taux horaire manquants.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 403, description: "Réservé à l'entreprise de la mission." })
+  @ApiResponse({ status: 404, description: 'Mission non trouvée.' })
+  @ApiResponse({ status: 409, description: 'Contrat déjà en signature ou signé.' })
+  @HttpCode(HttpStatus.CREATED)
+  @Post('mission/:missionId/contract')
+  async generateContract(
+    @Request() req: RequestWithUser,
+    @Param('missionId', ParseIntPipe) missionId: number,
+  ): Promise<Document> {
+    return this.documentsService.generateContract(req.user.sub, missionId);
   }
 
   @ApiOperation({
@@ -172,9 +200,50 @@ export class DocumentsController {
   }
 
   @ApiOperation({
+    summary: 'Envoyer un contrat en signature',
+    description:
+      "Envoie la version courante du contrat à Documenso, avec le worker et le membre de l'entreprise qui fait la demande comme signataires. Le PDF doit contenir les marqueurs {{SIGNATURE, r1}} (worker) et {{SIGNATURE, r2}} (entreprise). Le contrat ne peut plus être modifié pendant la signature. Renvoie le lien de signature du demandeur.",
+  })
+  @ApiParam({ name: 'id', description: 'ID du contrat', example: 5 })
+  @ApiResponse({ status: 201, description: 'Contrat envoyé en signature.' })
+  @ApiResponse({ status: 400, description: 'Document non signable ou refusé par Documenso.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 403, description: "Réservé à l'entreprise de la mission." })
+  @ApiResponse({ status: 404, description: 'Document non trouvé.' })
+  @ApiResponse({ status: 409, description: "Le contrat n'est plus un brouillon." })
+  @HttpCode(HttpStatus.CREATED)
+  @Post(':id/signature')
+  async requestSignature(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SignatureLink> {
+    return this.signatureService.requestSignature(req.user.sub, id);
+  }
+
+  @ApiOperation({
+    summary: 'Obtenir son lien de signature',
+    description:
+      "Renvoie le lien de signature Documenso de l'utilisateur pour un contrat en attente de signature. Côté entreprise, n'importe quel membre peut signer: le signataire est réattribué à celui qui demande le lien.",
+  })
+  @ApiParam({ name: 'id', description: 'ID du contrat', example: 5 })
+  @ApiResponse({ status: 200, description: 'Lien de signature.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 403, description: 'Réservé aux parties de la mission.' })
+  @ApiResponse({ status: 404, description: 'Document non trouvé.' })
+  @ApiResponse({ status: 409, description: 'Contrat pas en attente de signature, ou déjà signé.' })
+  @HttpCode(HttpStatus.OK)
+  @Get(':id/signature')
+  async getSigningLink(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SignatureLink> {
+    return this.signatureService.getSigningLink(req.user.sub, id);
+  }
+
+  @ApiOperation({
     summary: "Remplacer le fichier d'un document",
     description:
-      "Envoie un nouveau fichier sur S3 et met à jour ses métadonnées. Réservé au propriétaire, ou à l'entreprise de la mission pour un contrat ou une facture en brouillon. Un contrat garde l'ancienne version dans son historique.",
+      "Envoie un nouveau fichier sur S3 et met à jour ses métadonnées. Réservé au propriétaire, ou à l'entreprise de la mission pour une facture en brouillon. Le fichier d'un contrat ne se remplace pas: il se régénère.",
   })
   @ApiParam({ name: 'id', description: 'ID du document', example: 5 })
   @ApiConsumes('multipart/form-data')

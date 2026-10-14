@@ -9,18 +9,25 @@ import { SignatureEnvelope } from './models/signature-envelope.model';
 import { WorkersModule } from '@/modules/workers/workers.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';
 import { S3Module } from '@/modules/s3/s3.module';
+import { DocumensoModule } from '@/modules/documenso/documenso.module';
+import { PdfModule } from '@/modules/pdf/pdf.module';
 import { DocumentsController } from './controllers/document.controller';
 import { UserDocumentsController } from './controllers/user-documents.controller';
 import { WorkerDocumentsController } from './controllers/worker-documents.controller';
 import { CompanyDocumentsController } from './controllers/company-documents.controller';
+import { DocumensoWebhookController } from './controllers/documenso-webhook.controller';
 import { DocumentsService } from './services/document.service';
 import { DocumentAccessService } from './services/document-access.service';
+import { DocumentSignatureService } from './services/document-signature.service';
+import { ContractGenerationService } from './services/contract-generation.service';
 
 @Module({
   imports: [
     WorkersModule,
     CompaniesModule,
     S3Module,
+    DocumensoModule,
+    PdfModule,
     SequelizeModule.forFeature([
       Document,
       Contract,
@@ -35,8 +42,14 @@ import { DocumentAccessService } from './services/document-access.service';
     UserDocumentsController,
     WorkerDocumentsController,
     CompanyDocumentsController,
+    DocumensoWebhookController,
   ],
-  providers: [DocumentsService, DocumentAccessService],
+  providers: [
+    DocumentsService,
+    DocumentAccessService,
+    DocumentSignatureService,
+    ContractGenerationService,
+  ],
   exports: [DocumentsService],
 })
 export class DocumentsModule {}
