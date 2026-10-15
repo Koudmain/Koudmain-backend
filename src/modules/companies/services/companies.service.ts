@@ -61,6 +61,13 @@ export class CompaniesService {
     return company;
   }
 
+  async isUserInCompany(userId: number, companyId: number): Promise<boolean> {
+    const membership = await this.memberModel.findOne({
+      where: { userId: userId, companyId: companyId },
+    });
+    return !!membership;
+  }
+
   async getUserCompanies(userId: number) {
     const memberships = await this.memberModel.findAll({
       where: { userId: userId },

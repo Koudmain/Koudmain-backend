@@ -19,7 +19,7 @@ export class RedisPubService implements OnModuleInit, OnModuleDestroy {
     this.redisClient?.disconnect();
   }
 
-  async publishMessage(payload: unknown) {
+  async publishMessage(payload: any) {
     await this.redisClient.publish('chat:messages', JSON.stringify(payload));
   }
 }

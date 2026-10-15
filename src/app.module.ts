@@ -15,6 +15,12 @@ import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { WorkersModule } from './modules/workers/workers.module';
 import { AddressModule } from './modules/address/address.module';
+import { DocumensoModule } from './modules/documenso/documenso.module';
+import { PdfModule } from './modules/pdf/pdf.module';
+import { DocumentsModule } from './modules/documents/document.module';
+import { MissionsModule } from './modules/missions/missions.module';
+import { Application } from './modules/application/models/application.model';
+import { Review } from './modules/review/models/review.model';
 
 @Module({
   imports: [
@@ -29,6 +35,7 @@ import { AddressModule } from './modules/address/address.module';
       autoLoadModels: true,
       synchronize: false,
     }),
+    SequelizeModule.forFeature([Application, Review]),
     UsersModule,
     AuthModule,
     CompaniesModule,
@@ -41,6 +48,10 @@ import { AddressModule } from './modules/address/address.module';
     ChatModule,
     WorkersModule,
     AddressModule,
+    DocumensoModule,
+    PdfModule,
+    DocumentsModule,
+    MissionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
