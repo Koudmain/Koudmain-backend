@@ -81,11 +81,11 @@ export class DocumentAssignment
   declare updatedAt: Date;
 
   @BelongsTo(() => Document, 'documentId')
-  document: Document;
+  declare document: Document;
 
   @BelongsTo(() => WorkerProfile, 'workerId')
-  worker: WorkerProfile;
+  declare worker: WorkerProfile;
 
   @BelongsTo(() => Company, 'companyId')
-  company: Company;
+  declare company: Company;
 }

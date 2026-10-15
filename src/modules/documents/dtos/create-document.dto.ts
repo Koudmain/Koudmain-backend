@@ -1,7 +1,7 @@
 import { IsEnum, IsString, IsOptional, IsNumber, IsNotEmpty } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { DocumentCategory } from '@/modules/documents/models/document.model';
-import { SignatureProvider } from '@/modules/documents/models/signature-envelope.model';
 
 export class CreateDocumentDto {
   @ApiProperty({ description: "Nom d'affichage du document", example: "Carte d'identité Worker" })
@@ -9,82 +9,57 @@ export class CreateDocumentDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiPropertyOptional({ description: "Nom d'origine du fichier", example: 'cni_jean_dupont.pdf' })
-  @IsString()
-  @IsOptional()
-  originalFilename?: string;
-
-  @ApiProperty({
-    description: 'URL ou chemin du fichier sur le serveur / S3',
-    example: 'https://s3.amazonaws.com/koudmain-docs/identity/cni_jean_dupont.pdf',
-  })
-  @IsString()
-  @IsNotEmpty()
-  filePath: string;
-
   @ApiProperty({
     enum: DocumentCategory,
-    description: 'Catégorie du document',
-    example: DocumentCategory.OTHER,
+    description: 'Catégorie du document, qui détermine son dossier de stockage S3',
+    example: DocumentCategory.IDENTITY,
   })
   @IsEnum(DocumentCategory)
   category: DocumentCategory;
 
-  @ApiPropertyOptional({ description: 'Taille du fichier en octets', example: 1048576 })
-  @IsNumber()
-  @IsOptional()
-  sizeBytes?: number;
-
-  @ApiPropertyOptional({ description: 'Type MIME du fichier', example: 'application/pdf' })
-  @IsString()
-  @IsOptional()
-  mimeType?: string;
-
   @ApiPropertyOptional({ description: 'ID du profil worker à associer', example: 3 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   workerId?: number;
 
   @ApiPropertyOptional({ description: "ID de l'entreprise à associer", example: 1 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   companyId?: number;
 
   @ApiPropertyOptional({ description: "ID de l'utilisateur à associer", example: 1 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   userId?: number;
 
   @ApiPropertyOptional({
-    description: "Type d'assignation (IDENTITY, RIB, KBIS, DIPLOMA, etc.)",
-    example: 'IDENTITY',
+    description: "Type d'assignation plus précis que la catégorie (par défaut : la catégorie)",
+    example: 'PROOF_OF_ADDRESS',
   })
   @IsString()
   @IsOptional()
   assignmentType?: string;
 
   @ApiPropertyOptional({ description: 'ID de la conversation liée', example: 5 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   conversationId?: number;
 
   @ApiPropertyOptional({ description: 'ID de la mission liée', example: 10 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   missionId?: number;
 
   @ApiPropertyOptional({ description: 'ID de la publication liée', example: 2 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   publicationId?: number;
-
-  @ApiPropertyOptional({
-    description: 'Statut initial du contrat (si category = CONTRACT)',
-    example: 'PENDING',
-  })
-  @IsString()
-  @IsOptional()
-  contractStatus?: string;
 
   @ApiPropertyOptional({
     description: 'Numéro de facture (si category = INVOICE)',
@@ -95,34 +70,20 @@ export class CreateDocumentDto {
   invoiceNumber?: string;
 
   @ApiPropertyOptional({ description: 'Montant HT de la facture', example: 100 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   amountHt?: number;
 
   @ApiPropertyOptional({ description: 'Montant TTC de la facture', example: 120 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   amountTtc?: number;
 
   @ApiPropertyOptional({ description: 'Frais de la plateforme', example: 10 })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   feeAmount?: number;
-
-  @ApiPropertyOptional({
-    description: 'ID du document externe de signature',
-    example: 'doc_12345',
-  })
-  @IsString()
-  @IsOptional()
-  externalDocumentId?: string;
-
-  @ApiPropertyOptional({
-    enum: SignatureProvider,
-    description: 'Fournisseur de signature électronique',
-    example: SignatureProvider.DOCUMENSO,
-  })
-  @IsEnum(SignatureProvider)
-  @IsOptional()
-  signatureProvider?: SignatureProvider;
 }
