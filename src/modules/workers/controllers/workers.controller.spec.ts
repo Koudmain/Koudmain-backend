@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { WorkersController } from './workers.controller';
+import { WorkersController } from '@/modules/workers/controllers/workers.controller';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import type { Request as ExpressRequest } from 'express';
 
@@ -15,6 +15,8 @@ describe('WorkersController', () => {
 
   const mockWorkersService = {
     getWorkerByUserId: jest.fn(),
+    getOwnProfile: jest.fn(),
+    updateOwnProfile: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -62,6 +64,24 @@ describe('WorkersController', () => {
       expect(mockWorkersService.getWorkerByUserId).toHaveBeenCalledWith(userId);
 
       expect(result).toEqual(mockProfile);
+    });
+  });
+  describe('getOwnProfile / updateOwnProfile', () => {
+    const mockReq = { user: { sub: 42, email: 'worker@test.com' } } as RequestWithUser;
+
+    it("should return the logged-in user's profile", async () => {
+      mockWorkersService.getOwnProfile.mockResolvedValue({ id: 1 });
+
+      await expect(controller.getOwnProfile(mockReq)).resolves.toEqual({ id: 1 });
+      expect(mockWorkersService.getOwnProfile).toHaveBeenCalledWith(42);
+    });
+
+    it('should forward the changes for the logged-in user', async () => {
+      const body = { bio: 'Nouvelle bio' };
+      mockWorkersService.updateOwnProfile.mockResolvedValue({ id: 1 });
+
+      await expect(controller.updateOwnProfile(mockReq, body)).resolves.toEqual({ id: 1 });
+      expect(mockWorkersService.updateOwnProfile).toHaveBeenCalledWith(42, body);
     });
   });
 });

@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Address } from '@/modules/address/address.model';
 import { CreateAddressDto, GetMapAddressesDto } from '@/modules/address/address.dto';
@@ -14,6 +14,17 @@ export class AddressService {
   ) {}
 
   async createAddress(body: CreateAddressDto) {
+    return this.addressModel.create(await this.buildAddressAttributes(body));
+  }
+
+  async updateAddress(addressId: number, body: CreateAddressDto) {
+    const address = await this.addressModel.findByPk(addressId);
+    if (!address) throw new NotFoundException('Adresse introuvable');
+
+    return address.update(await this.buildAddressAttributes(body));
+  }
+
+  private async buildAddressAttributes(body: CreateAddressDto) {
     const country = body.country || 'France';
     const fullAddress =
       `${body.streetNumber || ''} ${body.streetName}, ${body.zipCode} ${body.city}, ${country}`.trim();
@@ -33,7 +44,7 @@ export class AddressService {
       });
     }
 
-    const address = await this.addressModel.create({
+    return {
       street_number: body.streetNumber,
       street_name: body.streetName,
       zip_code: body.zipCode,
@@ -42,9 +53,7 @@ export class AddressService {
       full_address: fullAddress,
       latitude,
       longitude,
-    });
-
-    return address;
+    };
   }
 
   async getAddressesInZone(dto: GetMapAddressesDto) {

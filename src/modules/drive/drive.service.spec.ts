@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DriveService } from './drive.service';
+import { DriveService } from '@/modules/drive/drive.service';
 import { ConfigService } from '@nestjs/config';
 import { InternalServerErrorException } from '@nestjs/common';
 import { processProfilePicture } from '@/common/utils/image-processor.util';
@@ -69,7 +69,7 @@ describe('DriveService', () => {
       const result = await service.uploadImage(mockFile);
 
       expect(result).toBe('https://drive.google.com/thumbnail?id=test-file-id&sz=w1000');
-      expect(mockProcessProfilePicture).toHaveBeenCalledWith(mockFile.buffer);
+      expect(mockProcessProfilePicture).toHaveBeenCalledWith(mockFile.buffer, 500, 500);
       expect(mockDriveClient.files.create).toHaveBeenCalled();
       expect(mockDriveClient.permissions.create).toHaveBeenCalledWith({
         fileId: 'test-file-id',
