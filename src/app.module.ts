@@ -1,20 +1,21 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { UsersModule } from './modules/users/users.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { DriveModule } from './modules/drive/drive.module';
-import { PublicationModule } from './modules/publication/publication.module';
-import { PlanningModule } from './modules/planning/planning.module';
-import { CompaniesModule } from './modules/companies/companies.module';
-import { SkillModule } from './modules/skill/skill.module';
-import { SkillCategoryModule } from './modules/skill-category/skill-category.module';
-import { MailerModule } from './modules/mailer/mailer.module';
-import { ChatModule } from './modules/chat/chat.module';
-import { WorkersModule } from './modules/workers/workers.module';
-import { AddressModule } from './modules/address/address.module';
+import { AppController } from '@/app.controller';
+import { AppService } from '@/app.service';
+import { UsersModule } from '@/modules/users/users.module';
+import { AuthModule } from '@/modules/auth/auth.module';
+import { DriveModule } from '@/modules/drive/drive.module';
+import { PublicationModule } from '@/modules/publication/publication.module';
+import { PlanningModule } from '@/modules/planning/planning.module';
+import { CompaniesModule } from '@/modules/companies/companies.module';
+import { SkillModule } from '@/modules/skill/skill.module';
+import { SkillCategoryModule } from '@/modules/skill-category/skill-category.module';
+import { MailerModule } from '@/modules/mailer/mailer.module';
+import { ChatModule } from '@/modules/chat/chat.module';
+import { WorkersModule } from '@/modules/workers/workers.module';
+import { AddressModule } from '@/modules/address/address.module';
+import { ReviewModule } from '@/modules/review/review.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AddressModule } from './modules/address/address.module';
     ChatModule,
     WorkersModule,
     AddressModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,13 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { Module } from '@nestjs/common';
-import { CompaniesModule } from './companies.module';
-import { CompaniesService } from './services/companies.service';
-import { CompaniesController } from './controllers/companies.controller';
-import { Company } from './models/company.model';
-import { CompanyMember } from './models/company-member.model';
-import { CompanyJob } from './models/company-job.model';
+import { CompaniesModule } from '@/modules/companies/companies.module';
+import { CompaniesService } from '@/modules/companies/services/companies.service';
+import { CompaniesController } from '@/modules/companies/controllers/companies.controller';
+import { Company } from '@/modules/companies/models/company.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { CompanyJob } from '@/modules/companies/models/company-job.model';
 import { Address } from '@/modules/address/address.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { Application } from '@/modules/application/models/application.model';
+import { Mission } from '@/modules/mission/models/mission.model';
+import { Review } from '@/modules/review/models/review.model';
+import { DriveService } from '@/modules/drive/drive.service';
 
 jest.mock('@/modules/auth/auth.module', () => {
   @Module({})
@@ -32,6 +37,16 @@ describe('CompaniesModule', () => {
       .overrideProvider(getModelToken(CompanyJob))
       .useValue({})
       .overrideProvider(getModelToken(Address))
+      .useValue({})
+      .overrideProvider(getModelToken(Publication))
+      .useValue({})
+      .overrideProvider(getModelToken(Application))
+      .useValue({})
+      .overrideProvider(getModelToken(Mission))
+      .useValue({})
+      .overrideProvider(getModelToken(Review))
+      .useValue({})
+      .overrideProvider(DriveService)
       .useValue({})
       .compile();
   });
