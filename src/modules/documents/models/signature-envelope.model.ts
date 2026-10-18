@@ -84,5 +84,5 @@ export class SignatureEnvelope
   declare updatedAt: Date;
 
   @BelongsTo(() => Document, 'documentId')
-  document: Document;
+  declare document: Document;
 }

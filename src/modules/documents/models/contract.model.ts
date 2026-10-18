@@ -2,6 +2,12 @@ import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize
 import { Document, DocumentCategory } from './document.model';
 import { Mission } from '@/modules/missions/mission.model';
 
+export enum ContractStatus {
+  PENDING = 'PENDING',
+  AWAITING_SIGNATURE = 'AWAITING_SIGNATURE',
+  SIGNED = 'SIGNED',
+}
+
 export interface ContractAttributes {
   documentId: number;
   documentCategory: DocumentCategory;
