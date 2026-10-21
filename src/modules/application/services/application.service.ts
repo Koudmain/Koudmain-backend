@@ -47,7 +47,7 @@ export class ApplicationService {
       WorkerDocumentType.IDENTITY,
       WorkerDocumentType.NIR,
       WorkerDocumentType.PROOF_OF_ADDRESS,
-      WorkerDocumentType.RIB,
+      // WorkerDocumentType.RIB,                # Uncomment this line if RIB is required for KYC
     ];
 
     const verifiedDocs = await this.workerDocumentModel.findAll({
