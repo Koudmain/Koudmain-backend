@@ -13,6 +13,9 @@ const mockAuthService = {
   logoutAll: jest.fn(),
   generateTokensForUser: jest.fn(),
   getUserForVerification: jest.fn(),
+  getGoogleAuthUrl: jest.fn(),
+  handleGoogleCallback: jest.fn(),
+  signInWithGoogle: jest.fn(),
 };
 
 const mockEmailVerificationService = {
@@ -141,6 +144,38 @@ describe('AuthController', () => {
       const result = controller.getProfile(mockReq);
 
       expect(result).toEqual(mockPayload);
+    });
+  });
+
+  describe('Google sign-in', () => {
+    it('should redirect to the Google consent URL', async () => {
+      mockAuthService.getGoogleAuthUrl.mockResolvedValue('https://accounts.google.com/consent');
+
+      const result = await controller.googleStart('exp://host/--/auth/google-callback');
+
+      expect(mockAuthService.getGoogleAuthUrl).toHaveBeenCalledWith(
+        'exp://host/--/auth/google-callback',
+      );
+      expect(result).toEqual({ url: 'https://accounts.google.com/consent' });
+    });
+
+    it('should redirect back to the app from the Google callback', async () => {
+      mockAuthService.handleGoogleCallback.mockResolvedValue('exp://host?idToken=abc');
+
+      const result = await controller.googleCallback('state', 'code', undefined);
+
+      expect(mockAuthService.handleGoogleCallback).toHaveBeenCalledWith('state', 'code', undefined);
+      expect(result).toEqual({ url: 'exp://host?idToken=abc' });
+    });
+
+    it('should pass the ID token and registration to authService.signInWithGoogle', async () => {
+      const mockTokens = { accessToken: 'acc_token', refreshToken: 'ref_token' };
+      mockAuthService.signInWithGoogle.mockResolvedValue(mockTokens);
+
+      const result = await controller.signInWithGoogle({ idToken: 'google_id_token' });
+
+      expect(mockAuthService.signInWithGoogle).toHaveBeenCalledWith('google_id_token', undefined);
+      expect(result).toEqual(mockTokens);
     });
   });
 });

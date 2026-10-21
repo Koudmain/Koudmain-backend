@@ -14,7 +14,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, OmitType } from '@nestjs/swagger';
 import { UserRole } from '@/modules/users/models/user.model';
 import { CreateAddressDto } from '@/modules/address/address.dto';
 
@@ -175,3 +175,5 @@ export class RegisterDto {
   @Type(() => EmployerProfileDto)
   employerProfile?: EmployerProfileDto;
 }
+
+export class GoogleRegisterDto extends OmitType(RegisterDto, ['email', 'password'] as const) {}

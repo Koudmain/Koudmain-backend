@@ -10,7 +10,12 @@ import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { Address } from '@/modules/address/address.model';
 import { Sequelize } from 'sequelize-typescript';
-import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserRole } from '@/modules/users/models/user.model';
 import {
   RegisterDto,
@@ -18,12 +23,23 @@ import {
   EmployerProfileDto,
   OwnerPosition,
   CompanyType,
+  GoogleRegisterDto,
 } from '@/modules/auth/models/register.model';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
   hash: jest.fn(),
+}));
+
+const mockGoogleClient = {
+  generateAuthUrl: jest.fn(),
+  getToken: jest.fn(),
+  verifyIdToken: jest.fn(),
+};
+
+jest.mock('googleapis', () => ({
+  google: { auth: { OAuth2: jest.fn(() => mockGoogleClient) } },
 }));
 
 describe('AuthService', () => {
@@ -33,6 +49,7 @@ describe('AuthService', () => {
     findOneByEmail: jest.fn(),
     findOneById: jest.fn(),
     create: jest.fn(),
+    markEmailAsVerified: jest.fn(),
   };
 
   const mockJwtService = {
@@ -81,6 +98,8 @@ describe('AuthService', () => {
     process.env.JWT_REFRESH_SECRET = 'refresh_secret';
     process.env.JWT_ACCESS_EXPIRES_IN = '15m';
     process.env.JWT_REFRESH_EXPIRES_IN = '7d';
+    process.env.GOOGLE_OAUTH_CLIENT_ID = 'google_client_id';
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google_secret';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -413,6 +432,166 @@ describe('AuthService', () => {
       const result = await service.logoutAll(1);
       expect(mockRefreshSessionService.revokeAllSessions).toHaveBeenCalledWith(1);
       expect(result).toEqual({ message: 'All sessions revoked successfully' });
+    });
+  });
+
+  describe('Google sign-in', () => {
+    const redirect = 'exp://192.168.1.10:8083/--/auth/google-callback';
+    const googlePayload = {
+      email: 'john@gmail.com',
+      email_verified: true,
+      given_name: 'John',
+      family_name: 'Doe',
+    };
+
+    beforeEach(() => {
+      mockGoogleClient.verifyIdToken.mockResolvedValue({ getPayload: () => googlePayload });
+    });
+
+    describe('getGoogleAuthUrl', () => {
+      it('should reject a redirect outside the app schemes', async () => {
+        await expect(service.getGoogleAuthUrl('https://evil.com')).rejects.toThrow(
+          BadRequestException,
+        );
+        expect(mockGoogleClient.generateAuthUrl).not.toHaveBeenCalled();
+      });
+
+      it('should sign the redirect into the state and return the Google consent URL', async () => {
+        mockJwtService.signAsync.mockResolvedValue('signed_state');
+        mockGoogleClient.generateAuthUrl.mockReturnValue('https://accounts.google.com/consent');
+
+        const url = await service.getGoogleAuthUrl(redirect);
+
+        expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+          { redirect },
+          { secret: 'google_secret', expiresIn: '10m' },
+        );
+        expect(mockGoogleClient.generateAuthUrl).toHaveBeenCalledWith(
+          expect.objectContaining({ state: 'signed_state' }),
+        );
+        expect(url).toBe('https://accounts.google.com/consent');
+      });
+    });
+
+    describe('handleGoogleCallback', () => {
+      it('should throw BadRequestException if the state is invalid', async () => {
+        mockJwtService.verifyAsync.mockRejectedValue(new Error('invalid signature'));
+
+        await expect(service.handleGoogleCallback('bad_state', 'code')).rejects.toThrow(
+          BadRequestException,
+        );
+      });
+
+      it('should redirect with error=cancelled when the user refused consent', async () => {
+        mockJwtService.verifyAsync.mockResolvedValue({ redirect });
+
+        await expect(
+          service.handleGoogleCallback('state', undefined, 'access_denied'),
+        ).resolves.toBe(`${redirect}?error=cancelled`);
+      });
+
+      it('should redirect with error=failed when the code exchange fails', async () => {
+        mockJwtService.verifyAsync.mockResolvedValue({ redirect });
+        mockGoogleClient.getToken.mockRejectedValue(new Error('invalid_grant'));
+
+        await expect(service.handleGoogleCallback('state', 'code')).resolves.toBe(
+          `${redirect}?error=failed`,
+        );
+      });
+
+      it('should redirect with the ID token and the Google profile', async () => {
+        mockJwtService.verifyAsync.mockResolvedValue({ redirect });
+        mockGoogleClient.getToken.mockResolvedValue({ tokens: { id_token: 'google_id_token' } });
+
+        const url = await service.handleGoogleCallback('state', 'code');
+
+        expect(url).toBe(
+          `${redirect}?idToken=google_id_token&email=john%40gmail.com&firstName=John&lastName=Doe`,
+        );
+      });
+    });
+
+    describe('signInWithGoogle', () => {
+      const registration: GoogleRegisterDto = {
+        firstName: 'John',
+        lastName: 'Doe',
+        phoneNumber: '+33612345678',
+        role: UserRole.WORKER,
+        workerProfile: { skillCategoryIds: [1] } as WorkerProfileDto,
+      };
+
+      beforeEach(() => {
+        mockJwtService.signAsync.mockResolvedValue('token');
+      });
+
+      it('should throw UnauthorizedException if the Google token is invalid', async () => {
+        mockGoogleClient.verifyIdToken.mockRejectedValue(new Error('Token used too late'));
+
+        await expect(service.signInWithGoogle('google_id_token')).rejects.toThrow(
+          UnauthorizedException,
+        );
+        expect(mockUsersService.findOneByEmail).not.toHaveBeenCalled();
+      });
+
+      it('should throw UnauthorizedException if the Google email is not verified', async () => {
+        mockGoogleClient.verifyIdToken.mockResolvedValue({
+          getPayload: () => ({ ...googlePayload, email_verified: false }),
+        });
+
+        await expect(service.signInWithGoogle('google_id_token')).rejects.toThrow(
+          UnauthorizedException,
+        );
+      });
+
+      it('should return tokens and mark the email verified for an existing user', async () => {
+        mockUsersService.findOneByEmail.mockResolvedValue({
+          id: 1,
+          email: 'john@gmail.com',
+          email_verified_at: null,
+        });
+
+        const result = await service.signInWithGoogle('google_id_token');
+
+        expect(mockGoogleClient.verifyIdToken).toHaveBeenCalledWith({
+          idToken: 'google_id_token',
+          audience: 'google_client_id',
+        });
+        expect(mockUsersService.markEmailAsVerified).toHaveBeenCalledWith(1);
+        expect(result).toEqual({ accessToken: 'token', refreshToken: 'token' });
+      });
+
+      it('should throw NotFoundException if no account exists and no registration is given', async () => {
+        mockUsersService.findOneByEmail.mockResolvedValue(null);
+
+        await expect(service.signInWithGoogle('google_id_token')).rejects.toThrow(
+          NotFoundException,
+        );
+        expect(mockSequelize.transaction).not.toHaveBeenCalled();
+      });
+
+      it('should create a verified account without sending a code when registration is given', async () => {
+        mockUsersService.findOneByEmail.mockResolvedValue(null);
+        (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+        mockUsersService.create.mockResolvedValue({ id: 3 });
+        mockUsersService.findOneById.mockResolvedValue({ id: 3, email: 'john@gmail.com' });
+        mockWorkersService.create.mockResolvedValue(undefined);
+
+        const result = await service.signInWithGoogle('google_id_token', registration);
+
+        expect(mockUsersService.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            email: 'john@gmail.com',
+            password: 'hashed_password',
+            first_name: 'John',
+            role: UserRole.WORKER,
+          }),
+          { transaction: mockTransaction },
+        );
+        expect(mockWorkersService.create).toHaveBeenCalled();
+        expect(mockUsersService.markEmailAsVerified).toHaveBeenCalledWith(3);
+        expect(mockEmailVerificationService.sendVerificationCode).not.toHaveBeenCalled();
+        expect(result).toEqual({ accessToken: 'token', refreshToken: 'token' });
+      });
     });
   });
 });

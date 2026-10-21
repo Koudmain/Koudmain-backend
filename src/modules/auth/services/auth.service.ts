@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UsersService } from '@/modules/users/services/users.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
@@ -6,6 +12,8 @@ import { RefreshSessionService } from './refresh-session.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
+import { randomBytes } from 'crypto';
+import { google } from 'googleapis';
 import { UserRole } from '@/modules/users/models/user.model';
 import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
@@ -15,6 +23,7 @@ import {
   RegisterDto,
   WorkerProfileDto,
   EmployerProfileDto,
+  GoogleRegisterDto,
 } from '@/modules/auth/models/register.model';
 import { AuthTokenResponse } from '@/modules/auth/controllers/auth.controller';
 import { CreateAddressDto } from '@/modules/address/address.dto';
@@ -26,8 +35,20 @@ type AddressGeocodeResult = {
   longitude: number | null;
 };
 
+type GoogleProfile = {
+  email: string;
+  firstName: string;
+  lastName: string;
+};
+
 @Injectable()
 export class AuthService {
+  private googleClient = new google.auth.OAuth2(
+    process.env.GOOGLE_OAUTH_CLIENT_ID,
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+    process.env.GOOGLE_OAUTH_REDIRECT_URI,
+  );
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
@@ -190,6 +211,103 @@ export class AuthService {
       throw new ConflictException('Email already exists');
     }
 
+    const newUserId = await this.createUser(dto);
+    const createdUser = await this.usersService.findOneById(newUserId);
+    await this.emailVerificationService.sendVerificationCode(
+      newUserId,
+      createdUser!.email,
+      createdUser!.first_name,
+    );
+
+    return {
+      userId: newUserId,
+      message: 'Un code de vérification a été envoyé à votre adresse email.',
+    };
+  }
+
+  async getGoogleAuthUrl(redirect: string): Promise<string> {
+    // Only our app may receive the Google ID token; exp:// (Expo Go) is dev only.
+    const isAllowed =
+      typeof redirect === 'string' &&
+      (redirect.startsWith('koudmain://') ||
+        (process.env.NODE_ENV !== 'production' && redirect.startsWith('exp://')));
+    if (!isAllowed) throw new BadRequestException('Invalid redirect');
+
+    const state = await this.jwtService.signAsync(
+      { redirect },
+      { secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? '', expiresIn: '10m' },
+    );
+    return this.googleClient.generateAuthUrl({
+      scope: ['openid', 'email', 'profile'],
+      state,
+      prompt: 'select_account',
+    });
+  }
+
+  async handleGoogleCallback(state: string, code?: string, error?: string): Promise<string> {
+    let redirect: string;
+    try {
+      ({ redirect } = await this.jwtService.verifyAsync<{ redirect: string }>(state, {
+        secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? '',
+      }));
+    } catch {
+      throw new BadRequestException('Invalid state');
+    }
+    if (error || !code) return `${redirect}?error=cancelled`;
+
+    try {
+      const { tokens } = await this.googleClient.getToken(code);
+      const idToken = tokens.id_token ?? '';
+      const profile = await this.verifyGoogleIdToken(idToken);
+      return `${redirect}?${new URLSearchParams({ idToken, ...profile }).toString()}`;
+    } catch {
+      return `${redirect}?error=failed`;
+    }
+  }
+
+  async signInWithGoogle(
+    idToken: string,
+    registration?: GoogleRegisterDto,
+  ): Promise<AuthTokenResponse> {
+    const { email } = await this.verifyGoogleIdToken(idToken);
+    const user = await this.usersService.findOneByEmail(email);
+    if (user) {
+      if (!user.email_verified_at) await this.usersService.markEmailAsVerified(user.id);
+      return this.generateTokens({ sub: user.id, email: user.email }, user.id);
+    }
+    if (!registration) throw new NotFoundException('GOOGLE_ACCOUNT_NOT_FOUND');
+
+    // password is NOT NULL: Google accounts get a random one nobody knows.
+    const userId = await this.createUser({
+      ...registration,
+      email,
+      password: randomBytes(32).toString('hex'),
+    });
+    await this.usersService.markEmailAsVerified(userId);
+    return this.generateTokensForUser(userId);
+  }
+
+  private async verifyGoogleIdToken(idToken: string): Promise<GoogleProfile> {
+    // Without an audience, verifyIdToken accepts tokens issued to any Google app.
+    const audience = process.env.GOOGLE_OAUTH_CLIENT_ID;
+    if (!audience) throw new UnauthorizedException('Google sign-in is not configured');
+    try {
+      const ticket = await this.googleClient.verifyIdToken({ idToken, audience });
+      const payload = ticket.getPayload();
+      if (payload?.email && payload.email_verified) {
+        return {
+          email: payload.email,
+          firstName: payload.given_name ?? '',
+          lastName: payload.family_name ?? '',
+        };
+      }
+    } catch {
+      // invalid, expired or foreign token
+    }
+    throw new UnauthorizedException('Invalid Google token');
+  }
+
+  private async createUser(dto: RegisterDto): Promise<number> {
     const hashedPassword = await hash(dto.password, 10);
     const workerGeo =
       dto.role === UserRole.WORKER ? await this.geocodeAddress(dto.workerProfile?.address) : null;
@@ -224,17 +342,7 @@ export class AuthService {
       }
     });
 
-    const createdUser = await this.usersService.findOneById(newUserId);
-    await this.emailVerificationService.sendVerificationCode(
-      newUserId,
-      createdUser!.email,
-      createdUser!.first_name,
-    );
-
-    return {
-      userId: newUserId,
-      message: 'Un code de vérification a été envoyé à votre adresse email.',
-    };
+    return newUserId;
   }
 
   private async createAddressRecord(
