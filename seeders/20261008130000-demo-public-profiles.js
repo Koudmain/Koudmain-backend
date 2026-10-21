@@ -286,7 +286,7 @@ module.exports = {
       return;
     }
 
-    // Une mission terminée par candidature acceptée ; la deuxième est payée en retard
+    // One mission completed through an accepted application; the second one is paid late
     const missions = await queryInterface.bulkInsert(
       'mission',
       acceptedApplications.map((application, index) => {
@@ -416,7 +416,7 @@ module.exports = {
       }),
     );
 
-    // CV et lettre de motivation sur chaque candidature reçue par l'établissement
+    // CV and cover letter on every application received by the company
     const [applications] = await queryInterface.sequelize.query(
       `SELECT a.id FROM application a
        JOIN publication p ON p.id = a.publication_id

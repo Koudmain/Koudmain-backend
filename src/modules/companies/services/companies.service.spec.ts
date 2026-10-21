@@ -222,6 +222,19 @@ describe('CompaniesService', () => {
       expect(result).toEqual({ id: companyId });
     });
 
+    it('should keep the old logo when the new upload fails', async () => {
+      mockMemberModel.findOne.mockResolvedValue({ role: OwnerPosition.OWNER });
+      const company = { logoUrl: 'https://drive/old-logo', coverImageUrl: null, update: jest.fn() };
+      mockCompanyModel.findByPk.mockResolvedValueOnce(company);
+      mockDriveService.uploadImage.mockRejectedValueOnce(new Error('Drive down'));
+
+      await expect(service.updateCompany(userId, companyId, {}, { logo: [image] })).rejects.toThrow(
+        'Drive down',
+      );
+      expect(mockDriveService.deleteFile).not.toHaveBeenCalled();
+      expect(company.update).not.toHaveBeenCalled();
+    });
+
     it('should throw NotFoundException when the company does not exist', async () => {
       mockMemberModel.findOne.mockResolvedValue({ role: OwnerPosition.OWNER });
       mockCompanyModel.findByPk.mockResolvedValueOnce(null);

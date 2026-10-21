@@ -36,7 +36,7 @@ export class Review extends Model {
   @BelongsTo(() => Company, 'ratedCompanyId')
   declare ratedCompany: Company | null;
 
-  // Auteur d'un avis Company_to_Worker : l'établissement (reviewerId garde le membre qui l'a saisi)
+  // Author of a Company_to_Worker review: the company (reviewerId keeps the member who wrote it)
   @ForeignKey(() => Company)
   @Column({ field: 'reviewer_company_id', type: DataType.INTEGER, allowNull: true })
   declare reviewerCompanyId: number | null;

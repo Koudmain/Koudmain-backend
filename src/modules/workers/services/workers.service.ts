@@ -101,7 +101,7 @@ export class WorkersService {
     const worker = await this.getWorkerByUserId(userId);
     let addressId = worker.addressId;
 
-    // Géocodage (appel HTTP) hors transaction
+    // Geocoding (HTTP call) outside the transaction
     if (dto.address) {
       if (addressId) {
         await this.addressService.updateAddress(addressId, dto.address);
@@ -173,7 +173,7 @@ export class WorkersService {
       ],
       order: [
         [{ model: WorkerExperience, as: 'experiences' }, 'createdAt', 'DESC'],
-        // Une liste enregistrée d'un bloc partage le même created_at : on garde l'ordre de saisie
+        // A list saved in one batch shares the same created_at: keep the input order
         [{ model: WorkerExperience, as: 'experiences' }, 'id', 'ASC'],
         [{ model: WorkerFormation, as: 'formations' }, 'obtainedDate', 'DESC'],
       ],
@@ -188,7 +188,7 @@ export class WorkersService {
         include: [{ model: Company, as: 'reviewerCompany', attributes: ['id', 'name', 'logoUrl'] }],
         order: [['createdAt', 'DESC']],
       }),
-      // CV et lettre de motivation visibles uniquement si le travailleur a postulé chez l'employeur
+      // CV and cover letter are only visible if the worker applied to this employer
       this.applicationModel.findOne({
         where: { workerId },
         include: [
@@ -256,7 +256,7 @@ export class WorkersService {
         author: {
           name: review.reviewerCompany?.name ?? 'Établissement Koudmain',
           pictureUrl: review.reviewerCompany?.logoUrl ?? null,
-          // Seul le travailleur noté peut ouvrir le profil des établissements qui l'ont noté
+          // Only the reviewed worker can open the profiles of the companies that reviewed them
           profileId: isOwnProfile ? review.reviewerCompanyId : null,
         },
       })),

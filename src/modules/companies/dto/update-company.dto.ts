@@ -3,7 +3,7 @@ import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { CompanyType } from '@/modules/auth/models/register.model';
 
-// Envoyé en multipart (avec le logo et la couverture)
+// Sent as multipart (with the logo and cover image)
 export class UpdateCompanyDto {
   @ApiPropertyOptional({ example: 'La Table du Midi' })
   @IsOptional()

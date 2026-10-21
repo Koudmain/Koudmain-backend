@@ -170,13 +170,13 @@ export class CompaniesService {
     const updates: Partial<Company> = { ...dto };
     const logo = files.logo?.[0];
     const cover = files.cover?.[0];
+    const oldLogoUrl = company.logoUrl;
+    const oldCoverUrl = company.coverImageUrl;
 
     if (logo) {
-      if (company.logoUrl) await this.driveService.deleteFile(company.logoUrl);
       updates.logoUrl = await this.driveService.uploadImage(logo);
     }
     if (cover) {
-      if (company.coverImageUrl) await this.driveService.deleteFile(company.coverImageUrl);
       updates.coverImageUrl = await this.driveService.uploadImage(cover, {
         width: 1200,
         height: 600,
@@ -184,6 +184,9 @@ export class CompaniesService {
     }
 
     await company.update(updates);
+
+    if (logo && oldLogoUrl) await this.driveService.deleteFile(oldLogoUrl);
+    if (cover && oldCoverUrl) await this.driveService.deleteFile(oldCoverUrl);
 
     return this.getPublicProfile(companyId, userId);
   }
@@ -304,7 +307,7 @@ export class CompaniesService {
             ? `${review.reviewer.first_name} ${review.reviewer.last_name}`
             : 'Travailleur Koudmain',
           pictureUrl: review.reviewer?.profile_picture_url ?? null,
-          // Seuls les membres de l'établissement noté peuvent ouvrir le profil de ces travailleurs
+          // Only members of the reviewed company can open these workers' profiles
           profileId: membership ? (review.mission?.workerId ?? null) : null,
         },
       })),
