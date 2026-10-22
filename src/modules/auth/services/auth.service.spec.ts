@@ -50,6 +50,7 @@ describe('AuthService', () => {
     findOneById: jest.fn(),
     create: jest.fn(),
     markEmailAsVerified: jest.fn(),
+    updateProfilePicture: jest.fn(),
   };
 
   const mockJwtService = {
@@ -442,7 +443,9 @@ describe('AuthService', () => {
       email_verified: true,
       given_name: 'John',
       family_name: 'Doe',
+      picture: 'https://lh3.googleusercontent.com/a/abc=s96-c',
     };
+    const largePicture = 'https://lh3.googleusercontent.com/a/abc=s400-c';
 
     beforeEach(() => {
       mockGoogleClient.verifyIdToken.mockResolvedValue({ getPayload: () => googlePayload });
@@ -557,7 +560,21 @@ describe('AuthService', () => {
           audience: 'google_client_id',
         });
         expect(mockUsersService.markEmailAsVerified).toHaveBeenCalledWith(1);
+        expect(mockUsersService.updateProfilePicture).toHaveBeenCalledWith(1, largePicture);
         expect(result).toEqual({ accessToken: 'token', refreshToken: 'token' });
+      });
+
+      it('should keep the profile picture an existing user already chose', async () => {
+        mockUsersService.findOneByEmail.mockResolvedValue({
+          id: 1,
+          email: 'john@gmail.com',
+          email_verified_at: new Date(),
+          profile_picture_url: 'https://drive.google.com/thumbnail?id=own',
+        });
+
+        await service.signInWithGoogle('google_id_token');
+
+        expect(mockUsersService.updateProfilePicture).not.toHaveBeenCalled();
       });
 
       it('should throw NotFoundException if no account exists and no registration is given', async () => {
@@ -589,6 +606,7 @@ describe('AuthService', () => {
         );
         expect(mockWorkersService.create).toHaveBeenCalled();
         expect(mockUsersService.markEmailAsVerified).toHaveBeenCalledWith(3);
+        expect(mockUsersService.updateProfilePicture).toHaveBeenCalledWith(3, largePicture);
         expect(mockEmailVerificationService.sendVerificationCode).not.toHaveBeenCalled();
         expect(result).toEqual({ accessToken: 'token', refreshToken: 'token' });
       });

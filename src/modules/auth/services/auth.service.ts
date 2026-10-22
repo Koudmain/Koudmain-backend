@@ -39,6 +39,7 @@ type GoogleProfile = {
   email: string;
   firstName: string;
   lastName: string;
+  picture?: string;
 };
 
 @Injectable()
@@ -258,8 +259,9 @@ export class AuthService {
     try {
       const { tokens } = await this.googleClient.getToken(code);
       const idToken = tokens.id_token ?? '';
-      const profile = await this.verifyGoogleIdToken(idToken);
-      return `${redirect}?${new URLSearchParams({ idToken, ...profile }).toString()}`;
+      const { email, firstName, lastName } = await this.verifyGoogleIdToken(idToken);
+      const params = new URLSearchParams({ idToken, email, firstName, lastName });
+      return `${redirect}?${params.toString()}`;
     } catch {
       return `${redirect}?error=failed`;
     }
@@ -269,10 +271,13 @@ export class AuthService {
     idToken: string,
     registration?: GoogleRegisterDto,
   ): Promise<AuthTokenResponse> {
-    const { email } = await this.verifyGoogleIdToken(idToken);
+    const { email, picture } = await this.verifyGoogleIdToken(idToken);
     const user = await this.usersService.findOneByEmail(email);
     if (user) {
       if (!user.email_verified_at) await this.usersService.markEmailAsVerified(user.id);
+      if (picture && !user.profile_picture_url) {
+        await this.usersService.updateProfilePicture(user.id, picture);
+      }
       return this.generateTokens({ sub: user.id, email: user.email }, user.id);
     }
     if (!registration) throw new NotFoundException('GOOGLE_ACCOUNT_NOT_FOUND');
@@ -284,11 +289,11 @@ export class AuthService {
       password: randomBytes(32).toString('hex'),
     });
     await this.usersService.markEmailAsVerified(userId);
+    if (picture) await this.usersService.updateProfilePicture(userId, picture);
     return this.generateTokensForUser(userId);
   }
 
   private async verifyGoogleIdToken(idToken: string): Promise<GoogleProfile> {
-    // Without an audience, verifyIdToken accepts tokens issued to any Google app.
     const audience = process.env.GOOGLE_OAUTH_CLIENT_ID;
     if (!audience) throw new UnauthorizedException('Google sign-in is not configured');
     try {
@@ -299,6 +304,7 @@ export class AuthService {
           email: payload.email,
           firstName: payload.given_name ?? '',
           lastName: payload.family_name ?? '',
+          picture: payload.picture?.replace(/=s\d+-c$/, '=s400-c'),
         };
       }
     } catch {
