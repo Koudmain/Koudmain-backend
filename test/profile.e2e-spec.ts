@@ -418,6 +418,15 @@ describe('Profiles & reviews (e2e)', () => {
       );
     });
 
+    it('should return 409 when the same report type is sent twice', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/review/mission/${reviewMissionId}/payment-report`)
+        .set('Authorization', `Bearer ${worker9Token}`)
+        .send({ reportType: 'LATE_PAYMENT' });
+
+      expect(res.status).toBe(409);
+    });
+
     it('should reject an unknown report type with 400', async () => {
       const res = await request(app.getHttpServer())
         .post(`/review/mission/${reviewMissionId}/payment-report`)

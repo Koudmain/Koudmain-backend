@@ -131,9 +131,18 @@ module.exports = {
       created_at: { type: Sequelize.DATE, defaultValue: Sequelize.fn('now') },
       resolved_at: { type: Sequelize.DATE },
     });
+    await queryInterface.addIndex('review', ['mission_id', 'type'], {
+      unique: true,
+      name: 'review_mission_id_type_unique',
+    });
+    await queryInterface.addIndex('payment_report', ['mission_id', 'report_type'], {
+      unique: true,
+      name: 'payment_report_mission_id_report_type_unique',
+    });
   },
 
   async down(queryInterface) {
+    await queryInterface.removeIndex('review', 'review_mission_id_type_unique');
     for (const table of [
       'payment_report',
       'worker_verification',

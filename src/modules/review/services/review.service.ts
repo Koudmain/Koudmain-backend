@@ -1,5 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import { UniqueConstraintError } from 'sequelize';
 import { Review, ReviewType } from '@/modules/review/models/review.model';
 import { PaymentReport } from '@/modules/review/models/payment-report.model';
 import { Mission, MissionStatus } from '@/modules/mission/models/mission.model';
@@ -20,25 +21,24 @@ export class ReviewService {
   async createCompanyReview(userId: number, missionId: number, dto: CreateCompanyReviewDto) {
     const mission = await this.getCompletedMissionOfWorker(userId, missionId);
 
-    const existingReview = await this.reviewModel.findOne({
-      where: { missionId, reviewerId: userId, type: ReviewType.WORKER_TO_COMPANY },
-    });
-
-    if (existingReview) {
-      throw new ConflictException('Un avis a déjà été déposé pour cette mission');
-    }
-
-    const review = await this.reviewModel.create({
-      missionId,
-      reviewerId: userId,
-      ratedCompanyId: mission.companyId,
-      rating: dto.rating,
-      comment: dto.comment?.trim() || null,
-      type: ReviewType.WORKER_TO_COMPANY,
-      paymentOnTime: dto.paymentOnTime ?? null,
-      missionMatchesListing: dto.missionMatchesListing ?? null,
-      createdAt: new Date(),
-    });
+    const review = await this.reviewModel
+      .create({
+        missionId,
+        reviewerId: userId,
+        ratedCompanyId: mission.companyId,
+        rating: dto.rating,
+        comment: dto.comment?.trim() || null,
+        type: ReviewType.WORKER_TO_COMPANY,
+        paymentOnTime: dto.paymentOnTime ?? null,
+        missionMatchesListing: dto.missionMatchesListing ?? null,
+        createdAt: new Date(),
+      })
+      .catch((error: unknown) => {
+        if (error instanceof UniqueConstraintError) {
+          throw new ConflictException('Un avis a déjà été déposé pour cette mission');
+        }
+        throw error;
+      });
 
     await this.refreshCompanyRating(mission.companyId);
 
@@ -48,14 +48,21 @@ export class ReviewService {
   async createPaymentReport(userId: number, missionId: number, dto: CreatePaymentReportDto) {
     const mission = await this.getCompletedMissionOfWorker(userId, missionId);
 
-    return this.paymentReportModel.create({
-      missionId,
-      reporterId: userId,
-      companyId: mission.companyId,
-      reportType: dto.reportType,
-      description: dto.description?.trim() || null,
-      createdAt: new Date(),
-    });
+    return this.paymentReportModel
+      .create({
+        missionId,
+        reporterId: userId,
+        companyId: mission.companyId,
+        reportType: dto.reportType,
+        description: dto.description?.trim() || null,
+        createdAt: new Date(),
+      })
+      .catch((error: unknown) => {
+        if (error instanceof UniqueConstraintError) {
+          throw new ConflictException('Ce signalement a déjà été envoyé pour cette mission');
+        }
+        throw error;
+      });
   }
 
   private async getCompletedMissionOfWorker(userId: number, missionId: number) {

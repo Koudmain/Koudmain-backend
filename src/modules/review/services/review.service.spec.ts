@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { UniqueConstraintError } from 'sequelize';
 import { ReviewService } from '@/modules/review/services/review.service';
 import { Review, ReviewType } from '@/modules/review/models/review.model';
 import { PaymentReport, PaymentReportType } from '@/modules/review/models/payment-report.model';
@@ -11,7 +12,6 @@ describe('ReviewService', () => {
   let service: ReviewService;
 
   const mockReviewModel = {
-    findOne: jest.fn(),
     findAll: jest.fn(),
     create: jest.fn(),
   };
@@ -60,17 +60,16 @@ describe('ReviewService', () => {
 
     it('should throw ConflictException when a review already exists for this mission', async () => {
       mockMissionModel.findOne.mockResolvedValue(mission);
-      mockReviewModel.findOne.mockResolvedValue({ id: 1 });
+      mockReviewModel.create.mockRejectedValue(new UniqueConstraintError({}));
 
       await expect(service.createCompanyReview(userId, missionId, { rating: 5 })).rejects.toThrow(
         ConflictException,
       );
-      expect(mockReviewModel.create).not.toHaveBeenCalled();
+      expect(mockCompanyModel.update).not.toHaveBeenCalled();
     });
 
     it('should create the review and update the company rating', async () => {
       mockMissionModel.findOne.mockResolvedValue(mission);
-      mockReviewModel.findOne.mockResolvedValue(null);
       mockReviewModel.create.mockResolvedValue({ id: 12 });
       mockReviewModel.findAll.mockResolvedValue([{ rating: 5 }, { rating: 4 }]);
 
@@ -129,6 +128,17 @@ describe('ReviewService', () => {
           description: 'Payé avec 10 jours de retard',
         }),
       );
+    });
+
+    it('should throw ConflictException when the same report type was already sent', async () => {
+      mockMissionModel.findOne.mockResolvedValue(mission);
+      mockPaymentReportModel.create.mockRejectedValue(new UniqueConstraintError({}));
+
+      await expect(
+        service.createPaymentReport(userId, missionId, {
+          reportType: PaymentReportType.LATE_PAYMENT,
+        }),
+      ).rejects.toThrow(ConflictException);
     });
   });
 });
