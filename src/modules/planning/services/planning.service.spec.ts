@@ -15,8 +15,11 @@ import { Op } from 'sequelize';
 describe('PlanningService', () => {
   let service: PlanningService;
   let applicationModelMock: typeof Application;
+  let publicationModelMock: typeof Publication;
 
-  const mockPublicationModel = {};
+  const mockPublicationModel = {
+    findAll: jest.fn().mockResolvedValue([]),
+  };
 
   const mockApplicationModel = {
     findAll: jest.fn().mockResolvedValue([]),
@@ -55,6 +58,7 @@ describe('PlanningService', () => {
 
     service = module.get<PlanningService>(PlanningService);
     applicationModelMock = module.get(getModelToken(Application));
+    publicationModelMock = module.get(getModelToken(Publication));
   });
 
   afterEach(() => {
@@ -197,6 +201,71 @@ describe('PlanningService', () => {
       await expect(service.getPlanning(userId, '2026-03-01', '2026-03-31')).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('should list every company publication on the period, with or without an accepted worker', async () => {
+      mockUserModel.findByPk.mockResolvedValueOnce({ id: 1, role: 'EMPLOYER' });
+      const mockPublicationData = [
+        {
+          id: 10,
+          title: 'Open publication, no accepted worker yet',
+          hourly_rate: 20,
+          starting_date: new Date('2026-05-10'),
+          ending_date: new Date('2026-05-12'),
+          applications: [],
+        },
+        {
+          id: 20,
+          title: 'Publication with an accepted worker',
+          hourly_rate: 30,
+          starting_date: new Date('2026-05-15'),
+          ending_date: new Date('2026-05-16'),
+          applications: [
+            {
+              status: 'Accepted',
+              workerProfile: {
+                user: {
+                  first_name: 'Jane',
+                  last_name: 'Doe',
+                  profile_picture_url: 'http://example.com/pic.jpg',
+                  reviews: [{ rating: 4 }, { rating: 5 }],
+                },
+              },
+            },
+          ],
+        },
+      ];
+
+      jest
+        .spyOn(publicationModelMock, 'findAll')
+        .mockResolvedValueOnce(mockPublicationData as unknown as Publication[]);
+
+      const result = await service.getPlanning(userId, '2026-05-01', '2026-05-31', 10);
+
+      expect(result).toEqual([
+        {
+          publicationId: 10,
+          title: 'Open publication, no accepted worker yet',
+          salary: 20,
+          starting_date: new Date('2026-05-10'),
+          ending_date: new Date('2026-05-12'),
+          worker_name: null,
+          worker_profile_picture: null,
+          workerRating: 0,
+          workerRatingCount: 0,
+        },
+        {
+          publicationId: 20,
+          title: 'Publication with an accepted worker',
+          salary: 30,
+          starting_date: new Date('2026-05-15'),
+          ending_date: new Date('2026-05-16'),
+          worker_name: 'Jane Doe',
+          worker_profile_picture: 'http://example.com/pic.jpg',
+          workerRating: 4.5,
+          workerRatingCount: 2,
+        },
+      ]);
     });
 
     it('should throw BadRequestException if only startDate is provided', async () => {
