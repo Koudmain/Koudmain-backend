@@ -8,11 +8,22 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { CompanyJob } from '@/modules/companies/models/company-job.model';
-import { CreationAttributes, Transaction } from 'sequelize';
+import { CreationAttributes, Op, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
 import { Address } from '@/modules/address/address.model';
 import { CompanyType, OwnerPosition } from '@/modules/auth/models/register.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { Skill } from '@/modules/skill/models/skill.model';
+import { Application } from '@/modules/application/models/application.model';
+import { Mission } from '@/modules/mission/models/mission.model';
+import { Review } from '@/modules/review/models/review.model';
+import { User } from '@/modules/users/models/user.model';
+import { buildRatingSummary } from '@/modules/review/review.utils';
+import { DriveService } from '@/modules/drive/drive.service';
+import { UpdateCompanyDto } from '@/modules/companies/dto/update-company.dto';
+
+export const OPEN_PUBLICATION_STATUSES = ['Ouverte', 'Urgente'];
 
 @Injectable()
 export class CompaniesService {
@@ -21,7 +32,12 @@ export class CompaniesService {
     @InjectModel(CompanyMember) private memberModel: typeof CompanyMember,
     @InjectModel(CompanyJob) private companyJobModel: typeof CompanyJob,
     @InjectModel(Address) private addressModel: typeof Address,
+    @InjectModel(Publication) private publicationModel: typeof Publication,
+    @InjectModel(Application) private applicationModel: typeof Application,
+    @InjectModel(Mission) private missionModel: typeof Mission,
+    @InjectModel(Review) private reviewModel: typeof Review,
     private geocodingService: GeocodingService,
+    private driveService: DriveService,
   ) {}
 
   async createCompanyWithOwner(
@@ -91,13 +107,7 @@ export class CompaniesService {
     companyId: number,
     updateAddressDto: UpdateCompanyAddressDto,
   ) {
-    const membership = await this.memberModel.findOne({
-      where: { userId: userId, companyId: companyId },
-    });
-
-    if (!membership || membership.role !== (OwnerPosition.OWNER as string)) {
-      throw new ForbiddenException("Vous n'avez pas les droits pour modifier cette entreprise");
-    }
+    await this.assertCompanyOwner(userId, companyId);
 
     const company = await this.companyModel.findByPk(companyId, {
       include: ['address'],
@@ -142,5 +152,165 @@ export class CompaniesService {
     return this.companyModel.findByPk(companyId, {
       include: ['address'],
     });
+  }
+
+  async updateCompany(
+    userId: number,
+    companyId: number,
+    dto: UpdateCompanyDto,
+    files: { logo?: Express.Multer.File[]; cover?: Express.Multer.File[] } = {},
+  ) {
+    await this.assertCompanyOwner(userId, companyId);
+
+    const company = await this.companyModel.findByPk(companyId);
+    if (!company) {
+      throw new NotFoundException('Entreprise introuvable');
+    }
+
+    const updates: Partial<Company> = { ...dto };
+    const logo = files.logo?.[0];
+    const cover = files.cover?.[0];
+    const oldLogoUrl = company.logoUrl;
+    const oldCoverUrl = company.coverImageUrl;
+
+    if (logo) {
+      updates.logoUrl = await this.driveService.uploadImage(logo);
+    }
+    if (cover) {
+      updates.coverImageUrl = await this.driveService.uploadImage(cover, {
+        width: 1200,
+        height: 600,
+      });
+    }
+
+    await company.update(updates);
+
+    if (logo && oldLogoUrl) await this.driveService.deleteFile(oldLogoUrl);
+    if (cover && oldCoverUrl) await this.driveService.deleteFile(oldCoverUrl);
+
+    return this.getPublicProfile(companyId, userId);
+  }
+
+  private async assertCompanyOwner(userId: number, companyId: number) {
+    const membership = await this.memberModel.findOne({
+      where: { userId: userId, companyId: companyId },
+    });
+
+    if (!membership || membership.role !== (OwnerPosition.OWNER as string)) {
+      throw new ForbiddenException("Vous n'avez pas les droits pour modifier cette entreprise");
+    }
+  }
+
+  async getPublicProfile(companyId: number, viewerUserId: number) {
+    const company = await this.companyModel.findByPk(companyId, {
+      include: [
+        {
+          model: Address,
+          as: 'address',
+          attributes: ['street_number', 'street_name', 'zip_code', 'city', 'full_address'],
+        },
+      ],
+    });
+
+    if (!company) {
+      throw new NotFoundException('Établissement introuvable');
+    }
+
+    const [missionsPublished, openPublications, reviews, missions, applications, membership] =
+      await Promise.all([
+        this.publicationModel.count({ where: { companyId } }),
+        this.publicationModel.findAll({
+          where: { companyId, status: { [Op.in]: OPEN_PUBLICATION_STATUSES } },
+          attributes: ['id', 'title', 'hourly_rate', 'starting_date', 'ending_date', 'status'],
+          include: [{ model: Skill, attributes: ['id', 'name'], through: { attributes: [] } }],
+          order: [['starting_date', 'ASC']],
+        }),
+        this.reviewModel.findAll({
+          where: { ratedCompanyId: companyId },
+          include: [
+            {
+              model: User,
+              as: 'reviewer',
+              attributes: ['id', 'first_name', 'last_name', 'profile_picture_url'],
+            },
+            { model: Mission, as: 'mission', attributes: ['workerId'] },
+          ],
+          order: [['createdAt', 'DESC']],
+        }),
+        this.missionModel.findAll({
+          where: {
+            companyId,
+            paidAt: { [Op.ne]: null },
+            paymentDueDate: { [Op.ne]: null },
+          },
+          attributes: ['paidAt', 'paymentDueDate'],
+        }),
+        this.applicationModel.findAll({
+          where: { respondedAt: { [Op.ne]: null } },
+          attributes: ['createdAt', 'respondedAt'],
+          include: [
+            {
+              model: Publication,
+              as: 'publication',
+              where: { companyId },
+              required: true,
+              attributes: [],
+            },
+          ],
+        }),
+        this.memberModel.findOne({
+          where: { userId: viewerUserId, companyId },
+          attributes: ['id'],
+        }),
+      ]);
+
+    const paidOnTimeCount = missions.filter(
+      (mission) => mission.paidAt! <= mission.paymentDueDate!,
+    ).length;
+    const totalResponseTimeMin = applications.reduce(
+      (sum, application) =>
+        sum + (application.respondedAt!.getTime() - application.createdAt.getTime()) / 60000,
+      0,
+    );
+
+    return {
+      id: company.id,
+      name: company.name,
+      companyType: company.companyType,
+      description: company.description,
+      logoUrl: company.logoUrl,
+      coverImageUrl: company.coverImageUrl,
+      specialties: company.specialties,
+      capacity: company.capacity,
+      teamSize: company.teamSize,
+      mealProvided: company.mealProvided,
+      dressCode: company.dressCode,
+      siretVerified: company.siretVerified,
+      koudmainValidated: company.koudmainValidated,
+      address: company.address,
+      reliability: {
+        missionsPublished,
+        paidOnTimeRate:
+          missions.length > 0 ? Math.round((paidOnTimeCount / missions.length) * 100) : null,
+        avgResponseTimeMin:
+          applications.length > 0 ? Math.round(totalResponseTimeMin / applications.length) : null,
+      },
+      rating: buildRatingSummary(reviews),
+      openPublications,
+      reviews: reviews.map((review) => ({
+        id: review.id,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt,
+        author: {
+          name: review.reviewer
+            ? `${review.reviewer.first_name} ${review.reviewer.last_name}`
+            : 'Travailleur Koudmain',
+          pictureUrl: review.reviewer?.profile_picture_url ?? null,
+          // Only members of the reviewed company can open these workers' profiles
+          profileId: membership ? (review.mission?.workerId ?? null) : null,
+        },
+      })),
+    };
   }
 }
