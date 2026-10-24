@@ -1,7 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getModelToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Transaction } from 'sequelize';
 import { DocumentAccessService, DocumentActor } from './document-access.service';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { Mission } from '@/modules/missions/mission.model';
+import { Conversation } from '@/modules/chat/models/conversation.model';
 
 describe('DocumentAccessService', () => {
   let service: DocumentAccessService;
@@ -10,13 +16,27 @@ describe('DocumentAccessService', () => {
     query: jest.fn(),
   };
 
+  const mockWorkerProfileModel = { findOne: jest.fn() };
+  const mockCompanyMemberModel = { findAll: jest.fn() };
+  const mockPublicationModel = { findByPk: jest.fn() };
+  const mockMissionModel = { findByPk: jest.fn() };
+  const mockConversationModel = { findByPk: jest.fn() };
+
   const transaction = {} as Transaction;
   const worker: DocumentActor = { userId: 1, workerId: 3, companyIds: [] };
   const employer: DocumentActor = { userId: 2, workerId: null, companyIds: [10, 11] };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [DocumentAccessService, { provide: Sequelize, useValue: mockSequelize }],
+      providers: [
+        DocumentAccessService,
+        { provide: Sequelize, useValue: mockSequelize },
+        { provide: getModelToken(WorkerProfile), useValue: mockWorkerProfileModel },
+        { provide: getModelToken(CompanyMember), useValue: mockCompanyMemberModel },
+        { provide: getModelToken(Publication), useValue: mockPublicationModel },
+        { provide: getModelToken(Mission), useValue: mockMissionModel },
+        { provide: getModelToken(Conversation), useValue: mockConversationModel },
+      ],
     }).compile();
 
     service = module.get<DocumentAccessService>(DocumentAccessService);
@@ -26,20 +46,25 @@ describe('DocumentAccessService', () => {
 
   describe('resolveActor', () => {
     it('doit renvoyer le profil worker et les entreprises de l’utilisateur', async () => {
-      mockSequelize.query.mockResolvedValue([[{ workerId: 3, companyIds: [10] }]]);
+      mockWorkerProfileModel.findOne.mockResolvedValue({ id: 3 });
+      mockCompanyMemberModel.findAll.mockResolvedValue([{ companyId: 10 }, { companyId: 11 }]);
 
       await expect(service.resolveActor(1)).resolves.toEqual({
         userId: 1,
         workerId: 3,
-        companyIds: [10],
+        companyIds: [10, 11],
       });
-      expect(mockSequelize.query).toHaveBeenCalledWith(expect.any(String), {
-        replacements: { userId: 1 },
-      });
+      expect(mockWorkerProfileModel.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 1 } }),
+      );
+      expect(mockCompanyMemberModel.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 1 } }),
+      );
     });
 
-    it('doit renvoyer une liste vide si aucune entreprise n’est remontée', async () => {
-      mockSequelize.query.mockResolvedValue([[{ workerId: null, companyIds: null }]]);
+    it('doit renvoyer null et une liste vide sans profil worker ni entreprise', async () => {
+      mockWorkerProfileModel.findOne.mockResolvedValue(null);
+      mockCompanyMemberModel.findAll.mockResolvedValue([]);
 
       await expect(service.resolveActor(1)).resolves.toEqual({
         userId: 1,
@@ -98,45 +123,57 @@ describe('DocumentAccessService', () => {
 
   describe('missionParties / conversationParties', () => {
     it('doit renvoyer les parties de la mission', async () => {
-      mockSequelize.query.mockResolvedValue([[{ workerId: 3, companyId: 10 }]]);
+      mockMissionModel.findByPk.mockResolvedValue({ workerId: 3, companyId: 10 });
 
       await expect(service.missionParties(8, transaction)).resolves.toEqual({
         workerId: 3,
         companyId: 10,
       });
-      expect(mockSequelize.query).toHaveBeenCalledWith(expect.stringContaining('FROM "mission"'), {
-        replacements: { id: 8 },
+      expect(mockMissionModel.findByPk).toHaveBeenCalledWith(8, {
+        attributes: ['workerId', 'companyId'],
         transaction,
       });
     });
 
     it('doit renvoyer les parties de la conversation', async () => {
-      mockSequelize.query.mockResolvedValue([[{ workerId: 3, companyId: 10 }]]);
+      mockConversationModel.findByPk.mockResolvedValue({ workerId: 3, companyId: null });
 
-      await service.conversationParties(4);
-
-      expect(mockSequelize.query).toHaveBeenCalledWith(
-        expect.stringContaining('FROM "conversation"'),
-        { replacements: { id: 4 }, transaction: undefined },
-      );
+      await expect(service.conversationParties(4)).resolves.toEqual({
+        workerId: 3,
+        companyId: null,
+      });
+      expect(mockConversationModel.findByPk).toHaveBeenCalledWith(4, {
+        attributes: ['workerId', 'companyId'],
+        transaction: undefined,
+      });
     });
 
     it('doit renvoyer null si la mission n’existe pas', async () => {
-      mockSequelize.query.mockResolvedValue([[]]);
+      mockMissionModel.findByPk.mockResolvedValue(null);
 
       await expect(service.missionParties(404)).resolves.toBeNull();
+    });
+
+    it('doit renvoyer null si la conversation n’existe pas', async () => {
+      mockConversationModel.findByPk.mockResolvedValue(null);
+
+      await expect(service.conversationParties(404)).resolves.toBeNull();
     });
   });
 
   describe('publicationCompanyId', () => {
     it('doit renvoyer l’entreprise de la publication', async () => {
-      mockSequelize.query.mockResolvedValue([[{ companyId: 10 }]]);
+      mockPublicationModel.findByPk.mockResolvedValue({ companyId: 10 });
 
-      await expect(service.publicationCompanyId(2)).resolves.toBe(10);
+      await expect(service.publicationCompanyId(2, transaction)).resolves.toBe(10);
+      expect(mockPublicationModel.findByPk).toHaveBeenCalledWith(2, {
+        attributes: ['companyId'],
+        transaction,
+      });
     });
 
     it('doit renvoyer null si la publication n’existe pas', async () => {
-      mockSequelize.query.mockResolvedValue([[]]);
+      mockPublicationModel.findByPk.mockResolvedValue(null);
 
       await expect(service.publicationCompanyId(404)).resolves.toBeNull();
     });

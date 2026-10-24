@@ -11,6 +11,12 @@ import { CompaniesModule } from '@/modules/companies/companies.module';
 import { S3Module } from '@/modules/s3/s3.module';
 import { DocumensoModule } from '@/modules/documenso/documenso.module';
 import { PdfModule } from '@/modules/pdf/pdf.module';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { Mission } from '@/modules/missions/mission.model';
+import { Conversation } from '@/modules/chat/models/conversation.model';
+import { User } from '@/modules/users/models/user.model';
 import { DocumentsController } from './controllers/document.controller';
 import { UserDocumentsController } from './controllers/user-documents.controller';
 import { WorkerDocumentsController } from './controllers/worker-documents.controller';
@@ -35,6 +41,12 @@ import { ContractGenerationService } from './services/contract-generation.servic
       DocumentAssignment,
       DocumentContext,
       SignatureEnvelope,
+      WorkerProfile,
+      CompanyMember,
+      Publication,
+      Mission,
+      Conversation,
+      User,
     ]),
   ],
   controllers: [

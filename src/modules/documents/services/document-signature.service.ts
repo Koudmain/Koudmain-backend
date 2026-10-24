@@ -30,6 +30,8 @@ import {
   DocumensoWebhookPayload,
 } from '@/modules/documenso/documenso.types';
 import { S3Service } from '@/modules/s3/services/s3.service';
+import { User } from '@/modules/users/models/user.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { StorageCategory, StoredObjectRef } from '@/modules/s3/s3.types';
 
 export interface SignatureLink {
@@ -37,6 +39,8 @@ export interface SignatureLink {
 }
 
 type SignerSide = 'worker' | 'employer';
+
+const SIGNER_ATTRIBUTES = ['email', 'first_name', 'last_name'];
 
 const OPEN_STATUSES: ReadonlySet<SignatureStatus> = new Set([
   SignatureStatus.PENDING,
@@ -56,6 +60,8 @@ export class DocumentSignatureService {
     @InjectModel(Document) private documentModel: typeof Document,
     @InjectModel(Contract) private contractModel: typeof Contract,
     @InjectModel(SignatureEnvelope) private signatureEnvelopeModel: typeof SignatureEnvelope,
+    @InjectModel(WorkerProfile) private workerProfileModel: typeof WorkerProfile,
+    @InjectModel(User) private userModel: typeof User,
   ) {}
 
   async requestSignature(userId: number, documentId: number): Promise<SignatureLink> {
@@ -308,29 +314,24 @@ export class DocumentSignatureService {
   }
 
   private async workerSigner(workerId: number): Promise<DocumensoSigner> {
-    return this.signer(
-      `SELECT u.email, u.first_name AS "firstName", u.last_name AS "lastName"
-       FROM "worker_profile" w JOIN "user" u ON u.id = w.user_id WHERE w.id = :id`,
-      workerId,
-    );
+    const worker = await this.workerProfileModel.findByPk(workerId, {
+      attributes: ['id'],
+      include: [{ model: User, attributes: SIGNER_ATTRIBUTES }],
+    });
+
+    return toSigner(worker?.user);
   }
 
   private async userSigner(userId: number): Promise<DocumensoSigner> {
-    return this.signer(
-      `SELECT email, first_name AS "firstName", last_name AS "lastName" FROM "user" WHERE id = :id`,
-      userId,
-    );
+    return toSigner(await this.userModel.findByPk(userId, { attributes: SIGNER_ATTRIBUTES }));
   }
+}
 
-  private async signer(sql: string, id: number): Promise<DocumensoSigner> {
-    const [rows] = await this.sequelize.query(sql, { replacements: { id } });
-    const row = (rows as Array<{ email: string; firstName: string; lastName: string }>)[0];
-
-    if (!row) {
-      throw new NotFoundException('Signataire introuvable');
-    }
-    return { email: row.email, name: `${row.firstName} ${row.lastName}`.trim() };
+function toSigner(user: User | null | undefined): DocumensoSigner {
+  if (!user) {
+    throw new NotFoundException('Signataire introuvable');
   }
+  return { email: user.email, name: `${user.first_name} ${user.last_name}`.trim() };
 }
 
 function contractRef(documentId: number): StoredObjectRef {

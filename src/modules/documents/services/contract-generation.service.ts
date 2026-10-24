@@ -1,36 +1,26 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Sequelize } from 'sequelize-typescript';
+import { InjectModel } from '@nestjs/sequelize';
 import { PdfService } from '@/modules/pdf/services/pdf.service';
 import { CdduContractData } from '@/modules/pdf/dtos/cddu-data.dto';
+import { Mission } from '@/modules/missions/mission.model';
+import { Company } from '@/modules/companies/models/company.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { User } from '@/modules/users/models/user.model';
+import { Address } from '@/modules/address/address.model';
 
-interface MissionContractRow {
-  finalPrice: string | null;
-  jobTitle: string | null;
-  missionDescription: string | null;
-  hourlyRate: string | null;
-  startDate: string | null;
-  endDate: string | null;
-  totalHours: string | null;
-  missionLocation: string | null;
-  companyName: string;
-  siret: string | null;
-  companyAddress: string | null;
-  workerFirstName: string;
-  workerLastName: string;
-  workerBirthDate: string | null;
-  workerAddress: string | null;
-  representative: string | null;
-  createdDate: string;
-}
-
-const FULL_ADDRESS = (alias: string) =>
-  `CASE WHEN ${alias}.id IS NOT NULL THEN coalesce(${alias}.full_address, concat_ws(', ', concat_ws(' ', ${alias}.street_number, ${alias}.street_name), concat_ws(' ', ${alias}.zip_code, ${alias}.city))) END`;
+const addressInclude = () => ({
+  model: Address,
+  as: 'address',
+  attributes: ['id', 'full_address', 'street_number', 'street_name', 'zip_code', 'city'],
+});
 
 @Injectable()
 export class ContractGenerationService {
   constructor(
-    private readonly sequelize: Sequelize,
     private readonly pdfService: PdfService,
+    @InjectModel(Mission) private missionModel: typeof Mission,
+    @InjectModel(User) private userModel: typeof User,
   ) {}
 
   async generateCddu(missionId: number, representativeUserId: number, documentId: number) {
@@ -44,82 +34,136 @@ export class ContractGenerationService {
     representativeUserId: number,
     documentId: number,
   ): Promise<CdduContractData> {
-    const [rows] = await this.sequelize.query(
-      `SELECT
-        m.final_price AS "finalPrice",
-        p.title AS "jobTitle",
-        p.description AS "missionDescription",
-        p.hourly_rate AS "hourlyRate",
-        to_char(p.starting_date, 'DD/MM/YYYY "à" HH24:MI') AS "startDate",
-        to_char(p.ending_date, 'DD/MM/YYYY "à" HH24:MI') AS "endDate",
-        extract(epoch FROM p.ending_date - p.starting_date) / 3600 AS "totalHours",
-        ${FULL_ADDRESS('pa')} AS "missionLocation",
-        c.name AS "companyName",
-        c.siret_number AS "siret",
-        ${FULL_ADDRESS('ca')} AS "companyAddress",
-        wu.first_name AS "workerFirstName",
-        wu.last_name AS "workerLastName",
-        to_char(wu.birth_date, 'DD/MM/YYYY') AS "workerBirthDate",
-        ${FULL_ADDRESS('wa')} AS "workerAddress",
-        (SELECT concat_ws(' ', first_name, last_name) FROM "user" WHERE id = :representativeUserId) AS "representative",
-        to_char(now() AT TIME ZONE 'Europe/Paris', 'DD/MM/YYYY') AS "createdDate"
-      FROM "mission" m
-      JOIN "company" c ON c.id = m.company_id
-      JOIN "worker_profile" w ON w.id = m.worker_id
-      JOIN "user" wu ON wu.id = w.user_id
-      LEFT JOIN "publication" p ON p.id = m.publication_id
-      LEFT JOIN "address" pa ON pa.id = p.address_id
-      LEFT JOIN "address" ca ON ca.id = c.address_id
-      LEFT JOIN "address" wa ON wa.id = w.address_id
-      WHERE m.id = :missionId`,
-      { replacements: { missionId, representativeUserId } },
-    );
-    const row = (rows as MissionContractRow[])[0];
+    const [mission, representative] = await Promise.all([
+      this.missionModel.findByPk(missionId, {
+        attributes: ['id', 'finalPrice'],
+        include: [
+          {
+            model: Company,
+            as: 'company',
+            required: true,
+            attributes: ['id', 'name', ['siret_number', 'siret']],
+            include: [addressInclude()],
+          },
+          {
+            model: WorkerProfile,
+            as: 'worker',
+            required: true,
+            attributes: ['id'],
+            include: [
+              {
+                model: User,
+                as: 'user',
+                required: true,
+                attributes: ['id', 'first_name', 'last_name', 'birth_date'],
+              },
+              addressInclude(),
+            ],
+          },
+          {
+            model: Publication,
+            as: 'publication',
+            attributes: [
+              'id',
+              'title',
+              'description',
+              'hourly_rate',
+              'starting_date',
+              'ending_date',
+            ],
+            include: [addressInclude()],
+          },
+        ],
+      }),
+      this.userModel.findByPk(representativeUserId, { attributes: ['first_name', 'last_name'] }),
+    ]);
 
-    if (!row) {
+    if (!mission) {
       throw new NotFoundException(`Mission #${missionId} introuvable`);
     }
-    if (!row.siret?.trim()) {
+
+    const { company, publication } = mission;
+    const worker = mission.worker.user;
+    const siret = company.get('siret') as string | null;
+
+    if (!siret?.trim()) {
       throw new BadRequestException(
         "Complétez le SIRET de l'entreprise avant de générer le contrat",
       );
     }
-    if (!row.startDate || !row.endDate || row.totalHours === null || row.hourlyRate === null) {
+    if (
+      !publication?.starting_date ||
+      !publication.ending_date ||
+      publication.hourly_rate === null
+    ) {
       throw new BadRequestException(
         'La publication de la mission doit avoir des dates et un taux horaire',
       );
     }
 
-    const totalHours = round(Number(row.totalHours));
-    const hourlyRate = Number(row.hourlyRate);
+    const createdDate = parisDate(new Date());
+    const totalHours = round(
+      (publication.ending_date.getTime() - publication.starting_date.getTime()) / 3_600_000,
+    );
+    const hourlyRate = Number(publication.hourly_rate);
 
     return {
-      contractRef: `CDDU-${row.createdDate.slice(-4)}-${documentId}`,
-      createdDate: row.createdDate,
+      contractRef: `CDDU-${createdDate.slice(-4)}-${documentId}`,
+      createdDate,
       employer: {
-        name: row.companyName,
-        siret: row.siret,
-        address: row.companyAddress ?? '',
-        representative: row.representative ?? '',
+        name: company.name,
+        siret,
+        address: fullAddress(company.address),
+        representative: representative
+          ? [representative.first_name, representative.last_name].filter(Boolean).join(' ')
+          : '',
       },
       employee: {
-        firstName: row.workerFirstName,
-        lastName: row.workerLastName,
+        firstName: worker.first_name,
+        lastName: worker.last_name,
         nir: '',
-        birthDate: row.workerBirthDate ?? '',
-        address: row.workerAddress ?? '',
+        birthDate: worker.birth_date ? worker.birth_date.split('-').reverse().join('/') : '',
+        address: fullAddress(mission.worker.address),
       },
-      jobTitle: row.jobTitle ?? '',
-      missionDescription: row.missionDescription ?? '',
-      startDate: row.startDate,
-      endDate: row.endDate,
+      jobTitle: publication.title ?? '',
+      missionDescription: publication.description ?? '',
+      startDate: storedDateTime(publication.starting_date),
+      endDate: storedDateTime(publication.ending_date),
       totalHours,
       hourlyRate,
       totalGrossSalary:
-        row.finalPrice !== null ? Number(row.finalPrice) : round(totalHours * hourlyRate),
-      missionLocation: row.missionLocation ?? '',
+        mission.finalPrice !== null ? Number(mission.finalPrice) : round(totalHours * hourlyRate),
+      missionLocation: fullAddress(publication.address),
     };
   }
+}
+
+function fullAddress(address: Address | null | undefined): string {
+  if (!address) return '';
+  if (address.full_address) return address.full_address;
+
+  const street = [address.street_number, address.street_name].filter(Boolean).join(' ');
+  const city = [address.zip_code, address.city].filter(Boolean).join(' ');
+
+  return [street, city].filter(Boolean).join(', ');
+}
+
+function storedDateTime(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, '0');
+
+  return (
+    `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()}` +
+    ` à ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`
+  );
+}
+
+function parisDate(date: Date): string {
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'Europe/Paris',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
 }
 
 function round(value: number): number {

@@ -27,6 +27,8 @@ import {
 } from '@/modules/documenso/documenso.types';
 import { S3Service } from '@/modules/s3/services/s3.service';
 import { StorageCategory } from '@/modules/s3/s3.types';
+import { User } from '@/modules/users/models/user.model';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 
 jest.mock('@/modules/pdf/services/pdf.service', () => ({ PdfService: class PdfService {} }));
 
@@ -36,9 +38,11 @@ describe('DocumentSignatureService', () => {
   const transaction = {};
 
   const mockSequelize = {
-    query: jest.fn(),
     transaction: jest.fn(),
   };
+
+  const mockWorkerProfileModel = { findByPk: jest.fn() };
+  const mockUserModel = { findByPk: jest.fn() };
 
   const mockDocumentsService = { findOne: jest.fn() };
 
@@ -130,15 +134,14 @@ describe('DocumentSignatureService', () => {
   });
 
   const givenSigners = (worker = workerSigner, employer = employerSigner) => {
-    const row = ({ email, name }: { email: string; name: string }) => {
+    const user = ({ email, name }: { email: string; name: string }) => {
       const [firstName, lastName] = name.split(' ');
 
-      return [[{ email, firstName, lastName }]];
+      return { email, first_name: firstName, last_name: lastName };
     };
 
-    mockSequelize.query.mockImplementation(async (sql: string) =>
-      sql.includes('worker_profile') ? row(worker) : row(employer),
-    );
+    mockWorkerProfileModel.findByPk.mockResolvedValue({ user: user(worker) });
+    mockUserModel.findByPk.mockResolvedValue(user(employer));
   };
 
   const webhook = (event: string, envelopeId = 'env-1'): DocumensoWebhookPayload => ({
@@ -158,6 +161,8 @@ describe('DocumentSignatureService', () => {
         { provide: getModelToken(Document), useValue: mockDocumentModel },
         { provide: getModelToken(Contract), useValue: mockContractModel },
         { provide: getModelToken(SignatureEnvelope), useValue: mockSignatureEnvelopeModel },
+        { provide: getModelToken(WorkerProfile), useValue: mockWorkerProfileModel },
+        { provide: getModelToken(User), useValue: mockUserModel },
       ],
     }).compile();
 
@@ -304,7 +309,7 @@ describe('DocumentSignatureService', () => {
     });
 
     it('doit lever NotFoundException si un signataire est introuvable', async () => {
-      mockSequelize.query.mockResolvedValue([[]]);
+      mockWorkerProfileModel.findByPk.mockResolvedValue(null);
 
       await expect(service.requestSignature(2, 42)).rejects.toThrow('Signataire introuvable');
     });

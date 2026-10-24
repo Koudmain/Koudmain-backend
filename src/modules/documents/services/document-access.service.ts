@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/sequelize';
 import { Transaction } from 'sequelize';
 import { Sequelize } from 'sequelize-typescript';
+import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { Mission } from '@/modules/missions/mission.model';
+import { Conversation } from '@/modules/chat/models/conversation.model';
 
 export interface DocumentActor {
   userId: number;
@@ -15,18 +21,26 @@ export interface Parties {
 
 @Injectable()
 export class DocumentAccessService {
-  constructor(private readonly sequelize: Sequelize) {}
+  constructor(
+    private readonly sequelize: Sequelize,
+    @InjectModel(WorkerProfile) private workerProfileModel: typeof WorkerProfile,
+    @InjectModel(CompanyMember) private companyMemberModel: typeof CompanyMember,
+    @InjectModel(Publication) private publicationModel: typeof Publication,
+    @InjectModel(Mission) private missionModel: typeof Mission,
+    @InjectModel(Conversation) private conversationModel: typeof Conversation,
+  ) {}
 
   async resolveActor(userId: number): Promise<DocumentActor> {
-    const [rows] = await this.sequelize.query(
-      `SELECT
-        (SELECT id FROM worker_profile WHERE user_id = :userId LIMIT 1) AS "workerId",
-        ARRAY(SELECT company_id FROM company_member WHERE user_id = :userId) AS "companyIds"`,
-      { replacements: { userId } },
-    );
-    const row = (rows as Array<{ workerId: number | null; companyIds: number[] }>)[0];
+    const [worker, memberships] = await Promise.all([
+      this.workerProfileModel.findOne({ where: { userId }, attributes: ['id'] }),
+      this.companyMemberModel.findAll({ where: { userId }, attributes: ['companyId'] }),
+    ]);
 
-    return { userId, workerId: row.workerId, companyIds: row.companyIds ?? [] };
+    return {
+      userId,
+      workerId: worker?.id ?? null,
+      companyIds: memberships.map((member) => member.companyId),
+    };
   }
 
   readableDocumentIds(actor: DocumentActor): string {
@@ -69,26 +83,36 @@ export class DocumentAccessService {
   }
 
   async missionParties(missionId: number, transaction?: Transaction): Promise<Parties | null> {
-    return this.parties('mission', missionId, transaction);
+    const mission = await this.missionModel.findByPk(missionId, {
+      attributes: ['workerId', 'companyId'],
+      transaction,
+    });
+
+    return mission ? DocumentAccessService.toParties(mission) : null;
   }
 
   async conversationParties(
     conversationId: number,
     transaction?: Transaction,
   ): Promise<Parties | null> {
-    return this.parties('conversation', conversationId, transaction);
+    const conversation = await this.conversationModel.findByPk(conversationId, {
+      attributes: ['workerId', 'companyId'],
+      transaction,
+    });
+
+    return conversation ? DocumentAccessService.toParties(conversation) : null;
   }
 
   async publicationCompanyId(
     publicationId: number,
     transaction?: Transaction,
   ): Promise<number | null> {
-    const [rows] = await this.sequelize.query(
-      `SELECT company_id AS "companyId" FROM "publication" WHERE id = :publicationId`,
-      { replacements: { publicationId }, transaction },
-    );
+    const publication = await this.publicationModel.findByPk(publicationId, {
+      attributes: ['companyId'],
+      transaction,
+    });
 
-    return (rows as Array<{ companyId: number | null }>)[0]?.companyId ?? null;
+    return publication?.companyId ?? null;
   }
 
   static isParty(actor: DocumentActor, parties: Parties): boolean {
@@ -102,17 +126,8 @@ export class DocumentAccessService {
     return parties.companyId !== null && actor.companyIds.includes(parties.companyId);
   }
 
-  private async parties(
-    table: 'mission' | 'conversation',
-    id: number,
-    transaction?: Transaction,
-  ): Promise<Parties | null> {
-    const [rows] = await this.sequelize.query(
-      `SELECT worker_id AS "workerId", company_id AS "companyId" FROM "${table}" WHERE id = :id`,
-      { replacements: { id }, transaction },
-    );
-
-    return (rows as Parties[])[0] ?? null;
+  private static toParties(row: { workerId: number | null; companyId: number | null }): Parties {
+    return { workerId: row.workerId ?? null, companyId: row.companyId ?? null };
   }
 
   private static sqlInt(value: number): string {
