@@ -95,7 +95,7 @@ describe('UsersController', () => {
       expect(mockDriveService.deleteFile).toHaveBeenCalledWith('https://drive.com/old.png');
       expect(mockDriveService.uploadImage).toHaveBeenCalledWith(mockFile);
       expect(mockUserService.update).toHaveBeenCalledWith(42, {
-        firstName: 'John',
+        first_name: 'John',
         profile_picture_url: 'https://drive.com/new.png',
       });
     });

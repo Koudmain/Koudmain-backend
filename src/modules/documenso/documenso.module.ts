@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { DocumensoService } from './services/documenso.service';
-import { DocumensoController } from './controllers/documenso.controller';
 
 @Module({
+  imports: [ConfigModule],
   providers: [DocumensoService],
-  controllers: [DocumensoController],
   exports: [DocumensoService],
 })
 export class DocumensoModule {}
