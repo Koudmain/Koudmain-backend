@@ -118,7 +118,7 @@ export class CompaniesService {
     const fullAddressString =
       `${updateAddressDto.streetNumber || ''} ${updateAddressDto.streetName}, ${updateAddressDto.zipCode} ${updateAddressDto.city}, ${country}`.trim();
 
-    let coords = null;
+    let coords;
     try {
       coords = await this.geocodingService.getCoordsFromAddress(fullAddressString);
     } catch (error) {
