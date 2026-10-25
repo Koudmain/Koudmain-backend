@@ -45,9 +45,7 @@ module.exports = {
       });
     }
     await queryInterface.bulkInsert('address', addresses, {});
-    const addrQuery = await queryInterface.sequelize.query(
-      `SELECT id FROM address ORDER BY id DESC LIMIT ${NUM_USERS};`,
-    );
+    const addrQuery = await queryInterface.sequelize.query(`SELECT id FROM address ORDER BY id DESC LIMIT ${NUM_USERS};`);
     const addressRows = addrQuery[0].reverse();
 
     // 3. Generate Users
@@ -63,10 +61,7 @@ module.exports = {
         password: dummyHashedPassword,
         role: 'WORKER',
         phone_number: faker.string.numeric(10),
-        birth_date: faker.date
-          .birthdate({ min: 18, max: 65, mode: 'age' })
-          .toISOString()
-          .split('T')[0],
+        birth_date: faker.date.birthdate({ min: 18, max: 65, mode: 'age' }).toISOString().split('T')[0],
         profile_picture_url: faker.image.avatar(),
         created_at: now,
       });
@@ -80,10 +75,7 @@ module.exports = {
         password: dummyHashedPassword,
         role: 'EMPLOYER',
         phone_number: faker.string.numeric(10),
-        birth_date: faker.date
-          .birthdate({ min: 25, max: 65, mode: 'age' })
-          .toISOString()
-          .split('T')[0],
+        birth_date: faker.date.birthdate({ min: 25, max: 65, mode: 'age' }).toISOString().split('T')[0],
         profile_picture_url: faker.image.avatar(),
         created_at: now,
       });
@@ -91,12 +83,8 @@ module.exports = {
 
     await queryInterface.bulkInsert('user', users, {});
 
-    const workersQuery = await queryInterface.sequelize.query(
-      `SELECT id FROM "user" WHERE role = 'WORKER' ORDER BY id DESC LIMIT ${numWorkers};`,
-    );
-    const employersQuery = await queryInterface.sequelize.query(
-      `SELECT id FROM "user" WHERE role = 'EMPLOYER' ORDER BY id DESC LIMIT ${numEmployers};`,
-    );
+    const workersQuery = await queryInterface.sequelize.query(`SELECT id FROM "user" WHERE role = 'WORKER' ORDER BY id DESC LIMIT ${numWorkers};`);
+    const employersQuery = await queryInterface.sequelize.query(`SELECT id FROM "user" WHERE role = 'EMPLOYER' ORDER BY id DESC LIMIT ${numEmployers};`);
 
     const workerRows = workersQuery[0].reverse();
     const employerRows = employersQuery[0].reverse();
@@ -113,16 +101,14 @@ module.exports = {
     });
     await queryInterface.bulkInsert('worker_profile', workerProfiles, {});
 
-    const workerProfilesQuery = await queryInterface.sequelize.query(
-      `SELECT id FROM worker_profile ORDER BY id DESC LIMIT ${numWorkers};`,
-    );
+    const workerProfilesQuery = await queryInterface.sequelize.query(`SELECT id FROM worker_profile ORDER BY id DESC LIMIT ${numWorkers};`);
     const workerProfileRows = workerProfilesQuery[0].reverse();
 
     const workerTrades = [];
     workerProfileRows.forEach((wp, i) => {
       const numSkills = faker.number.int({ min: 1, max: 3 });
       const pickedSkills = faker.helpers.arrayElements(skillRows, numSkills);
-      pickedSkills.forEach((skill) => {
+      pickedSkills.forEach(skill => {
         workerTrades.push({
           worker_id: wp.id,
           skill_category_id: skill.id,
@@ -144,9 +130,7 @@ module.exports = {
     });
     await queryInterface.bulkInsert('company', companies, {});
 
-    const companiesQuery = await queryInterface.sequelize.query(
-      `SELECT id FROM company ORDER BY id DESC LIMIT ${numEmployers};`,
-    );
+    const companiesQuery = await queryInterface.sequelize.query(`SELECT id FROM company ORDER BY id DESC LIMIT ${numEmployers};`);
     const companyRows = companiesQuery[0].reverse();
 
     // 6. Generate Company Members and Trades
@@ -162,7 +146,7 @@ module.exports = {
 
       const numSkills = faker.number.int({ min: 1, max: 3 });
       const pickedSkills = faker.helpers.arrayElements(skillRows, numSkills);
-      pickedSkills.forEach((skill) => {
+      pickedSkills.forEach(skill => {
         companyTrades.push({
           company_id: companyRows[i].id,
           skill_category_id: skill.id,
@@ -183,5 +167,5 @@ module.exports = {
     await queryInterface.bulkDelete('user', null, {});
     await queryInterface.bulkDelete('address', null, {});
     await queryInterface.bulkDelete('skill_category', null, {});
-  },
+  }
 };

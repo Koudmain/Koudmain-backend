@@ -88,7 +88,7 @@ describe('AddressService', () => {
 
   describe('getAddressesInZone', () => {
     it('should query sequelize with envelope and return rows', async () => {
-      const dto = { minLat: '1', maxLat: '2', minLng: '3', maxLng: '4' } as GetMapAddressesDto;
+      const dto = { minLat: '1', maxLat: '2', minLng: '3', maxLng: '4' };
       const rows = [{ id: 1, latitude: 1.5, longitude: 3.5 }];
       mockSequelize.query.mockResolvedValue(rows);
 

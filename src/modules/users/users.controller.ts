@@ -16,19 +16,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Request as ExpressRequest } from 'express';
 import { UsersService } from './services/users.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DriveService } from '../drive/drive.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './models/user.model';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { type RequestWithUser } from '@/common/types/request.type';
 
 @ApiTags('Users')
 @ApiBearerAuth()

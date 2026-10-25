@@ -1,0 +1,310 @@
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Get,
+  Param,
+  Patch,
+  Delete,
+  Query,
+  Request,
+  ParseFilePipe,
+  ParseIntPipe,
+  MaxFileSizeValidator,
+  Put,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiExtraModels,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+  getSchemaPath,
+} from '@nestjs/swagger';
+import { DocumentDownload, DocumentsService } from '@/modules/documents/services/document.service';
+import { Document } from '@/modules/documents/models/document.model';
+import { CreateDocumentDto } from '@/modules/documents/dtos/create-document.dto';
+import { UpdateDocumentDto } from '@/modules/documents/dtos/update-document.dto';
+import { QueryDocumentDto } from '@/modules/documents/dtos/query-document.dto';
+import { DownloadDocumentQueryDto } from '@/modules/documents/dtos/download-document.dto';
+import {
+  DocumentSignatureService,
+  SignatureLink,
+} from '@/modules/documents/services/document-signature.service';
+import { StoredVersion } from '@/modules/s3/s3.types';
+import { type RequestWithUser } from '@/common/types/request.type';
+
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
+
+const uploadedFilePipe = new ParseFilePipe({
+  validators: [new MaxFileSizeValidator({ maxSize: MAX_FILE_SIZE })],
+});
+
+const FILE_SCHEMA = {
+  type: 'object',
+  properties: { file: { type: 'string', format: 'binary', description: 'Fichier à stocker' } },
+  required: ['file'],
+};
+
+export class PostDocumentResponseDto {
+  declare message: string;
+  declare id: number;
+  declare createdAt: Date;
+}
+
+@ApiTags('Documents')
+@ApiBearerAuth()
+@ApiExtraModels(CreateDocumentDto)
+@Controller('document')
+export class DocumentsController {
+  constructor(
+    private readonly documentsService: DocumentsService,
+    private readonly signatureService: DocumentSignatureService,
+  ) {}
+
+  @ApiOperation({
+    summary: 'Créer un nouveau document',
+    description:
+      "Crée un document et stocke son fichier sur S3 (PDF, PNG ou JPEG). Un document personnel ne peut être rattaché qu'à soi, à son profil worker ou à ses entreprises. Une facture exige missionId et ne peut être déposée que par l'entreprise de la mission. Un contrat ne se dépose pas: il se génère avec POST /document/mission/:missionId/contract.",
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { allOf: [{ $ref: getSchemaPath(CreateDocumentDto) }, FILE_SCHEMA] } })
+  @ApiResponse({ status: 201, description: 'Document créé avec succès.' })
+  @ApiResponse({ status: 400, description: 'Fichier manquant ou données invalides.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 403, description: 'Rattachement ou modification non autorisé.' })
+  @ApiResponse({ status: 415, description: 'Format non accepté (PDF, PNG, JPEG).' })
+  @HttpCode(HttpStatus.CREATED)
+  @Post()
+  @UseInterceptors(FileInterceptor('file'))
+  async create(
+    @Request() req: RequestWithUser,
+    @Body() createDto: CreateDocumentDto,
+    @UploadedFile(uploadedFilePipe) file: Express.Multer.File,
+  ): Promise<Document> {
+    return this.documentsService.create(req.user.sub, createDto, file);
+  }
+
+  @ApiOperation({
+    summary: 'Récupérer la liste des documents',
+    description:
+      'Récupère la liste globale des documents enregistrés avec possibilité de filtrer par catégorie, recherche, worker, entreprise, user ou mission.',
+  })
+  @ApiResponse({ status: 200, description: 'Liste des documents récupérée.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @HttpCode(HttpStatus.OK)
+  @Get()
+  async findAll(
+    @Request() req: RequestWithUser,
+    @Query() query: QueryDocumentDto,
+  ): Promise<Document[]> {
+    return this.documentsService.findAll(req.user.sub, query);
+  }
+
+  @ApiOperation({
+    summary: "Récupérer les documents d'une mission",
+    description: 'Récupère la liste des documents rattachés à une mission spécifique.',
+  })
+  @ApiParam({ name: 'missionId', description: 'ID de la mission', example: 10 })
+  @ApiResponse({ status: 200, description: 'Documents de la mission récupérés.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @HttpCode(HttpStatus.OK)
+  @Get('mission/:missionId')
+  async getDocumentsByMissionId(
+    @Request() req: RequestWithUser,
+    @Param('missionId', ParseIntPipe) missionId: number,
+  ): Promise<Document[]> {
+    return this.documentsService.findAll(req.user.sub, { missionId });
+  }
+
+  @ApiOperation({
+    summary: "Générer le contrat d'une mission",
+    description:
+      "Génère le CDDU de la mission à partir des données de la plateforme (entreprise, worker, publication) et le stocke sur S3 comme contrat brouillon. Le membre qui génère apparaît comme représentant de l'entreprise. Si un brouillon existe déjà, il est régénéré en nouvelle version. Réservé à l'entreprise de la mission.",
+  })
+  @ApiParam({ name: 'missionId', description: 'ID de la mission', example: 10 })
+  @ApiResponse({ status: 201, description: 'Contrat généré.' })
+  @ApiResponse({ status: 400, description: 'SIRET, dates ou taux horaire manquants.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 403, description: "Réservé à l'entreprise de la mission." })
+  @ApiResponse({ status: 404, description: 'Mission non trouvée.' })
+  @ApiResponse({ status: 409, description: 'Contrat déjà en signature ou signé.' })
+  @HttpCode(HttpStatus.CREATED)
+  @Post('mission/:missionId/contract')
+  async generateContract(
+    @Request() req: RequestWithUser,
+    @Param('missionId', ParseIntPipe) missionId: number,
+  ): Promise<Document> {
+    return this.documentsService.generateContract(req.user.sub, missionId);
+  }
+
+  @ApiOperation({
+    summary: 'Récupérer un document par son ID',
+    description: "Récupère les détails complets d'un document spécifique.",
+  })
+  @ApiParam({ name: 'id', description: 'ID du document', example: 5 })
+  @ApiResponse({ status: 200, description: 'Détails du document récupérés.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 404, description: 'Document non trouvé.' })
+  @HttpCode(HttpStatus.OK)
+  @Get(':id')
+  async getById(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<Document> {
+    return this.documentsService.findOne(req.user.sub, id);
+  }
+
+  @ApiOperation({
+    summary: "Obtenir un lien de téléchargement d'un document",
+    description: 'Génère une URL S3 présignée, valable 15 minutes.',
+  })
+  @ApiParam({ name: 'id', description: 'ID du document', example: 5 })
+  @ApiResponse({ status: 200, description: 'Lien de téléchargement généré.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 404, description: 'Document, fichier ou version introuvable.' })
+  @HttpCode(HttpStatus.OK)
+  @Get(':id/download')
+  async getDownloadUrl(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: DownloadDocumentQueryDto,
+  ): Promise<DocumentDownload> {
+    return this.documentsService.getDownloadUrl(req.user.sub, id, query);
+  }
+
+  @ApiOperation({
+    summary: "Lister les versions du fichier d'un document",
+    description:
+      'Liste les versions stockées sur S3, de la plus récente à la plus ancienne. Seuls les contrats conservent un historique.',
+  })
+  @ApiParam({ name: 'id', description: 'ID du document', example: 5 })
+  @ApiResponse({ status: 200, description: 'Versions récupérées.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 404, description: 'Document ou fichier introuvable.' })
+  @HttpCode(HttpStatus.OK)
+  @Get(':id/versions')
+  async listFileVersions(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<StoredVersion[]> {
+    return this.documentsService.listFileVersions(req.user.sub, id);
+  }
+
+  @ApiOperation({
+    summary: 'Envoyer un contrat en signature',
+    description:
+      "Envoie la version courante du contrat à Documenso, avec le worker et le membre de l'entreprise qui fait la demande comme signataires. Le PDF doit contenir les marqueurs {{SIGNATURE, r1}} (worker) et {{SIGNATURE, r2}} (entreprise). Le contrat ne peut plus être modifié pendant la signature. Renvoie le lien de signature du demandeur.",
+  })
+  @ApiParam({ name: 'id', description: 'ID du contrat', example: 5 })
+  @ApiResponse({ status: 201, description: 'Contrat envoyé en signature.' })
+  @ApiResponse({ status: 400, description: 'Document non signable ou refusé par Documenso.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 403, description: "Réservé à l'entreprise de la mission." })
+  @ApiResponse({ status: 404, description: 'Document non trouvé.' })
+  @ApiResponse({ status: 409, description: "Le contrat n'est plus un brouillon." })
+  @HttpCode(HttpStatus.CREATED)
+  @Post(':id/signature')
+  async requestSignature(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SignatureLink> {
+    return this.signatureService.requestSignature(req.user.sub, id);
+  }
+
+  @ApiOperation({
+    summary: 'Obtenir son lien de signature',
+    description:
+      "Renvoie le lien de signature Documenso de l'utilisateur pour un contrat en attente de signature. Côté entreprise, n'importe quel membre peut signer: le signataire est réattribué à celui qui demande le lien.",
+  })
+  @ApiParam({ name: 'id', description: 'ID du contrat', example: 5 })
+  @ApiResponse({ status: 200, description: 'Lien de signature.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 403, description: 'Réservé aux parties de la mission.' })
+  @ApiResponse({ status: 404, description: 'Document non trouvé.' })
+  @ApiResponse({ status: 409, description: 'Contrat pas en attente de signature, ou déjà signé.' })
+  @HttpCode(HttpStatus.OK)
+  @Get(':id/signature')
+  async getSigningLink(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<SignatureLink> {
+    return this.signatureService.getSigningLink(req.user.sub, id);
+  }
+
+  @ApiOperation({
+    summary: "Remplacer le fichier d'un document",
+    description:
+      "Envoie un nouveau fichier sur S3 et met à jour ses métadonnées. Réservé au propriétaire, ou à l'entreprise de la mission pour une facture en brouillon. Le fichier d'un contrat ne se remplace pas: il se régénère.",
+  })
+  @ApiParam({ name: 'id', description: 'ID du document', example: 5 })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: FILE_SCHEMA })
+  @ApiResponse({ status: 200, description: 'Fichier remplacé.' })
+  @ApiResponse({ status: 400, description: 'Fichier manquant ou invalide.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 404, description: 'Document non trouvé.' })
+  @ApiResponse({ status: 403, description: 'Rattachement ou modification non autorisé.' })
+  @ApiResponse({ status: 409, description: 'Contrat signé, facture émise ou contrat scellé.' })
+  @ApiResponse({ status: 415, description: 'Format non accepté (PDF, PNG, JPEG).' })
+  @HttpCode(HttpStatus.OK)
+  @Put(':id/file')
+  @UseInterceptors(FileInterceptor('file'))
+  async replaceFile(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile(uploadedFilePipe) file: Express.Multer.File,
+  ): Promise<Document> {
+    return this.documentsService.replaceFile(req.user.sub, id, file);
+  }
+
+  @ApiOperation({
+    summary: 'Mettre à jour un document',
+    description:
+      "Renomme un document, ou modifie les montants d'une facture en brouillon. Réservé au propriétaire, ou à l'entreprise de la mission pour un contrat ou une facture.",
+  })
+  @ApiParam({ name: 'id', description: 'ID du document', example: 5 })
+  @ApiResponse({ status: 200, description: 'Document mis à jour avec succès.' })
+  @ApiResponse({ status: 400, description: 'Données invalides.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 404, description: 'Document non trouvé.' })
+  @ApiResponse({ status: 403, description: 'Rattachement ou modification non autorisé.' })
+  @ApiResponse({ status: 409, description: 'Contrat signé, facture émise ou contrat scellé.' })
+  @HttpCode(HttpStatus.OK)
+  @Patch(':id')
+  async update(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdateDocumentDto,
+  ): Promise<Document> {
+    return this.documentsService.update(req.user.sub, id, updateDto);
+  }
+
+  @ApiOperation({
+    summary: 'Supprimer un document',
+    description:
+      'Supprime définitivement un document, ses associations et son fichier sur S3. Réservé au propriétaire, ou aux parties de la mission pour un contrat ou une facture en brouillon.',
+  })
+  @ApiParam({ name: 'id', description: 'ID du document', example: 5 })
+  @ApiResponse({ status: 200, description: 'Document supprimé avec succès.' })
+  @ApiResponse({ status: 401, description: "Jeton d'authentification manquant ou invalide." })
+  @ApiResponse({ status: 404, description: 'Document non trouvé.' })
+  @ApiResponse({ status: 403, description: 'Rattachement ou modification non autorisé.' })
+  @ApiResponse({ status: 409, description: 'Contrat signé, facture émise ou contrat scellé.' })
+  @HttpCode(HttpStatus.OK)
+  @Delete(':id')
+  async delete(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{ message: string; id: number }> {
+    return this.documentsService.delete(req.user.sub, id);
+  }
+}
