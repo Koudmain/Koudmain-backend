@@ -94,7 +94,7 @@ describe('ApplicationService', () => {
       { type: WorkerDocumentType.IDENTITY },
       { type: WorkerDocumentType.NIR },
       { type: WorkerDocumentType.PROOF_OF_ADDRESS },
-      { type: WorkerDocumentType.RIB },
+      // { type: WorkerDocumentType.RIB },                  // Uncomment this line if RIB is also required for KYC
     ]);
   });
 
@@ -235,7 +235,7 @@ describe('ApplicationService', () => {
           missingDocuments: [
             WorkerDocumentType.NIR,
             WorkerDocumentType.PROOF_OF_ADDRESS,
-            WorkerDocumentType.RIB,
+            // WorkerDocumentType.RIB,           // Uncomment this line if RIB is also required for KYC
           ],
         });
       }
@@ -256,7 +256,7 @@ describe('ApplicationService', () => {
         { type: WorkerDocumentType.IDENTITY },
         { type: WorkerDocumentType.NIR },
         { type: WorkerDocumentType.PROOF_OF_ADDRESS },
-        { type: WorkerDocumentType.RIB },
+        // { type: WorkerDocumentType.RIB },              // Uncomment this line if RIB is also required for KYC
       ]);
 
       const result = await service.checkEligibility(userId, publicationId);
@@ -319,7 +319,7 @@ describe('ApplicationService', () => {
         missingDocuments: [
           WorkerDocumentType.NIR,
           WorkerDocumentType.PROOF_OF_ADDRESS,
-          WorkerDocumentType.RIB,
+          // WorkerDocumentType.RIB,                // Uncomment this line if RIB is also required for KYC
         ],
       });
     });
