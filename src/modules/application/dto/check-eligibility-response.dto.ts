@@ -29,4 +29,10 @@ export class CheckEligibilityResponseDto {
     example: [WorkerDocumentType.NIR, WorkerDocumentType.PROOF_OF_ADDRESS, WorkerDocumentType.RIB],
   })
   missingDocuments?: WorkerDocumentType[];
+
+  @ApiPropertyOptional({
+    description: 'Percentage of required KYC documents that are verified (0 to 100)',
+    example: 33,
+  })
+  completionPercentage?: number;
 }

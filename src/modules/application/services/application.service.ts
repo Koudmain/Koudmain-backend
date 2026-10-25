@@ -42,7 +42,7 @@ export class ApplicationService {
    */
   async checkWorkerKyc(
     workerId: number,
-  ): Promise<{ isComplete: boolean; missing: WorkerDocumentType[] }> {
+  ): Promise<{ isComplete: boolean; missing: WorkerDocumentType[]; completionPercentage: number }> {
     const requiredTypes: WorkerDocumentType[] = [
       WorkerDocumentType.IDENTITY,
       WorkerDocumentType.NIR,
@@ -60,10 +60,12 @@ export class ApplicationService {
 
     const verifiedTypes = new Set(verifiedDocs.map((d) => d.type as WorkerDocumentType));
     const missing = requiredTypes.filter((type) => !verifiedTypes.has(type));
+    const completionPercentage = Math.round((verifiedTypes.size / requiredTypes.length) * 100);
 
     return {
       isComplete: missing.length === 0,
       missing,
+      completionPercentage,
     };
   }
 
@@ -125,11 +127,13 @@ export class ApplicationService {
         reason: ApplicationErrorCode.KYC_REQUIRED,
         message: `Documents KYC manquants ou non validés : ${kycResult.missing.join(', ')}.`,
         missingDocuments: kycResult.missing,
+        completionPercentage: kycResult.completionPercentage,
       };
     }
 
     return {
       canApply: true,
+      completionPercentage: 100,
     };
   }
 
@@ -155,6 +159,7 @@ export class ApplicationService {
         code: ApplicationErrorCode.KYC_REQUIRED,
         message: `Documents KYC manquants ou non validés : ${kycResult.missing.join(', ')}.`,
         missingDocuments: kycResult.missing,
+        completionPercentage: kycResult.completionPercentage,
       });
     }
 

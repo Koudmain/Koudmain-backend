@@ -260,7 +260,7 @@ describe('ApplicationService', () => {
       ]);
 
       const result = await service.checkEligibility(userId, publicationId);
-      expect(result).toEqual({ canApply: true });
+      expect(result).toEqual({ canApply: true, completionPercentage: 100 });
     });
 
     it('doit lever NotFoundException si profil worker introuvable', async () => {
@@ -321,6 +321,7 @@ describe('ApplicationService', () => {
           WorkerDocumentType.PROOF_OF_ADDRESS,
           // WorkerDocumentType.RIB,                // Uncomment this line if RIB is also required for KYC
         ],
+        completionPercentage: 33,
       });
     });
   });
