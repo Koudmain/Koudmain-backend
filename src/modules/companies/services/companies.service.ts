@@ -121,14 +121,13 @@ export class CompaniesService {
     const fullAddressString =
       `${updateAddressDto.streetNumber || ''} ${updateAddressDto.streetName}, ${updateAddressDto.zipCode} ${updateAddressDto.city}, ${country}`.trim();
 
-    let coords = null;
-    try {
-      coords = await this.geocodingService.getCoordsFromAddress(fullAddressString);
-    } catch (error) {
-      throw new InternalServerErrorException("Erreur lors du géocodage de l'adresse", {
-        cause: error,
+    const coords = await this.geocodingService
+      .getCoordsFromAddress(fullAddressString)
+      .catch((error: unknown) => {
+        throw new InternalServerErrorException("Erreur lors du géocodage de l'adresse", {
+          cause: error,
+        });
       });
-    }
 
     const addressPayload = {
       street_number: updateAddressDto.streetNumber,
@@ -216,62 +215,16 @@ export class CompaniesService {
       throw new NotFoundException('Établissement introuvable');
     }
 
-    const [missionsPublished, openPublications, reviews, missions, applications, membership] =
-      await Promise.all([
-        this.publicationModel.count({ where: { companyId } }),
-        this.publicationModel.findAll({
-          where: { companyId, status: { [Op.in]: OPEN_PUBLICATION_STATUSES } },
-          attributes: ['id', 'title', 'hourly_rate', 'starting_date', 'ending_date', 'status'],
-          include: [{ model: Skill, attributes: ['id', 'name'], through: { attributes: [] } }],
-          order: [['starting_date', 'ASC']],
-        }),
-        this.reviewModel.findAll({
-          where: { ratedCompanyId: companyId },
-          include: [
-            {
-              model: User,
-              as: 'reviewer',
-              attributes: ['id', 'first_name', 'last_name', 'profile_picture_url'],
-            },
-            { model: Mission, as: 'mission', attributes: ['workerId'] },
-          ],
-          order: [['createdAt', 'DESC']],
-        }),
-        this.missionModel.findAll({
-          where: {
-            companyId,
-            paidAt: { [Op.ne]: null },
-            paymentDueDate: { [Op.ne]: null },
-          },
-          attributes: ['paidAt', 'paymentDueDate'],
-        }),
-        this.applicationModel.findAll({
-          where: { respondedAt: { [Op.ne]: null } },
-          attributes: ['createdAt', 'respondedAt'],
-          include: [
-            {
-              model: Publication,
-              as: 'publication',
-              where: { companyId },
-              required: true,
-              attributes: [],
-            },
-          ],
-        }),
-        this.memberModel.findOne({
-          where: { userId: viewerUserId, companyId },
-          attributes: ['id'],
-        }),
-      ]);
-
-    const paidOnTimeCount = missions.filter(
-      (mission) => mission.paidAt! <= mission.paymentDueDate!,
-    ).length;
-    const totalResponseTimeMin = applications.reduce(
-      (sum, application) =>
-        sum + (application.respondedAt!.getTime() - application.createdAt.getTime()) / 60000,
-      0,
-    );
+    const [openPublications, reliability, reviews] = await Promise.all([
+      this.publicationModel.findAll({
+        where: { companyId, status: { [Op.in]: OPEN_PUBLICATION_STATUSES } },
+        attributes: ['id', 'title', 'hourly_rate', 'starting_date', 'ending_date', 'status'],
+        include: [{ model: Skill, attributes: ['id', 'name'], through: { attributes: [] } }],
+        order: [['starting_date', 'ASC']],
+      }),
+      this.getCompanyReliability(companyId),
+      this.getCompanyReviews(companyId, viewerUserId),
+    ]);
 
     return {
       id: company.id,
@@ -288,29 +241,90 @@ export class CompaniesService {
       siretVerified: company.siretVerified,
       koudmainValidated: company.koudmainValidated,
       address: company.address,
-      reliability: {
-        missionsPublished,
-        paidOnTimeRate:
-          missions.length > 0 ? Math.round((paidOnTimeCount / missions.length) * 100) : null,
-        avgResponseTimeMin:
-          applications.length > 0 ? Math.round(totalResponseTimeMin / applications.length) : null,
-      },
+      reliability,
       rating: buildRatingSummary(reviews),
       openPublications,
-      reviews: reviews.map((review) => ({
-        id: review.id,
-        rating: review.rating,
-        comment: review.comment,
-        createdAt: review.createdAt,
-        author: {
-          name: review.reviewer
-            ? `${review.reviewer.first_name} ${review.reviewer.last_name}`
-            : 'Travailleur Koudmain',
-          pictureUrl: review.reviewer?.profile_picture_url ?? null,
-          // Only members of the reviewed company can open these workers' profiles
-          profileId: membership ? (review.mission?.workerId ?? null) : null,
-        },
-      })),
+      reviews,
     };
+  }
+
+  private async getCompanyReliability(companyId: number) {
+    const [missionsPublished, missions, applications] = await Promise.all([
+      this.publicationModel.count({ where: { companyId } }),
+      this.missionModel.findAll({
+        where: {
+          companyId,
+          paidAt: { [Op.ne]: null },
+          paymentDueDate: { [Op.ne]: null },
+        },
+        attributes: ['paidAt', 'paymentDueDate'],
+      }),
+      this.applicationModel.findAll({
+        where: { respondedAt: { [Op.ne]: null } },
+        attributes: ['createdAt', 'respondedAt'],
+        include: [
+          {
+            model: Publication,
+            as: 'publication',
+            where: { companyId },
+            required: true,
+            attributes: [],
+          },
+        ],
+      }),
+    ]);
+
+    const paidOnTimeCount = missions.filter(
+      (mission) => mission.paidAt! <= mission.paymentDueDate!,
+    ).length;
+    const totalResponseTimeMin = applications.reduce(
+      (sum, application) =>
+        sum + (application.respondedAt!.getTime() - application.createdAt.getTime()) / 60000,
+      0,
+    );
+
+    return {
+      missionsPublished,
+      paidOnTimeRate:
+        missions.length > 0 ? Math.round((paidOnTimeCount / missions.length) * 100) : null,
+      avgResponseTimeMin:
+        applications.length > 0 ? Math.round(totalResponseTimeMin / applications.length) : null,
+    };
+  }
+
+  private async getCompanyReviews(companyId: number, viewerUserId: number) {
+    const [reviews, membership] = await Promise.all([
+      this.reviewModel.findAll({
+        where: { ratedCompanyId: companyId },
+        include: [
+          {
+            model: User,
+            as: 'reviewer',
+            attributes: ['id', 'first_name', 'last_name', 'profile_picture_url'],
+          },
+          { model: Mission, as: 'mission', attributes: ['workerId'] },
+        ],
+        order: [['createdAt', 'DESC']],
+      }),
+      this.memberModel.findOne({
+        where: { userId: viewerUserId, companyId },
+        attributes: ['id'],
+      }),
+    ]);
+
+    return reviews.map((review) => ({
+      id: review.id,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      author: {
+        name: review.reviewer
+          ? `${review.reviewer.first_name} ${review.reviewer.last_name}`
+          : 'Travailleur Koudmain',
+        pictureUrl: review.reviewer?.profile_picture_url ?? null,
+        // Only members of the reviewed company can open these workers' profiles
+        profileId: membership ? (review.mission?.workerId ?? null) : null,
+      },
+    }));
   }
 }
