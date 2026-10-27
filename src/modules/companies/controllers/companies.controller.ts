@@ -26,8 +26,8 @@ export class CompaniesController {
   })
   @ApiResponse({ status: 200, description: 'Entreprises récupérées avec succès.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Roles(UserRole.EMPLOYER)
   @Get('my-companies')
+  @Roles(UserRole.EMPLOYER)
   async getMyCompanies(@Request() req: RequestWithUser) {
     const userId = req.user.sub;
 
@@ -42,6 +42,7 @@ export class CompaniesController {
   @ApiResponse({ status: 200, description: 'Adresse mise à jour avec succès.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Put(':companyId/address')
+  @Roles(UserRole.EMPLOYER)
   async updateCompanyAddress(
     @Request() req: RequestWithUser,
     @Param('companyId', ParseIntPipe) companyId: number,

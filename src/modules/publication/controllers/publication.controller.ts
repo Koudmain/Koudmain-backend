@@ -24,6 +24,8 @@ import {
   Publication,
   PostPublicationResponseDto,
 } from '@/modules/publication/models/publication.model';
+import { Roles } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 
 @ApiTags('Publication')
 @ApiBearerAuth()
@@ -37,7 +39,9 @@ export class PublicationController {
     description: "Crée une nouvelle offre ou annonce d'emploi.",
   })
   @ApiResponse({ status: 201, description: 'Publication créée avec succès.' })
+  @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Post('create')
+  @Roles(UserRole.EMPLOYER)
   async create(@Body() createDto: PostPublicationDto) {
     const publication: Publication = await this.publicationService.create(createDto);
 
@@ -82,7 +86,9 @@ export class PublicationController {
   @ApiBody({ type: PostPublicationDto })
   @ApiResponse({ status: 200, description: 'Publication éditée avec succès.' })
   @ApiResponse({ status: 400, description: 'Publication non trouvée.' })
+  @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Put('/update/:id')
+  @Roles(UserRole.EMPLOYER)
   async update(@Param('id') id: number, @Body() updateDto: Record<string, unknown>) {
     const pubId: Publication | null = await this.publicationService.update(id, updateDto);
 
@@ -104,7 +110,9 @@ export class PublicationController {
   })
   @ApiParam({ name: 'id', description: 'ID numérique de la publication', type: Number })
   @ApiResponse({ status: 200, description: 'Publication supprimée avec succès.' })
+  @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Delete('/delete/:id')
+  @Roles(UserRole.EMPLOYER)
   async delete(@Param('id') id: number) {
     await this.publicationService.delete(id);
 

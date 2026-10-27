@@ -10,6 +10,8 @@ import {
 } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { ChatService } from '@/modules/chat/services/chat.service';
+import { Roles } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
@@ -66,7 +68,9 @@ export class ChatController {
     description: 'Retourne la liste des conversations du worker connecté.',
   })
   @ApiResponse({ status: 200, description: 'Conversations récupérées.' })
+  @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Get('worker/conversations')
+  @Roles(UserRole.WORKER)
   async getWorkerConvs(@Request() req: RequestWithUser) {
     return this.chatService.getConversationsForWorker(req.user.sub);
   }
@@ -77,7 +81,9 @@ export class ChatController {
   })
   @ApiParam({ name: 'companyId', description: "ID numérique de l'entreprise", type: Number })
   @ApiResponse({ status: 200, description: 'Conversations récupérées.' })
+  @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Get('company/:companyId/conversations')
+  @Roles(UserRole.EMPLOYER)
   async getCompanyConvs(
     @Param('companyId', ParseIntPipe) companyId: number,
     @Request() req: RequestWithUser,
@@ -95,7 +101,9 @@ export class ChatController {
     type: Number,
   })
   @ApiResponse({ status: 200, description: 'Détails de la conversation récupérés.' })
+  @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Get('company/conversations/:conversationId')
+  @Roles(UserRole.EMPLOYER)
   async getCompanyConv(
     @Param('conversationId', ParseIntPipe) conversationId: number,
     @Request() req: RequestWithUser,
