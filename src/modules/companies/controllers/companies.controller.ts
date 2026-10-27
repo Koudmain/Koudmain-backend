@@ -4,6 +4,9 @@ import type { Request as ExpressRequest } from 'express';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 
+import { Roles } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
+
 interface RequestWithUser extends ExpressRequest {
   user: {
     sub: number;
@@ -22,6 +25,8 @@ export class CompaniesController {
     description: "Retourne toutes les entreprises rattachées à l'utilisateur connecté.",
   })
   @ApiResponse({ status: 200, description: 'Entreprises récupérées avec succès.' })
+  @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
+  @Roles(UserRole.EMPLOYER)
   @Get('my-companies')
   async getMyCompanies(@Request() req: RequestWithUser) {
     const userId = req.user.sub;
