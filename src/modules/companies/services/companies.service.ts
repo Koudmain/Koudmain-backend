@@ -121,13 +121,14 @@ export class CompaniesService {
     const fullAddressString =
       `${updateAddressDto.streetNumber || ''} ${updateAddressDto.streetName}, ${updateAddressDto.zipCode} ${updateAddressDto.city}, ${country}`.trim();
 
-    const coords = await this.geocodingService
-      .getCoordsFromAddress(fullAddressString)
-      .catch((error: unknown) => {
-        throw new InternalServerErrorException("Erreur lors du géocodage de l'adresse", {
-          cause: error,
-        });
+    let coords;
+    try {
+      coords = await this.geocodingService.getCoordsFromAddress(fullAddressString);
+    } catch (error) {
+      throw new InternalServerErrorException("Erreur lors du géocodage de l'adresse", {
+        cause: error,
       });
+    }
 
     const addressPayload = {
       street_number: updateAddressDto.streetNumber,
