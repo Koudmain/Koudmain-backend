@@ -157,7 +157,7 @@ module.exports = {
       companyMembers.push({
         user_id: e.id,
         company_id: companyRows[i].id,
-        role: 'Owner',
+        role: 'OWNER',
       });
 
       const numSkills = faker.number.int({ min: 1, max: 3 });

@@ -9,15 +9,27 @@ const APPLICATIONS_DATA = [
   { publicationTitle: 'Serveur H/F', workerEmail: 'worker2@koudmain.fr', status: 'Rejected' },
   { publicationTitle: 'Commis de cuisine', workerEmail: 'worker3@koudmain.fr', status: 'Accepted' },
   { publicationTitle: 'Barman H/F', workerEmail: 'worker4@koudmain.fr', status: 'Pending' },
-  { publicationTitle: 'Réceptionniste de nuit', workerEmail: 'worker5@koudmain.fr', status: 'Pending' },
+  {
+    publicationTitle: 'Réceptionniste de nuit',
+    workerEmail: 'worker5@koudmain.fr',
+    status: 'Pending',
+  },
   {
     publicationTitle: "Hôte/Hôtesse d'accueil événementiel",
     workerEmail: 'worker6@koudmain.fr',
     status: 'Accepted',
   },
-  { publicationTitle: 'Livreur à vélo H/F', workerEmail: 'worker7@koudmain.fr', status: 'Rejected' },
+  {
+    publicationTitle: 'Livreur à vélo H/F',
+    workerEmail: 'worker7@koudmain.fr',
+    status: 'Rejected',
+  },
   { publicationTitle: 'Aide pâtissier H/F', workerEmail: 'worker8@koudmain.fr', status: 'Pending' },
-  { publicationTitle: 'Plongeur en cuisine', workerEmail: 'worker9@koudmain.fr', status: 'Rejected' },
+  {
+    publicationTitle: 'Plongeur en cuisine',
+    workerEmail: 'worker9@koudmain.fr',
+    status: 'Rejected',
+  },
   {
     publicationTitle: "Agent d'entretien H/F",
     workerEmail: 'worker10@koudmain.fr',
@@ -132,11 +144,7 @@ module.exports = {
     const publicationIds = publicationRows.map((p) => p.id);
 
     if (publicationIds.length > 0) {
-      await queryInterface.bulkDelete(
-        'application',
-        { publication_id: publicationIds },
-        {},
-      );
+      await queryInterface.bulkDelete('application', { publication_id: publicationIds }, {});
     }
 
     console.log('Candidatures de démonstration supprimées.');
