@@ -1,11 +1,38 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Request } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  Redirect,
+  Request,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiProperty,
+  ApiPropertyOptional,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
-import { RegisterDto } from '@/modules/auth/models/register.model';
+import { GoogleRegisterDto, RegisterDto } from '@/modules/auth/models/register.model';
 import { publicRoute } from '@/decorators/public.decorator';
-import { IsEmail, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { UserRole } from '@/modules/users/models/user.model';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 type JwtPayload = {
   sub: number;
@@ -54,6 +81,38 @@ export class ResendVerificationDto {
   @IsNumber()
   @IsNotEmpty()
   userId: number;
+}
+
+export class GoogleStartDto {
+  @ApiProperty({ example: 'koudmain://auth/GoogleCallback', description: "URL de retour de l'app" })
+  @IsString()
+  @IsNotEmpty()
+  redirect: string;
+}
+
+export class GoogleAuthDto {
+  @ApiProperty({ example: 'eyJhbGciOiJSUzI1Ni...', description: 'ID token Google' })
+  @IsString()
+  @IsNotEmpty()
+  idToken: string;
+
+  @ApiProperty({ description: 'Verifier reçu de POST /auth/google/start' })
+  @IsString()
+  @IsNotEmpty()
+  verifier: string;
+
+  @ApiProperty({ enum: UserRole, description: "Rôle des comptes acceptés par l'app" })
+  @IsEnum(UserRole)
+  role: UserRole;
+
+  @ApiPropertyOptional({
+    type: () => GoogleRegisterDto,
+    description: "Données d'inscription, si aucun compte n'existe pour cet email Google",
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => GoogleRegisterDto)
+  registration?: GoogleRegisterDto;
 }
 
 @ApiTags('Auth')
@@ -126,6 +185,61 @@ export class AuthController {
       true,
     );
     return { message: 'Un nouveau code de vérification a été envoyé.' };
+  }
+
+  @publicRoute()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Connexion Google (début)',
+    description:
+      "Retourne l'URL de consentement Google à ouvrir et le `verifier` à renvoyer à POST /auth/google. `redirect` est l'URL de l'app.",
+  })
+  @ApiResponse({ status: 200, description: 'URL de consentement Google et verifier.' })
+  @ApiResponse({ status: 400, description: 'URL de redirection non autorisée.' })
+  @Post('google/start')
+  googleStart(@Body() body: GoogleStartDto): Promise<{ url: string; verifier: string }> {
+    return this.authService.getGoogleAuthUrl(body.redirect);
+  }
+
+  @publicRoute()
+  @ApiOperation({
+    summary: 'Connexion Google (retour)',
+    description: "Reçoit le code Google et redirige vers l'app avec l'ID token et le profil.",
+  })
+  @ApiResponse({ status: 302, description: "Redirection vers l'app." })
+  @ApiResponse({ status: 400, description: 'State invalide ou expiré.' })
+  @Get('google/callback')
+  @Redirect()
+  async googleCallback(
+    @Query('state') state: string,
+    @Query('code') code?: string,
+    @Query('error') error?: string,
+  ): Promise<{ url: string }> {
+    return { url: await this.authService.handleGoogleCallback(state, code, error) };
+  }
+
+  @publicRoute()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Connexion / inscription avec Google',
+    description:
+      "Connecte le compte lié à l'email Google, ou le crée si `registration` est fourni.",
+  })
+  @ApiResponse({ status: 200, description: 'Connexion réussie, retourne les tokens JWT.' })
+  @ApiResponse({ status: 401, description: 'ID token Google ou verifier invalide, ou expiré.' })
+  @ApiResponse({ status: 403, description: "Le compte a un autre rôle que l'app (WRONG_ROLE)." })
+  @ApiResponse({
+    status: 404,
+    description: 'Aucun compte pour cet email (GOOGLE_ACCOUNT_NOT_FOUND).',
+  })
+  @Post('google')
+  signInWithGoogle(@Body() body: GoogleAuthDto): Promise<AuthTokenResponse> {
+    return this.authService.signInWithGoogle(
+      body.idToken,
+      body.verifier,
+      body.role,
+      body.registration,
+    );
   }
 
   @publicRoute()
