@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Reflector } from '@nestjs/core';
 import { PublicationController } from './publication.controller';
 import { PublicationService } from '@/modules/publication/services/publication.service';
 import {
   PostPublicationDto,
   PostPublicationResponseDto,
 } from '@/modules/publication/models/publication.model';
+import { ROLES_KEY } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 
 const mockPublicationService = {
   create: jest.fn(),
@@ -137,6 +140,21 @@ describe('PublicationController', () => {
       expect(mockPublicationService.delete).toHaveBeenCalledTimes(1);
       expect(mockPublicationService.delete).toHaveBeenCalledWith(1);
       expect(result).toEqual(expectedResult);
+    });
+  });
+
+  describe('roles metadata', () => {
+    const reflector = new Reflector();
+
+    it('should require EMPLOYER role on create, update, and delete', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.create)).toEqual([UserRole.EMPLOYER]);
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.update)).toEqual([UserRole.EMPLOYER]);
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.delete)).toEqual([UserRole.EMPLOYER]);
+    });
+
+    it('should not restrict get and getById to a specific role', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.get)).toBeUndefined();
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getById)).toBeUndefined();
     });
   });
 });

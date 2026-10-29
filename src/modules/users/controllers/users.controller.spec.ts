@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request as ExpressRequest } from 'express';
 import { UsersController } from './users.controller';
 import { UsersService } from '@/modules/users/services/users.service';
 import { DriveService } from '@/modules/drive/drive.service';
@@ -6,7 +7,7 @@ import { BadRequestException } from '@nestjs/common';
 import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { Readable } from 'stream';
 
-interface RequestWithUser {
+interface RequestWithUser extends ExpressRequest {
   user: {
     sub: number;
     email: string;
@@ -20,7 +21,6 @@ describe('UsersController', () => {
     findOneByIdPublic: jest.fn(),
     updateProfilePicture: jest.fn(),
     update: jest.fn(),
-    findAll: jest.fn(),
   };
 
   const mockDriveService = {
@@ -86,6 +86,18 @@ describe('UsersController', () => {
     });
   });
 
+  describe('getMe', () => {
+    it('should return current user public profile', async () => {
+      const publicProfile = { id: 42, email: 'test@example.com', first_name: 'John' };
+      mockUserService.findOneByIdPublic.mockResolvedValue(publicProfile);
+
+      const result = await controller.getMe(mockRequest);
+
+      expect(mockUserService.findOneByIdPublic).toHaveBeenCalledWith(42);
+      expect(result).toEqual(publicProfile);
+    });
+  });
+
   describe('updateMe', () => {
     it('should update user text data and delete old avatar if a new one is provided', async () => {
       mockUserService.findOneByIdPublic.mockResolvedValue({
@@ -95,13 +107,13 @@ describe('UsersController', () => {
       mockDriveService.uploadImage.mockResolvedValue('https://drive.com/new.png');
       mockUserService.update.mockResolvedValue([1]);
 
-      const dto: UpdateUserDto = { firstName: 'John' };
+      const dto: UpdateUserDto = { first_name: 'John' };
       await controller.updateMe(mockRequest, dto, mockFile);
 
       expect(mockDriveService.deleteFile).toHaveBeenCalledWith('https://drive.com/old.png');
       expect(mockDriveService.uploadImage).toHaveBeenCalledWith(mockFile);
       expect(mockUserService.update).toHaveBeenCalledWith(42, {
-        firstName: 'John',
+        first_name: 'John',
         profile_picture_url: 'https://drive.com/new.png',
       });
     });
