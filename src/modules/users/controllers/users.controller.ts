@@ -132,14 +132,4 @@ export class UsersController {
 
     return this.usersService.findOneByIdPublic(userId);
   }
-
-  @ApiOperation({
-    summary: 'Lister tous les utilisateurs',
-    description: 'Retourne la liste de tous les utilisateurs.',
-  })
-  @ApiResponse({ status: 200, description: 'Liste des utilisateurs récupérée.' })
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
-  }
 }
