@@ -40,8 +40,8 @@ export class PublicationController {
   })
   @ApiResponse({ status: 201, description: 'Publication créée avec succès.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Post('create')
   @Roles(UserRole.EMPLOYER)
+  @Post('create')
   async create(@Body() createDto: PostPublicationDto) {
     const publication: Publication = await this.publicationService.create(createDto);
 
@@ -87,8 +87,8 @@ export class PublicationController {
   @ApiResponse({ status: 200, description: 'Publication éditée avec succès.' })
   @ApiResponse({ status: 400, description: 'Publication non trouvée.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Put('/update/:id')
   @Roles(UserRole.EMPLOYER)
+  @Put('/update/:id')
   async update(@Param('id') id: number, @Body() updateDto: Record<string, unknown>) {
     const pubId: Publication | null = await this.publicationService.update(id, updateDto);
 
@@ -111,8 +111,8 @@ export class PublicationController {
   @ApiParam({ name: 'id', description: 'ID numérique de la publication', type: Number })
   @ApiResponse({ status: 200, description: 'Publication supprimée avec succès.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Delete('/delete/:id')
   @Roles(UserRole.EMPLOYER)
+  @Delete('/delete/:id')
   async delete(@Param('id') id: number) {
     await this.publicationService.delete(id);
 

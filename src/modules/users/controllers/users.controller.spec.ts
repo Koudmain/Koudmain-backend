@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
-import { UsersService } from './services/users.service';
-import { DriveService } from '../drive/drive.service';
+import { UsersService } from '@/modules/users/services/users.service';
+import { DriveService } from '@/modules/drive/drive.service';
 import { BadRequestException } from '@nestjs/common';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { Readable } from 'stream';
 
 interface RequestWithUser {

@@ -25,8 +25,8 @@ export class WorkersController {
   })
   @ApiResponse({ status: 200, description: 'Profil worker récupéré.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Get('/')
   @Roles(UserRole.WORKER)
+  @Get('/')
   async getMyProfile(@Request() req: RequestWithUser) {
     const userId = req.user.sub;
 
@@ -40,6 +40,7 @@ export class WorkersController {
   })
   @ApiResponse({ status: 200, description: 'Profil worker récupéré.' })
   @ApiResponse({ status: 404, description: 'Profil worker introuvable.' })
+  @Roles(UserRole.WORKER)
   @Get('me/profile')
   async getOwnProfile(@Request() req: RequestWithUser) {
     return this.workersService.getOwnProfile(req.user.sub);
@@ -52,6 +53,7 @@ export class WorkersController {
   })
   @ApiResponse({ status: 200, description: 'Profil worker mis à jour.' })
   @ApiResponse({ status: 404, description: 'Profil worker introuvable.' })
+  @Roles(UserRole.WORKER)
   @Patch('me')
   async updateOwnProfile(@Request() req: RequestWithUser, @Body() body: UpdateWorkerProfileDto) {
     return this.workersService.updateOwnProfile(req.user.sub, body);
@@ -65,6 +67,7 @@ export class WorkersController {
   @ApiParam({ name: 'workerId', description: 'ID numérique du profil worker', type: Number })
   @ApiResponse({ status: 200, description: 'Profil worker récupéré.' })
   @ApiResponse({ status: 404, description: 'Profil worker introuvable.' })
+  @Roles(UserRole.EMPLOYER)
   @Get(':workerId/profile')
   async getPublicProfile(
     @Request() req: RequestWithUser,

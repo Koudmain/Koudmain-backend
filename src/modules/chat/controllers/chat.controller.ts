@@ -69,8 +69,8 @@ export class ChatController {
   })
   @ApiResponse({ status: 200, description: 'Conversations récupérées.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Get('worker/conversations')
   @Roles(UserRole.WORKER)
+  @Get('worker/conversations')
   async getWorkerConvs(@Request() req: RequestWithUser) {
     return this.chatService.getConversationsForWorker(req.user.sub);
   }
@@ -82,8 +82,8 @@ export class ChatController {
   @ApiParam({ name: 'companyId', description: "ID numérique de l'entreprise", type: Number })
   @ApiResponse({ status: 200, description: 'Conversations récupérées.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Get('company/:companyId/conversations')
   @Roles(UserRole.EMPLOYER)
+  @Get('company/:companyId/conversations')
   async getCompanyConvs(
     @Param('companyId', ParseIntPipe) companyId: number,
     @Request() req: RequestWithUser,
@@ -102,8 +102,8 @@ export class ChatController {
   })
   @ApiResponse({ status: 200, description: 'Détails de la conversation récupérés.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Get('company/conversations/:conversationId')
   @Roles(UserRole.EMPLOYER)
+  @Get('company/conversations/:conversationId')
   async getCompanyConv(
     @Param('conversationId', ParseIntPipe) conversationId: number,
     @Request() req: RequestWithUser,

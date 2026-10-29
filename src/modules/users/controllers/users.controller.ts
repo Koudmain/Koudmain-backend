@@ -17,11 +17,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
-import { UsersService } from './services/users.service';
+import { UsersService } from '@/modules/users/services/users.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { DriveService } from '../drive/drive.service';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './models/user.model';
+import { DriveService } from '@/modules/drive/drive.service';
+import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
+import { User } from '@/modules/users/models/user.model';
 
 interface RequestWithUser extends ExpressRequest {
   user: {

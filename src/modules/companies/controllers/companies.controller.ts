@@ -46,8 +46,8 @@ export class CompaniesController {
   })
   @ApiResponse({ status: 200, description: 'Entreprises récupérées avec succès.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Get('my-companies')
   @Roles(UserRole.EMPLOYER)
+  @Get('my-companies')
   async getMyCompanies(@Request() req: RequestWithUser) {
     const userId = req.user.sub;
 
@@ -77,8 +77,8 @@ export class CompaniesController {
   @ApiParam({ name: 'companyId', description: "ID numérique de l'entreprise", type: Number })
   @ApiResponse({ status: 200, description: 'Adresse mise à jour avec succès.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
-  @Put(':companyId/address')
   @Roles(UserRole.EMPLOYER)
+  @Put(':companyId/address')
   async updateCompanyAddress(
     @Request() req: RequestWithUser,
     @Param('companyId', ParseIntPipe) companyId: number,
@@ -98,6 +98,7 @@ export class CompaniesController {
   @ApiParam({ name: 'companyId', description: "ID numérique de l'entreprise", type: Number })
   @ApiResponse({ status: 200, description: 'Profil établissement mis à jour.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
+  @Roles(UserRole.EMPLOYER)
   @Patch(':companyId')
   @UseInterceptors(
     FileFieldsInterceptor(
