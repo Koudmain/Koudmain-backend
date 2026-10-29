@@ -22,8 +22,10 @@ import { AuthService } from '@/modules/auth/services/auth.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { GoogleRegisterDto, RegisterDto } from '@/modules/auth/models/register.model';
 import { publicRoute } from '@/decorators/public.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 import {
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -81,11 +83,27 @@ export class ResendVerificationDto {
   userId: number;
 }
 
+export class GoogleStartDto {
+  @ApiProperty({ example: 'koudmain://auth/GoogleCallback', description: "URL de retour de l'app" })
+  @IsString()
+  @IsNotEmpty()
+  redirect: string;
+}
+
 export class GoogleAuthDto {
   @ApiProperty({ example: 'eyJhbGciOiJSUzI1Ni...', description: 'ID token Google' })
   @IsString()
   @IsNotEmpty()
   idToken: string;
+
+  @ApiProperty({ description: 'Verifier reçu de POST /auth/google/start' })
+  @IsString()
+  @IsNotEmpty()
+  verifier: string;
+
+  @ApiProperty({ enum: UserRole, description: "Rôle des comptes acceptés par l'app" })
+  @IsEnum(UserRole)
+  role: UserRole;
 
   @ApiPropertyOptional({
     type: () => GoogleRegisterDto,
@@ -170,16 +188,17 @@ export class AuthController {
   }
 
   @publicRoute()
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Connexion Google (début)',
-    description: "Redirige vers l'écran de consentement Google. `redirect` est l'URL de l'app.",
+    description:
+      "Retourne l'URL de consentement Google à ouvrir et le `verifier` à renvoyer à POST /auth/google. `redirect` est l'URL de l'app.",
   })
-  @ApiResponse({ status: 302, description: 'Redirection vers Google.' })
+  @ApiResponse({ status: 200, description: 'URL de consentement Google et verifier.' })
   @ApiResponse({ status: 400, description: 'URL de redirection non autorisée.' })
-  @Get('google')
-  @Redirect()
-  async googleStart(@Query('redirect') redirect: string): Promise<{ url: string }> {
-    return { url: await this.authService.getGoogleAuthUrl(redirect) };
+  @Post('google/start')
+  googleStart(@Body() body: GoogleStartDto): Promise<{ url: string; verifier: string }> {
+    return this.authService.getGoogleAuthUrl(body.redirect);
   }
 
   @publicRoute()
@@ -207,14 +226,20 @@ export class AuthController {
       "Connecte le compte lié à l'email Google, ou le crée si `registration` est fourni.",
   })
   @ApiResponse({ status: 200, description: 'Connexion réussie, retourne les tokens JWT.' })
-  @ApiResponse({ status: 401, description: 'ID token Google invalide ou expiré.' })
+  @ApiResponse({ status: 401, description: 'ID token Google ou verifier invalide, ou expiré.' })
+  @ApiResponse({ status: 403, description: "Le compte a un autre rôle que l'app (WRONG_ROLE)." })
   @ApiResponse({
     status: 404,
     description: 'Aucun compte pour cet email (GOOGLE_ACCOUNT_NOT_FOUND).',
   })
   @Post('google')
   signInWithGoogle(@Body() body: GoogleAuthDto): Promise<AuthTokenResponse> {
-    return this.authService.signInWithGoogle(body.idToken, body.registration);
+    return this.authService.signInWithGoogle(
+      body.idToken,
+      body.verifier,
+      body.role,
+      body.registration,
+    );
   }
 
   @publicRoute()

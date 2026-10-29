@@ -14,7 +14,9 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { UserRole } from '@/modules/users/models/user.model';
 import {
@@ -26,6 +28,8 @@ import {
   GoogleRegisterDto,
 } from '@/modules/auth/models/register.model';
 import * as bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
+import { UniqueConstraintError } from 'sequelize';
 
 jest.mock('bcrypt', () => ({
   compare: jest.fn(),
@@ -49,8 +53,7 @@ describe('AuthService', () => {
     findOneByEmail: jest.fn(),
     findOneById: jest.fn(),
     create: jest.fn(),
-    markEmailAsVerified: jest.fn(),
-    updateProfilePicture: jest.fn(),
+    update: jest.fn(),
   };
 
   const mockJwtService = {
@@ -101,6 +104,7 @@ describe('AuthService', () => {
     process.env.JWT_REFRESH_EXPIRES_IN = '7d';
     process.env.GOOGLE_OAUTH_CLIENT_ID = 'google_client_id';
     process.env.GOOGLE_OAUTH_CLIENT_SECRET = 'google_secret';
+    process.env.GOOGLE_OAUTH_REDIRECT_URI = 'https://api.test/auth/google/callback';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -438,41 +442,82 @@ describe('AuthService', () => {
 
   describe('Google sign-in', () => {
     const redirect = 'exp://192.168.1.10:8083/--/auth/google-callback';
+    const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
+    const verifier = 'verifier';
     const googlePayload = {
       email: 'john@gmail.com',
       email_verified: true,
       given_name: 'John',
       family_name: 'Doe',
       picture: 'https://lh3.googleusercontent.com/a/abc=s96-c',
+      nonce: sha256(verifier),
     };
     const largePicture = 'https://lh3.googleusercontent.com/a/abc=s400-c';
+    const nodeEnv = process.env.NODE_ENV;
 
     beforeEach(() => {
+      process.env.NODE_ENV = 'development';
       mockGoogleClient.verifyIdToken.mockResolvedValue({ getPayload: () => googlePayload });
     });
 
+    afterEach(() => {
+      process.env.NODE_ENV = nodeEnv;
+    });
+
     describe('getGoogleAuthUrl', () => {
-      it('should reject a redirect outside the app schemes', async () => {
-        await expect(service.getGoogleAuthUrl('https://evil.com')).rejects.toThrow(
-          BadRequestException,
-        );
-        expect(mockGoogleClient.generateAuthUrl).not.toHaveBeenCalled();
+      it.each(['https://evil.com', 'koudmain', undefined as unknown as string])(
+        'should reject the redirect %s',
+        async (badRedirect) => {
+          await expect(service.getGoogleAuthUrl(badRedirect)).rejects.toThrow(BadRequestException);
+          expect(mockGoogleClient.generateAuthUrl).not.toHaveBeenCalled();
+        },
+      );
+
+      it('should reject exp:// redirects outside development', async () => {
+        process.env.NODE_ENV = 'production';
+        await expect(service.getGoogleAuthUrl(redirect)).rejects.toThrow(BadRequestException);
+
+        delete process.env.NODE_ENV;
+        await expect(service.getGoogleAuthUrl(redirect)).rejects.toThrow(BadRequestException);
       });
 
-      it('should sign the redirect into the state and return the Google consent URL', async () => {
+      it('should accept koudmain:// redirects in production', async () => {
+        process.env.NODE_ENV = 'production';
         mockJwtService.signAsync.mockResolvedValue('signed_state');
         mockGoogleClient.generateAuthUrl.mockReturnValue('https://accounts.google.com/consent');
 
-        const url = await service.getGoogleAuthUrl(redirect);
+        await expect(service.getGoogleAuthUrl('koudmain://auth/GoogleCallback')).resolves.toEqual({
+          url: 'https://accounts.google.com/consent',
+          verifier: expect.any(String),
+        });
+      });
+
+      it('should refuse to sign the state without the Google client secret', async () => {
+        delete process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+
+        await expect(service.getGoogleAuthUrl(redirect)).rejects.toThrow(
+          ServiceUnavailableException,
+        );
+        expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+      });
+
+      it('should sign the redirect into the state and return the consent URL with a fresh verifier', async () => {
+        mockJwtService.signAsync.mockResolvedValue('signed_state');
+        mockGoogleClient.generateAuthUrl.mockReturnValue('https://accounts.google.com/consent');
+
+        const { url, verifier: issued } = await service.getGoogleAuthUrl(redirect);
+        const { verifier: next } = await service.getGoogleAuthUrl(redirect);
 
         expect(mockJwtService.signAsync).toHaveBeenCalledWith(
           { redirect },
           { secret: 'google_secret', expiresIn: '10m' },
         );
         expect(mockGoogleClient.generateAuthUrl).toHaveBeenCalledWith(
-          expect.objectContaining({ state: 'signed_state' }),
+          expect.objectContaining({ state: 'signed_state', nonce: sha256(issued) }),
         );
         expect(url).toBe('https://accounts.google.com/consent');
+        expect(issued).toMatch(/^[0-9a-f]{64}$/);
+        expect(next).not.toBe(issued);
       });
     });
 
@@ -483,6 +528,29 @@ describe('AuthService', () => {
         await expect(service.handleGoogleCallback('bad_state', 'code')).rejects.toThrow(
           BadRequestException,
         );
+        expect(mockJwtService.verifyAsync).toHaveBeenCalledWith('bad_state', {
+          secret: 'google_secret',
+          ignoreExpiration: true,
+        });
+      });
+
+      it('should send the user back to the app with error=failed when the state expired', async () => {
+        const exp = Math.floor(Date.now() / 1000) - 60;
+        mockJwtService.verifyAsync.mockResolvedValue({ redirect, exp });
+
+        await expect(service.handleGoogleCallback('state', 'code')).resolves.toBe(
+          `${redirect}?error=failed`,
+        );
+        expect(mockGoogleClient.getToken).not.toHaveBeenCalled();
+      });
+
+      it('should refuse to verify the state without the Google client secret', async () => {
+        delete process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+
+        await expect(service.handleGoogleCallback('state', 'code')).rejects.toThrow(
+          ServiceUnavailableException,
+        );
+        expect(mockJwtService.verifyAsync).not.toHaveBeenCalled();
       });
 
       it('should redirect with error=cancelled when the user refused consent', async () => {
@@ -491,6 +559,14 @@ describe('AuthService', () => {
         await expect(
           service.handleGoogleCallback('state', undefined, 'access_denied'),
         ).resolves.toBe(`${redirect}?error=cancelled`);
+      });
+
+      it('should redirect with error=failed on any other Google error', async () => {
+        mockJwtService.verifyAsync.mockResolvedValue({ redirect });
+
+        await expect(
+          service.handleGoogleCallback('state', undefined, 'server_error'),
+        ).resolves.toBe(`${redirect}?error=failed`);
       });
 
       it('should redirect with error=failed when the code exchange fails', async () => {
@@ -512,6 +588,14 @@ describe('AuthService', () => {
           `${redirect}?idToken=google_id_token&email=john%40gmail.com&firstName=John&lastName=Doe`,
         );
       });
+
+      it('should keep the query and fragment the redirect already has', async () => {
+        mockJwtService.verifyAsync.mockResolvedValue({ redirect: 'koudmain://auth?from=signup#x' });
+
+        await expect(
+          service.handleGoogleCallback('state', undefined, 'access_denied'),
+        ).resolves.toBe('koudmain://auth?from=signup&error=cancelled#x');
+      });
     });
 
     describe('signInWithGoogle', () => {
@@ -530,9 +614,21 @@ describe('AuthService', () => {
       it('should throw UnauthorizedException if the Google token is invalid', async () => {
         mockGoogleClient.verifyIdToken.mockRejectedValue(new Error('Token used too late'));
 
-        await expect(service.signInWithGoogle('google_id_token')).rejects.toThrow(
-          UnauthorizedException,
-        );
+        await expect(
+          service.signInWithGoogle('google_id_token', verifier, UserRole.WORKER),
+        ).rejects.toThrow(UnauthorizedException);
+        expect(mockUsersService.findOneByEmail).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ['another verifier', 'stolen', googlePayload],
+        ['a token without nonce', verifier, { ...googlePayload, nonce: undefined }],
+      ])('should throw UnauthorizedException for %s', async (label, sentVerifier, payload) => {
+        mockGoogleClient.verifyIdToken.mockResolvedValue({ getPayload: () => payload });
+
+        await expect(
+          service.signInWithGoogle('google_id_token', sentVerifier, UserRole.WORKER),
+        ).rejects.toThrow(UnauthorizedException);
         expect(mockUsersService.findOneByEmail).not.toHaveBeenCalled();
       });
 
@@ -541,59 +637,91 @@ describe('AuthService', () => {
           getPayload: () => ({ ...googlePayload, email_verified: false }),
         });
 
-        await expect(service.signInWithGoogle('google_id_token')).rejects.toThrow(
-          UnauthorizedException,
-        );
+        await expect(
+          service.signInWithGoogle('google_id_token', verifier, UserRole.WORKER),
+        ).rejects.toThrow(UnauthorizedException);
       });
 
-      it('should return tokens and mark the email verified for an existing user', async () => {
+      it('should take over an unverified account: verify it, replace its password and revoke its sessions', async () => {
         mockUsersService.findOneByEmail.mockResolvedValue({
           id: 1,
           email: 'john@gmail.com',
+          role: UserRole.WORKER,
           email_verified_at: null,
         });
+        (bcrypt.hash as jest.Mock).mockResolvedValue('random_hash');
 
-        const result = await service.signInWithGoogle('google_id_token');
+        const result = await service.signInWithGoogle('google_id_token', verifier, UserRole.WORKER);
 
         expect(mockGoogleClient.verifyIdToken).toHaveBeenCalledWith({
           idToken: 'google_id_token',
           audience: 'google_client_id',
         });
-        expect(mockUsersService.markEmailAsVerified).toHaveBeenCalledWith(1);
-        expect(mockUsersService.updateProfilePicture).toHaveBeenCalledWith(1, largePicture);
+        expect(mockRefreshSessionService.revokeAllSessions).toHaveBeenCalledWith(1);
+        expect(mockUsersService.update).toHaveBeenCalledWith(1, {
+          email_verified_at: expect.any(Date),
+          password: 'random_hash',
+          profile_picture_url: largePicture,
+        });
+        expect(
+          mockRefreshSessionService.revokeAllSessions.mock.invocationCallOrder[0],
+        ).toBeLessThan(mockRefreshSessionService.createSession.mock.invocationCallOrder[0]);
         expect(result).toEqual({ accessToken: 'token', refreshToken: 'token' });
       });
 
-      it('should keep the profile picture an existing user already chose', async () => {
+      it('should leave a verified account and its chosen picture untouched', async () => {
         mockUsersService.findOneByEmail.mockResolvedValue({
           id: 1,
           email: 'john@gmail.com',
+          role: UserRole.WORKER,
           email_verified_at: new Date(),
           profile_picture_url: 'https://drive.google.com/thumbnail?id=own',
         });
 
-        await service.signInWithGoogle('google_id_token');
+        const result = await service.signInWithGoogle('google_id_token', verifier, UserRole.WORKER);
 
-        expect(mockUsersService.updateProfilePicture).not.toHaveBeenCalled();
+        expect(mockUsersService.update).not.toHaveBeenCalled();
+        expect(mockRefreshSessionService.revokeAllSessions).not.toHaveBeenCalled();
+        expect(result).toEqual({ accessToken: 'token', refreshToken: 'token' });
+      });
+
+      it("should refuse another app's account before changing anything", async () => {
+        mockUsersService.findOneByEmail.mockResolvedValue({
+          id: 1,
+          email: 'john@gmail.com',
+          role: UserRole.WORKER,
+          email_verified_at: null,
+        });
+
+        await expect(
+          service.signInWithGoogle('google_id_token', verifier, UserRole.EMPLOYER),
+        ).rejects.toThrow(new ForbiddenException('WRONG_ROLE'));
+        expect(mockUsersService.update).not.toHaveBeenCalled();
+        expect(mockRefreshSessionService.revokeAllSessions).not.toHaveBeenCalled();
+        expect(mockRefreshSessionService.createSession).not.toHaveBeenCalled();
       });
 
       it('should throw NotFoundException if no account exists and no registration is given', async () => {
         mockUsersService.findOneByEmail.mockResolvedValue(null);
 
-        await expect(service.signInWithGoogle('google_id_token')).rejects.toThrow(
-          NotFoundException,
-        );
+        await expect(
+          service.signInWithGoogle('google_id_token', verifier, UserRole.WORKER),
+        ).rejects.toThrow(NotFoundException);
         expect(mockSequelize.transaction).not.toHaveBeenCalled();
       });
 
-      it('should create a verified account without sending a code when registration is given', async () => {
+      it('should create a verified account in one insert without sending a code', async () => {
         mockUsersService.findOneByEmail.mockResolvedValue(null);
         (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
         mockUsersService.create.mockResolvedValue({ id: 3 });
-        mockUsersService.findOneById.mockResolvedValue({ id: 3, email: 'john@gmail.com' });
         mockWorkersService.create.mockResolvedValue(undefined);
 
-        const result = await service.signInWithGoogle('google_id_token', registration);
+        const result = await service.signInWithGoogle(
+          'google_id_token',
+          verifier,
+          UserRole.WORKER,
+          registration,
+        );
 
         expect(mockUsersService.create).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -601,14 +729,31 @@ describe('AuthService', () => {
             password: 'hashed_password',
             first_name: 'John',
             role: UserRole.WORKER,
+            email_verified_at: expect.any(Date),
+            profile_picture_url: largePicture,
           }),
           { transaction: mockTransaction },
         );
         expect(mockWorkersService.create).toHaveBeenCalled();
-        expect(mockUsersService.markEmailAsVerified).toHaveBeenCalledWith(3);
-        expect(mockUsersService.updateProfilePicture).toHaveBeenCalledWith(3, largePicture);
+        expect(mockUsersService.update).not.toHaveBeenCalled();
         expect(mockEmailVerificationService.sendVerificationCode).not.toHaveBeenCalled();
+        expect(mockRefreshSessionService.createSession).toHaveBeenCalledWith(
+          3,
+          'token',
+          expect.any(Date),
+        );
         expect(result).toEqual({ accessToken: 'token', refreshToken: 'token' });
+      });
+
+      it('should answer 409 when the same email signs up twice at once', async () => {
+        mockUsersService.findOneByEmail.mockResolvedValue(null);
+        (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+        mockUsersService.create.mockRejectedValue(new UniqueConstraintError({}));
+
+        await expect(
+          service.signInWithGoogle('google_id_token', verifier, UserRole.WORKER, registration),
+        ).rejects.toThrow(ConflictException);
+        expect(mockRefreshSessionService.createSession).not.toHaveBeenCalled();
       });
     });
   });

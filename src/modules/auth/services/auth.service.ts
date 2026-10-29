@@ -1,8 +1,11 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from '@/modules/users/services/users.service';
@@ -12,9 +15,9 @@ import { RefreshSessionService } from './refresh-session.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { compare, hash } from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { google } from 'googleapis';
-import { UserRole } from '@/modules/users/models/user.model';
+import { User, UserRole } from '@/modules/users/models/user.model';
 import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
@@ -27,7 +30,7 @@ import {
 } from '@/modules/auth/models/register.model';
 import { AuthTokenResponse } from '@/modules/auth/controllers/auth.controller';
 import { CreateAddressDto } from '@/modules/address/address.dto';
-import { Transaction } from 'sequelize';
+import { Transaction, UniqueConstraintError } from 'sequelize';
 
 type AddressGeocodeResult = {
   fullAddress: string;
@@ -40,10 +43,14 @@ type GoogleProfile = {
   firstName: string;
   lastName: string;
   picture?: string;
+  nonce?: string;
 };
+
+const hashVerifier = (verifier: string) => createHash('sha256').update(verifier).digest('hex');
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private googleClient = new google.auth.OAuth2(
     process.env.GOOGLE_OAUTH_CLIENT_ID,
     process.env.GOOGLE_OAUTH_CLIENT_SECRET,
@@ -226,76 +233,106 @@ export class AuthService {
     };
   }
 
-  async getGoogleAuthUrl(redirect: string): Promise<string> {
-    // Only our app may receive the Google ID token; exp:// (Expo Go) is dev only.
+  private googleStateSecret(): string {
+    const secret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+    if (!secret || !process.env.GOOGLE_OAUTH_CLIENT_ID || !process.env.GOOGLE_OAUTH_REDIRECT_URI) {
+      throw new ServiceUnavailableException('Google sign-in is not configured');
+    }
+    return secret;
+  }
+
+  private appUrl(redirect: string, params: Record<string, string>): string {
+    const url = new URL(redirect);
+    for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+    return url.toString();
+  }
+
+  async getGoogleAuthUrl(redirect: string): Promise<{ url: string; verifier: string }> {
+    const secret = this.googleStateSecret();
+    const protocol = URL.canParse(redirect) ? new URL(redirect).protocol : '';
     const isAllowed =
-      typeof redirect === 'string' &&
-      (redirect.startsWith('koudmain://') ||
-        (process.env.NODE_ENV !== 'production' && redirect.startsWith('exp://')));
+      protocol === 'koudmain:' || (protocol === 'exp:' && process.env.NODE_ENV === 'development');
     if (!isAllowed) throw new BadRequestException('Invalid redirect');
 
-    const state = await this.jwtService.signAsync(
-      { redirect },
-      { secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? '', expiresIn: '10m' },
-    );
-    return this.googleClient.generateAuthUrl({
+    const state = await this.jwtService.signAsync({ redirect }, { secret, expiresIn: '10m' });
+    const verifier = randomBytes(32).toString('hex');
+    const url = this.googleClient.generateAuthUrl({
       scope: ['openid', 'email', 'profile'],
       state,
+      nonce: hashVerifier(verifier),
       prompt: 'select_account',
     });
+    return { url, verifier };
   }
 
   async handleGoogleCallback(state: string, code?: string, error?: string): Promise<string> {
+    const secret = this.googleStateSecret();
     let redirect: string;
+    let exp: number;
     try {
-      ({ redirect } = await this.jwtService.verifyAsync<{ redirect: string }>(state, {
-        secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? '',
-      }));
+      // Expiry is checked below: an expired state still names a trusted redirect to report it to.
+      ({ redirect, exp } = await this.jwtService.verifyAsync<{ redirect: string; exp: number }>(
+        state,
+        { secret, ignoreExpiration: true },
+      ));
     } catch {
       throw new BadRequestException('Invalid state');
     }
-    if (error || !code) return `${redirect}?error=cancelled`;
+    if (error || !code || exp * 1000 < Date.now()) {
+      return this.appUrl(redirect, { error: error === 'access_denied' ? 'cancelled' : 'failed' });
+    }
 
     try {
       const { tokens } = await this.googleClient.getToken(code);
       const idToken = tokens.id_token ?? '';
       const { email, firstName, lastName } = await this.verifyGoogleIdToken(idToken);
-      const params = new URLSearchParams({ idToken, email, firstName, lastName });
-      return `${redirect}?${params.toString()}`;
-    } catch {
-      return `${redirect}?error=failed`;
+      return this.appUrl(redirect, { idToken, email, firstName, lastName });
+    } catch (err) {
+      this.logger.warn(`Google code exchange failed: ${(err as Error).message}`);
+      return this.appUrl(redirect, { error: 'failed' });
     }
   }
 
   async signInWithGoogle(
     idToken: string,
+    verifier: string,
+    role: UserRole,
     registration?: GoogleRegisterDto,
   ): Promise<AuthTokenResponse> {
-    const { email, picture } = await this.verifyGoogleIdToken(idToken);
+    const { email, picture, nonce } = await this.verifyGoogleIdToken(idToken);
+    if (nonce !== hashVerifier(verifier)) throw new UnauthorizedException('Invalid Google token');
     const user = await this.usersService.findOneByEmail(email);
     if (user) {
-      if (!user.email_verified_at) await this.usersService.markEmailAsVerified(user.id);
-      if (picture && !user.profile_picture_url) {
-        await this.usersService.updateProfilePicture(user.id, picture);
+      // Before any change: the other app must not take over (or verify) this account.
+      if (user.role !== role) throw new ForbiddenException('WRONG_ROLE');
+      const changes: Partial<User> = {};
+      if (!user.email_verified_at) {
+        changes.email_verified_at = new Date();
+        changes.password = await hash(randomBytes(32).toString('hex'), 10);
+        await this.refreshSessionService.revokeAllSessions(user.id);
       }
+      if (picture && !user.profile_picture_url) changes.profile_picture_url = picture;
+      if (Object.keys(changes).length) await this.usersService.update(user.id, changes);
       return this.generateTokens({ sub: user.id, email: user.email }, user.id);
     }
     if (!registration) throw new NotFoundException('GOOGLE_ACCOUNT_NOT_FOUND');
 
-    // password is NOT NULL: Google accounts get a random one nobody knows.
-    const userId = await this.createUser({
-      ...registration,
-      email,
-      password: randomBytes(32).toString('hex'),
-    });
-    await this.usersService.markEmailAsVerified(userId);
-    if (picture) await this.usersService.updateProfilePicture(userId, picture);
-    return this.generateTokensForUser(userId);
+    let userId: number;
+    try {
+      userId = await this.createUser(
+        { ...registration, email, password: randomBytes(32).toString('hex') },
+        { email_verified_at: new Date(), ...(picture && { profile_picture_url: picture }) },
+      );
+    } catch (err) {
+      if (err instanceof UniqueConstraintError) throw new ConflictException('Email already exists');
+      throw err;
+    }
+    return this.generateTokens({ sub: userId, email }, userId);
   }
 
   private async verifyGoogleIdToken(idToken: string): Promise<GoogleProfile> {
     const audience = process.env.GOOGLE_OAUTH_CLIENT_ID;
-    if (!audience) throw new UnauthorizedException('Google sign-in is not configured');
+    if (!audience) throw new ServiceUnavailableException('Google sign-in is not configured');
     try {
       const ticket = await this.googleClient.verifyIdToken({ idToken, audience });
       const payload = ticket.getPayload();
@@ -305,15 +342,16 @@ export class AuthService {
           firstName: payload.given_name ?? '',
           lastName: payload.family_name ?? '',
           picture: payload.picture?.replace(/=s\d+-c$/, '=s400-c'),
+          nonce: payload.nonce,
         };
       }
-    } catch {
-      // invalid, expired or foreign token
+    } catch (err) {
+      this.logger.warn(`Google ID token rejected: ${(err as Error).message}`);
     }
     throw new UnauthorizedException('Invalid Google token');
   }
 
-  private async createUser(dto: RegisterDto): Promise<number> {
+  private async createUser(dto: RegisterDto, extra: Partial<User> = {}): Promise<number> {
     const hashedPassword = await hash(dto.password, 10);
     const workerGeo =
       dto.role === UserRole.WORKER ? await this.geocodeAddress(dto.workerProfile?.address) : null;
@@ -334,6 +372,7 @@ export class AuthService {
           role: dto.role,
           phone_number: dto.phoneNumber,
           birth_date: dto.birthDate,
+          ...extra,
         },
         { transaction: t },
       );
