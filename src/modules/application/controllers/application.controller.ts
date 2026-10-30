@@ -18,6 +18,8 @@ import { UpdateApplicationStatusDto } from '@/modules/application/dto/update-app
 import { CheckEligibilityResponseDto } from '@/modules/application/dto/check-eligibility-response.dto';
 import { currentUser } from '@/decorators/current-user.decorator';
 import type { JwtPayload } from '@/decorators/current-user.decorator';
+import { Roles } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 
 @ApiTags('Application')
 @ApiBearerAuth()
@@ -39,6 +41,7 @@ export class ApplicationController {
   })
   @ApiResponse({ status: 401, description: 'Utilisateur non authentifié.' })
   @ApiResponse({ status: 404, description: 'Offre ou profil travailleur non trouvé.' })
+  @Roles(UserRole.WORKER)
   @Get('check/:publicationId')
   async checkEligibility(
     @currentUser() user: JwtPayload,
@@ -64,6 +67,7 @@ export class ApplicationController {
   })
   @ApiResponse({ status: 404, description: 'Offre ou profil travailleur non trouvé.' })
   @ApiResponse({ status: 409, description: 'Candidature déjà existante pour cette offre.' })
+  @Roles(UserRole.WORKER)
   @Post('apply')
   async apply(@currentUser() user: JwtPayload, @Body() dto: ApplyDto) {
     if (!user?.sub) {
@@ -79,6 +83,7 @@ export class ApplicationController {
       'Récupère la liste de toutes les candidatures envoyées par le travailleur connecté.',
   })
   @ApiResponse({ status: 200, description: 'Liste des candidatures récupérée avec succès.' })
+  @Roles(UserRole.WORKER)
   @Get('me')
   async getMyApplications(@currentUser() user: JwtPayload) {
     if (!user?.sub) {
@@ -97,6 +102,7 @@ export class ApplicationController {
   @ApiResponse({ status: 200, description: 'Candidatures récupérées avec succès.' })
   @ApiResponse({ status: 403, description: 'Accès non autorisé.' })
   @ApiResponse({ status: 404, description: 'Publication non trouvée.' })
+  @Roles(UserRole.EMPLOYER)
   @Get('publication/:publicationId')
   async getApplicationsByPublication(
     @currentUser() user: JwtPayload,
@@ -117,6 +123,7 @@ export class ApplicationController {
   @ApiResponse({ status: 200, description: 'Statut mis à jour avec succès.' })
   @ApiResponse({ status: 403, description: 'Action non autorisée.' })
   @ApiResponse({ status: 404, description: 'Candidature non trouvée.' })
+  @Roles(UserRole.EMPLOYER)
   @Patch(':id/status')
   async updateStatus(
     @currentUser() user: JwtPayload,
@@ -140,6 +147,7 @@ export class ApplicationController {
   @ApiResponse({ status: 400, description: 'Candidature déjà traitée.' })
   @ApiResponse({ status: 403, description: 'Candidature appartenant à un autre utilisateur.' })
   @ApiResponse({ status: 404, description: 'Candidature non trouvée.' })
+  @Roles(UserRole.WORKER)
   @Delete(':id')
   async cancel(@currentUser() user: JwtPayload, @Param('id', ParseIntPipe) id: number) {
     if (!user?.sub) {

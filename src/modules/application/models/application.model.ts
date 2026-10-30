@@ -45,9 +45,6 @@ export class Application extends Model {
   @Column({ field: 'responded_at', type: DataType.DATE, allowNull: true })
   declare respondedAt: Date | null;
 
-  @Column({ field: 'created_at', type: DataType.DATE })
-  declare createdAt: Date;
-
   @BelongsTo(() => Publication)
   declare publication: Publication;
 
