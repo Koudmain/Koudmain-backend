@@ -5,6 +5,7 @@ import { AuthService } from '@/modules/auth/services/auth.service';
 import { RefreshSessionService } from '@/modules/auth/services/refresh-session.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { AuthGuard } from '@/modules/auth/auth.guard';
+import { RolesGuard } from '@/modules/auth/roles.guard';
 import { AuthController } from '@/modules/auth/controllers/auth.controller';
 import { RefreshSession } from '@/modules/auth/models/refresh-session.model';
 import { UsersModule } from '@/modules/users/users.module';
@@ -44,6 +45,10 @@ import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
   controllers: [AuthController],

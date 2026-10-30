@@ -152,7 +152,7 @@ describe('AuthService', () => {
       });
       expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
         1,
-        { sub: 1, email: 'test@test.com' },
+        { sub: 1, email: 'test@test.com', role: UserRole.WORKER },
         expect.objectContaining({ secret: 'access_secret', expiresIn: '15m' }),
       );
       expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
@@ -160,6 +160,7 @@ describe('AuthService', () => {
         {
           sub: 1,
           email: 'test@test.com',
+          role: UserRole.WORKER,
           token_type: 'refresh',
         },
         expect.objectContaining({ secret: 'refresh_secret', expiresIn: '7d' }),

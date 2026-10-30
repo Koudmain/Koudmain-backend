@@ -118,6 +118,7 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
+      role: user.role,
     };
     return this.generateTokens(payload, user.id);
   }
@@ -128,6 +129,7 @@ export class AuthService {
       const payload = await this.jwtService.verifyAsync<{
         sub: number;
         email: string;
+        role?: UserRole;
         token_type?: string;
       }>(token, { secret: refreshSecret });
       if (payload.token_type !== 'refresh') {
@@ -141,7 +143,11 @@ export class AuthService {
 
       await this.refreshSessionService.revokeSession(session.id);
 
-      const nextPayload = { sub: payload.sub, email: payload.email };
+      const nextPayload = {
+        sub: payload.sub,
+        email: payload.email,
+        ...(payload.role && { role: payload.role }),
+      };
       return this.generateTokens(nextPayload, payload.sub);
     } catch {
       throw new UnauthorizedException('Invalid token');
@@ -162,7 +168,7 @@ export class AuthService {
     const user = await this.usersService.findOneById(userId);
     if (!user) throw new UnauthorizedException('Utilisateur introuvable.');
 
-    const payload = { sub: user.id, email: user.email };
+    const payload = { sub: user.id, email: user.email, role: user.role };
     return this.generateTokens(payload, user.id);
   }
 

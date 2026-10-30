@@ -16,6 +16,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { WorkersModule } from './modules/workers/workers.module';
 import { AddressModule } from './modules/address/address.module';
 import { ApplicationModule } from './modules/application/application.module';
+import { ReviewModule } from '@/modules/review/review.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ApplicationModule } from './modules/application/application.module';
     WorkersModule,
     AddressModule,
     ApplicationModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [AppService],
