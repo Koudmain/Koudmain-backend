@@ -362,7 +362,18 @@ describe('AuthService', () => {
       mockJwtService.verifyAsync.mockResolvedValue({
         sub: 1,
         email: 'test@test.com',
+        role: UserRole.WORKER,
         token_type: 'access',
+      });
+
+      await expect(service.refresh('token')).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw Unauthorized if role is missing in payload', async () => {
+      mockJwtService.verifyAsync.mockResolvedValue({
+        sub: 1,
+        email: 'test@test.com',
+        token_type: 'refresh',
       });
 
       await expect(service.refresh('token')).rejects.toThrow(UnauthorizedException);
@@ -372,6 +383,7 @@ describe('AuthService', () => {
       mockJwtService.verifyAsync.mockResolvedValue({
         sub: 1,
         email: 'test@test.com',
+        role: UserRole.WORKER,
         token_type: 'refresh',
       });
       mockRefreshSessionService.validateSession.mockResolvedValue(null);
@@ -383,6 +395,7 @@ describe('AuthService', () => {
       mockJwtService.verifyAsync.mockResolvedValue({
         sub: 1,
         email: 'test@test.com',
+        role: UserRole.WORKER,
         token_type: 'refresh',
       });
       mockRefreshSessionService.validateSession.mockResolvedValue({ id: 99 });
@@ -394,6 +407,11 @@ describe('AuthService', () => {
       const result = await service.refresh('valid_token');
 
       expect(mockRefreshSessionService.revokeSession).toHaveBeenCalledWith(99);
+      expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
+        1,
+        { sub: 1, email: 'test@test.com', role: UserRole.WORKER },
+        expect.objectContaining({ secret: 'access_secret', expiresIn: '15m' }),
+      );
       expect(result).toEqual({
         accessToken: 'new_access_token',
         refreshToken: 'new_refresh_token',
