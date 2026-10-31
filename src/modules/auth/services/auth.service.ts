@@ -129,10 +129,10 @@ export class AuthService {
       const payload = await this.jwtService.verifyAsync<{
         sub: number;
         email: string;
-        role?: UserRole;
+        role: UserRole;
         token_type?: string;
       }>(token, { secret: refreshSecret });
-      if (payload.token_type !== 'refresh') {
+      if (payload.token_type !== 'refresh' || !payload.role) {
         throw new UnauthorizedException('Invalid token type');
       }
 
@@ -146,7 +146,7 @@ export class AuthService {
       const nextPayload = {
         sub: payload.sub,
         email: payload.email,
-        ...(payload.role && { role: payload.role }),
+        role: payload.role,
       };
       return this.generateTokens(nextPayload, payload.sub);
     } catch {
