@@ -1,5 +1,6 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { AddressService } from './address.service';
+import { AddressService } from '@/modules/address/services/address.service';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
@@ -11,6 +12,7 @@ describe('AddressService', () => {
 
   const mockAddressModel = {
     create: jest.fn(),
+    findByPk: jest.fn(),
   };
 
   const mockSequelize: Partial<Sequelize> & { query: jest.Mock } = {
@@ -83,6 +85,44 @@ describe('AddressService', () => {
         }),
       );
       expect(result).toEqual(created);
+    });
+  });
+
+  describe('updateAddress', () => {
+    const body: CreateAddressDto = {
+      streetNumber: '5',
+      streetName: 'Rue Neuve',
+      zipCode: '69001',
+      city: 'Lyon',
+    };
+
+    it('should geocode the new address and update the existing record', async () => {
+      const existing = { update: jest.fn().mockResolvedValue('updated') };
+      mockAddressModel.findByPk.mockResolvedValue(existing);
+      mockGeocodingService.getCoordsFromAddress.mockResolvedValue({
+        latitude: 45.76,
+        longitude: 4.83,
+      });
+
+      const result = await service.updateAddress(3, body);
+
+      expect(mockAddressModel.findByPk).toHaveBeenCalledWith(3);
+      expect(existing.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          city: 'Lyon',
+          full_address: '5 Rue Neuve, 69001 Lyon, France',
+          latitude: 45.76,
+          longitude: 4.83,
+        }),
+      );
+      expect(mockAddressModel.create).not.toHaveBeenCalled();
+      expect(result).toBe('updated');
+    });
+
+    it('should throw NotFoundException when the address does not exist', async () => {
+      mockAddressModel.findByPk.mockResolvedValue(null);
+
+      await expect(service.updateAddress(99, body)).rejects.toThrow(NotFoundException);
     });
   });
 

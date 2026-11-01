@@ -224,6 +224,7 @@ describe('PlanningService', () => {
             {
               status: 'Accepted',
               workerProfile: {
+                id: 7,
                 user: {
                   first_name: 'Jane',
                   last_name: 'Doe',
@@ -251,6 +252,7 @@ describe('PlanningService', () => {
           ending_date: new Date('2026-05-12'),
           worker_name: null,
           worker_profile_picture: null,
+          workerId: null,
           workerRating: 0,
           workerRatingCount: 0,
         },
@@ -262,6 +264,7 @@ describe('PlanningService', () => {
           ending_date: new Date('2026-05-16'),
           worker_name: 'Jane Doe',
           worker_profile_picture: 'http://example.com/pic.jpg',
+          workerId: 7,
           workerRating: 4.5,
           workerRatingCount: 2,
         },

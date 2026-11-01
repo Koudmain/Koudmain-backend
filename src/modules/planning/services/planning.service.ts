@@ -157,6 +157,7 @@ export class PlanningService {
         ending_date: pub.ending_date,
         worker_name: worker ? `${worker.first_name} ${worker.last_name}` : null,
         worker_profile_picture: worker?.profile_picture_url || null,
+        workerId: acceptedApplication?.workerProfile?.id ?? null,
         workerRating: Number(workerRating.toFixed(2)),
         workerRatingCount: reviews.length,
       };
