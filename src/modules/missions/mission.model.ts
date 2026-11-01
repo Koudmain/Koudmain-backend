@@ -18,6 +18,7 @@ import { DocumentContext } from '@/modules/documents/models/document-context.mod
 @Table({
   tableName: 'mission',
   underscored: true,
+  timestamps: false,
 })
 export class Mission extends Model<Mission> {
   @Column({
@@ -31,76 +32,63 @@ export class Mission extends Model<Mission> {
   @ForeignKey(() => Publication)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: true,
   })
-  declare publicationId: number;
+  declare publicationId: number | null;
 
   @ForeignKey(() => WorkerProfile)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: true,
   })
-  declare workerId: number;
+  declare workerId: number | null;
 
   @ForeignKey(() => Company)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
-  })
-  declare companyId: number;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  declare status: string;
-
-  @Column({
-    type: DataType.DATE,
     allowNull: true,
   })
-  declare startedAt: Date;
-
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  declare endedAt: Date;
+  declare companyId: number | null;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
     allowNull: true,
   })
-  declare hourlyRate: number;
+  declare finalPrice: string | null;
 
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.STRING(50),
     allowNull: true,
   })
-  declare estimatedHours: number;
+  declare paymentStatus: string | null;
 
   @Column({
     type: DataType.DATE,
-    allowNull: false,
-    defaultValue: DataType.NOW,
+    allowNull: true,
   })
-  declare createdAt: Date;
+  declare contractSignedAt: Date | null;
+
+  @Column({
+    type: DataType.STRING(50),
+    allowNull: true,
+  })
+  declare status: string | null;
 
   @BelongsTo(() => Publication, 'publicationId')
-  publication: Publication;
+  declare publication: Publication;
 
   @BelongsTo(() => WorkerProfile, 'workerId')
-  worker: WorkerProfile;
+  declare worker: WorkerProfile;
 
   @BelongsTo(() => Company, 'companyId')
-  company: Company;
+  declare company: Company;
 
   @HasOne(() => Contract, 'missionId')
-  contract: Contract;
+  declare contract: Contract;
 
   @HasMany(() => Invoice, 'missionId')
-  invoices: Invoice[];
+  declare invoices: Invoice[];
 
   @HasMany(() => DocumentContext, 'missionId')
-  documentContexts: DocumentContext[];
+  declare documentContexts: DocumentContext[];
 }

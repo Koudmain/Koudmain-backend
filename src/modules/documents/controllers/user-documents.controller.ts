@@ -21,6 +21,6 @@ export class UserDocumentsController {
   @Get('me')
   async getDocumentsByUserId(@Request() req: RequestWithUser): Promise<Document[]> {
     const userId = req.user.sub;
-    return this.documentsService.getByUserId(userId);
+    return this.documentsService.findAll(userId, { userId });
   }
 }

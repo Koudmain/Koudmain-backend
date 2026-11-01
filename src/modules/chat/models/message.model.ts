@@ -25,9 +25,10 @@ export class Message extends Model {
   @ForeignKey(() => Document)
   @Column({
     type: DataType.INTEGER,
+    field: 'document_id',
     allowNull: true,
   })
-  documentId: number;
+  declare documentId: number;
 
   @BelongsTo(() => Conversation)
   declare conversation: Conversation;
@@ -36,7 +37,7 @@ export class Message extends Model {
   declare sender: User;
 
   @BelongsTo(() => Document, 'documentId')
-  document: Document;
+  declare document: Document;
 }
 
 export interface MessageAttributes {

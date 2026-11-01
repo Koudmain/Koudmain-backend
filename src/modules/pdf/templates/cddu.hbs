@@ -95,11 +95,8 @@
     }
     .signature-tag {
       margin-top: 15px;
-      font-size: 10pt;
-      color: #475569;
-      background: #f1f5f9;
-      padding: 6px;
-      border-radius: 4px;
+      font-size: 20pt;
+      color: #ffffff;
       display: inline-block;
     }
     .footer {
@@ -172,12 +169,12 @@
         <td>
           <strong>Pour l'Employeur</strong><br />
           <span style="font-size: 9pt; color: #64748b;">Signature et tampon</span>
-          <div class="signature-tag">[SIGNATURE_EMPLOYEUR]</div>
+          <div class="signature-tag">\{{SIGNATURE, r2}}</div>
         </td>
         <td>
           <strong>Le / La Salarié(e)</strong><br />
           <span style="font-size: 9pt; color: #64748b;">Signature précédée de "Lu et approuvé"</span>
-          <div class="signature-tag">[SIGNATURE_SALARIE]</div>
+          <div class="signature-tag">\{{SIGNATURE, r1}}</div>
         </td>
       </tr>
     </table>

@@ -21,6 +21,7 @@ import { DocumentsModule } from './modules/documents/document.module';
 import { MissionsModule } from './modules/missions/missions.module';
 import { Application } from './modules/application/models/application.model';
 import { Review } from './modules/review/models/review.model';
+import { S3Module } from './modules/s3/s3.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { Review } from './modules/review/models/review.model';
     PdfModule,
     DocumentsModule,
     MissionsModule,
+    S3Module,
   ],
   controllers: [AppController],
   providers: [AppService],
