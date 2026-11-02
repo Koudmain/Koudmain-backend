@@ -36,4 +36,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async del(key: string): Promise<void> {
     await this.client.del(key);
   }
+
+  async publishToStream(stream: string, fields: Record<string, string>): Promise<string> {
+    const flatFields = Object.entries(fields).flat();
+    const entryId = await this.client.xadd(stream, '*', ...flatFields);
+    // EntryId should never be null here -> safety check
+    if (entryId === null) {
+      throw new Error(`XADD on stream "${stream}" unexpectedly returned null`);
+    }
+    return entryId;
+  }
 }
