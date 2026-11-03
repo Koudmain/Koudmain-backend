@@ -57,9 +57,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Crée le consumer group s'il n'existe pas déjà (idempotent : l'erreur Redis
-   * BUSYGROUP signifie juste "déjà créé", on l'ignore). '0' = lit depuis le début
-   * du stream, MKSTREAM = crée le stream lui-même s'il n'existe pas encore.
+   * Créer un groupe pour garder en mémoire la lecture du dernier id
+   * à travers plusieurs instances
    */
   async ensureConsumerGroup(stream: string, group: string): Promise<void> {
     try {
@@ -70,7 +69,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** Lit les nouvelles entrées du stream (jamais livrées à ce consumer group), en bloquant jusqu'à `blockMs`. */
   async readNewStreamEntries(
     stream: string,
     group: string,
@@ -90,13 +88,6 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.parseStreamResult(result);
   }
 
-  /**
-   * Relit les entrées déjà livrées à ce consumer mais jamais ackées (sa Pending Entries
-   * List), sans en bloquer de nouvelles : permet de retenter les entrées en échec à
-   * chaque itération de la boucle, et de rattraper au redémarrage celles laissées en
-   * plan par un crash précédent (le nom de consumer est partagé par toutes les instances
-   * du service, donc leur Pending Entries List est commune).
-   */
   async readPendingStreamEntries(
     stream: string,
     group: string,
