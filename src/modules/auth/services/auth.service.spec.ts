@@ -701,6 +701,11 @@ describe('AuthService', () => {
 
         expect(mockUsersService.update).not.toHaveBeenCalled();
         expect(mockRefreshSessionService.revokeAllSessions).not.toHaveBeenCalled();
+        expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
+          1,
+          { sub: 1, email: 'john@gmail.com', role: UserRole.WORKER },
+          expect.anything(),
+        );
         expect(result).toEqual({ accessToken: 'token', refreshToken: 'token' });
       });
 
@@ -756,6 +761,11 @@ describe('AuthService', () => {
         expect(mockWorkersService.create).toHaveBeenCalled();
         expect(mockUsersService.update).not.toHaveBeenCalled();
         expect(mockEmailVerificationService.sendVerificationCode).not.toHaveBeenCalled();
+        expect(mockJwtService.signAsync).toHaveBeenNthCalledWith(
+          1,
+          { sub: 3, email: 'john@gmail.com', role: UserRole.WORKER },
+          expect.anything(),
+        );
         expect(mockRefreshSessionService.createSession).toHaveBeenCalledWith(
           3,
           'token',

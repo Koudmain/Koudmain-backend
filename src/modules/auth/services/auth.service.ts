@@ -319,7 +319,7 @@ export class AuthService {
       }
       if (picture && !user.profile_picture_url) changes.profile_picture_url = picture;
       if (Object.keys(changes).length) await this.usersService.update(user.id, changes);
-      return this.generateTokens({ sub: user.id, email: user.email }, user.id);
+      return this.generateTokens({ sub: user.id, email: user.email, role: user.role }, user.id);
     }
     if (!registration) throw new NotFoundException('GOOGLE_ACCOUNT_NOT_FOUND');
 
@@ -333,7 +333,7 @@ export class AuthService {
       if (err instanceof UniqueConstraintError) throw new ConflictException('Email already exists');
       throw err;
     }
-    return this.generateTokens({ sub: userId, email }, userId);
+    return this.generateTokens({ sub: userId, email, role: registration.role }, userId);
   }
 
   private async verifyGoogleIdToken(idToken: string): Promise<GoogleProfile> {
