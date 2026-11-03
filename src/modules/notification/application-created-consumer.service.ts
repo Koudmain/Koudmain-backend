@@ -1,13 +1,10 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { RedisService, StreamEntry } from '@/shared/redis/redis.service';
 import { OutboxEventType } from '@/modules/application/models/outbox-event.model';
+import { OUTBOX_STREAM_KEY } from '@/shared/outbox/outbox-stream.constants';
 import { NotificationService } from './notification.service';
 
-const STREAM_KEY = 'outbox-events';
 const GROUP_NAME = 'notification-service';
-// Nom de consumer partagé par toutes les instances (pas un nom par instance) : leur
-// Pending Entries List est donc commune, ce qui permet à n'importe quelle instance de
-// reprendre les événements laissés en plan par une instance qui a crashé.
 const CONSUMER_NAME = 'notification-service';
 const BLOCK_MS = 5_000;
 const RETRY_DELAY_MS = 2_000;
@@ -18,18 +15,6 @@ interface ApplicationCreatedPayload {
   applicationId: number;
 }
 
-/**
- * Consomme le stream Redis outbox-events (événements APPLICATION_CREATED) et déclenche
- * la décision de notification.
- *
- * À chaque itération, on relit d'abord la Pending Entries List (entrées déjà livrées
- * mais jamais ackées, suite à un échec précédent ou à un crash) avant de bloquer sur de
- * nouvelles entrées : un échec est donc retenté en continu, sans attendre un redémarrage.
- * XPENDING n'incrémente pas son compteur de livraison sur une relecture via l'ID "0"
- * (relecture "sans effet de bord" selon la doc Redis) : on compte donc les tentatives
- * nous-mêmes, en mémoire, pour détecter un message "poison" et ne pas bloquer le stream
- * indéfiniment dessus.
- */
 @Injectable()
 export class ApplicationCreatedConsumerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ApplicationCreatedConsumerService.name);
@@ -43,7 +28,7 @@ export class ApplicationCreatedConsumerService implements OnModuleInit, OnModule
   ) {}
 
   async onModuleInit() {
-    await this.redisService.ensureConsumerGroup(STREAM_KEY, GROUP_NAME);
+    await this.redisService.ensureConsumerGroup(OUTBOX_STREAM_KEY, GROUP_NAME);
     this.loopPromise = this.runLoop();
   }
 
@@ -56,7 +41,7 @@ export class ApplicationCreatedConsumerService implements OnModuleInit, OnModule
     while (!this.isDestroyed) {
       try {
         const pending = await this.redisService.readPendingStreamEntries(
-          STREAM_KEY,
+          OUTBOX_STREAM_KEY,
           GROUP_NAME,
           CONSUMER_NAME,
         );
@@ -64,11 +49,11 @@ export class ApplicationCreatedConsumerService implements OnModuleInit, OnModule
           for (const entry of pending) {
             await this.handleEntry(entry);
           }
-          continue; // re-vérifie la pending list avant de bloquer sur de nouvelles entrées
+          continue;
         }
 
         const entries = await this.redisService.readNewStreamEntries(
-          STREAM_KEY,
+          OUTBOX_STREAM_KEY,
           GROUP_NAME,
           CONSUMER_NAME,
           BLOCK_MS,
@@ -92,7 +77,7 @@ export class ApplicationCreatedConsumerService implements OnModuleInit, OnModule
           payload.applicationId,
         );
       }
-      await this.redisService.ackStreamEntry(STREAM_KEY, GROUP_NAME, entry.id);
+      await this.redisService.ackStreamEntry(OUTBOX_STREAM_KEY, GROUP_NAME, entry.id);
       this.deliveryAttempts.delete(entry.id);
     } catch (err) {
       const attempts = (this.deliveryAttempts.get(entry.id) ?? 0) + 1;
@@ -102,7 +87,7 @@ export class ApplicationCreatedConsumerService implements OnModuleInit, OnModule
           `Giving up on outbox-events entry ${entry.id} after ${attempts} attempts, acking to unblock the stream`,
           err,
         );
-        await this.redisService.ackStreamEntry(STREAM_KEY, GROUP_NAME, entry.id);
+        await this.redisService.ackStreamEntry(OUTBOX_STREAM_KEY, GROUP_NAME, entry.id);
         this.deliveryAttempts.delete(entry.id);
         return;
       }
