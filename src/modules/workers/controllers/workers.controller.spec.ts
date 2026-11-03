@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Reflector } from '@nestjs/core';
 import { WorkersController } from '@/modules/workers/controllers/workers.controller';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import type { Request as ExpressRequest } from 'express';
+import { ROLES_KEY } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
@@ -82,6 +85,28 @@ describe('WorkersController', () => {
 
       await expect(controller.updateOwnProfile(mockReq, body)).resolves.toEqual({ id: 1 });
       expect(mockWorkersService.updateOwnProfile).toHaveBeenCalledWith(42, body);
+    });
+  });
+
+  describe('roles metadata', () => {
+    const reflector = new Reflector();
+
+    it('should require WORKER role on getMyProfile, getOwnProfile, and updateOwnProfile', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getMyProfile)).toEqual([
+        UserRole.WORKER,
+      ]);
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getOwnProfile)).toEqual([
+        UserRole.WORKER,
+      ]);
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.updateOwnProfile)).toEqual([
+        UserRole.WORKER,
+      ]);
+    });
+
+    it('should require EMPLOYER role on getPublicProfile', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getPublicProfile)).toEqual([
+        UserRole.EMPLOYER,
+      ]);
     });
   });
 });
