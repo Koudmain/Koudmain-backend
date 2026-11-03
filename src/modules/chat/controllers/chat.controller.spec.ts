@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Reflector } from '@nestjs/core';
 import { ChatController } from './chat.controller';
 import { ChatService } from '@/modules/chat/services/chat.service';
 import type { Request as ExpressRequest } from 'express';
+import { ROLES_KEY } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 
 describe('ChatController', () => {
   let controller: ChatController;
@@ -70,6 +73,31 @@ describe('ChatController', () => {
       await controller.send(mockRequest, body);
 
       expect(service.sendMessage.mock.calls).toEqual([[1, 5, 'Hello']]);
+    });
+  });
+
+  describe('roles metadata', () => {
+    const reflector = new Reflector();
+
+    it('should require WORKER role on getWorkerConvs', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getWorkerConvs)).toEqual([
+        UserRole.WORKER,
+      ]);
+    });
+
+    it('should require EMPLOYER role on getCompanyConvs and getCompanyConv', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getCompanyConvs)).toEqual([
+        UserRole.EMPLOYER,
+      ]);
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getCompanyConv)).toEqual([
+        UserRole.EMPLOYER,
+      ]);
+    });
+
+    it('should not restrict createConversation, getMessages, and send to a specific role', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.createConversation)).toBeUndefined();
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getMessages)).toBeUndefined();
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.send)).toBeUndefined();
     });
   });
 });

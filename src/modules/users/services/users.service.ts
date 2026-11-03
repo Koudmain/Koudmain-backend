@@ -7,10 +7,6 @@ import { Transaction, col, fn, where } from 'sequelize';
 export class UsersService {
   constructor(@InjectModel(User) private userModel: typeof User) {}
 
-  findAll() {
-    return this.userModel.findAll({ attributes: { exclude: ['password'] } });
-  }
-
   findOneById(id: number) {
     return this.userModel.findByPk(id);
   }

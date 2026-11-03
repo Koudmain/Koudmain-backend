@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@ne
 import type { Request as ExpressRequest } from 'express';
 import { ReviewService } from '@/modules/review/services/review.service';
 import { CreateCompanyReviewDto, CreatePaymentReportDto } from '@/modules/review/dto/review.dto';
+import { Roles } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
@@ -26,6 +28,7 @@ export class ReviewController {
   @ApiResponse({ status: 201, description: 'Avis enregistré.' })
   @ApiResponse({ status: 404, description: 'Mission terminée introuvable.' })
   @ApiResponse({ status: 409, description: 'Un avis existe déjà pour cette mission.' })
+  @Roles(UserRole.WORKER)
   @Post('mission/:missionId')
   async reviewCompany(
     @Request() req: RequestWithUser,
@@ -46,6 +49,7 @@ export class ReviewController {
   @ApiParam({ name: 'missionId', description: 'ID numérique de la mission', type: Number })
   @ApiResponse({ status: 201, description: 'Signalement transmis.' })
   @ApiResponse({ status: 404, description: 'Mission terminée introuvable.' })
+  @Roles(UserRole.WORKER)
   @Post('mission/:missionId/payment-report')
   async reportPayment(
     @Request() req: RequestWithUser,

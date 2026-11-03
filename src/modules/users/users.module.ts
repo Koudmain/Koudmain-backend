@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { UsersService } from './services/users.service';
-import { UsersController } from './users.controller';
+import { UsersController } from './controllers/users.controller';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { User } from './models/user.model';
 import { DriveModule } from '../drive/drive.module';
