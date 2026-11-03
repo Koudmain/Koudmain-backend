@@ -5,9 +5,9 @@ import { Sequelize, Transaction } from 'sequelize';
 import { Client as PgClient } from 'pg';
 import { RedisService } from '@/shared/redis/redis.service';
 import { OutboxEvent, OutboxEventStatus } from '@/modules/application/models/outbox-event.model';
+import { OUTBOX_STREAM_KEY } from '@/shared/outbox/outbox-stream.constants';
 
 const NOTIFY_CHANNEL = 'outbox_event_created';
-const STREAM_KEY = 'outbox-events';
 const BATCH_SIZE = 100;
 const POLL_INTERVAL_MS = 20_000;
 const LISTEN_RECONNECT_DELAY_MS = 5_000;
@@ -110,7 +110,7 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
 
       for (const event of pendingEvents) {
         try {
-          await this.redisService.publishToStream(STREAM_KEY, {
+          await this.redisService.publishToStream(OUTBOX_STREAM_KEY, {
             id: String(event.id),
             type: event.type,
             payload: JSON.stringify(event.payload),

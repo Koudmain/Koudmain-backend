@@ -27,6 +27,10 @@ describe('RedisService', () => {
     const mockGet = jest.fn().mockResolvedValue('mock-value');
     const mockDel = jest.fn().mockResolvedValue(1);
     const mockXadd = jest.fn().mockResolvedValue('1700000000000-0');
+    const mockIncr = jest.fn().mockResolvedValue(1);
+    const mockXgroup = jest.fn().mockResolvedValue('OK');
+    const mockXreadgroup = jest.fn().mockResolvedValue(null);
+    const mockXack = jest.fn().mockResolvedValue(1);
 
     (Redis as unknown as jest.Mock).mockImplementation(() => ({
       on: mockOn,
@@ -35,6 +39,10 @@ describe('RedisService', () => {
       get: mockGet,
       del: mockDel,
       xadd: mockXadd,
+      incr: mockIncr,
+      xgroup: mockXgroup,
+      xreadgroup: mockXreadgroup,
+      xack: mockXack,
     }));
 
     const module: TestingModule = await Test.createTestingModule({
@@ -106,5 +114,102 @@ describe('RedisService', () => {
       'APPLICATION_CREATED',
     );
     expect(result).toBe('1700000000000-0');
+  });
+
+  it('should call incr and return the new value', async () => {
+    const result = await service.incr('publication:1:unseen_applications');
+    expect(jest.mocked(mockRedisClient.incr)).toHaveBeenCalledWith(
+      'publication:1:unseen_applications',
+    );
+    expect(result).toBe(1);
+  });
+
+  it('should create the consumer group with MKSTREAM', async () => {
+    await service.ensureConsumerGroup('outbox-events', 'notification-service');
+    expect(jest.mocked(mockRedisClient.xgroup)).toHaveBeenCalledWith(
+      'CREATE',
+      'outbox-events',
+      'notification-service',
+      '0',
+      'MKSTREAM',
+    );
+  });
+
+  it('should silently ignore BUSYGROUP when the consumer group already exists', async () => {
+    (mockRedisClient.xgroup as jest.Mock).mockRejectedValueOnce(
+      new Error('BUSYGROUP Consumer Group name already exists'),
+    );
+    await expect(
+      service.ensureConsumerGroup('outbox-events', 'notification-service'),
+    ).resolves.not.toThrow();
+  });
+
+  it('should rethrow unexpected errors from xgroup', async () => {
+    (mockRedisClient.xgroup as jest.Mock).mockRejectedValueOnce(new Error('connection refused'));
+    await expect(
+      service.ensureConsumerGroup('outbox-events', 'notification-service'),
+    ).rejects.toThrow('connection refused');
+  });
+
+  it('should parse xreadgroup result into stream entries when reading new entries', async () => {
+    (mockRedisClient.xreadgroup as jest.Mock).mockResolvedValueOnce([
+      ['outbox-events', [['1-0', ['type', 'APPLICATION_CREATED', 'payload', '{"id":1}']]]],
+    ]);
+
+    const result = await service.readNewStreamEntries(
+      'outbox-events',
+      'notification-service',
+      'notification-service',
+      5000,
+    );
+
+    expect(jest.mocked(mockRedisClient.xreadgroup)).toHaveBeenCalledWith(
+      'GROUP',
+      'notification-service',
+      'notification-service',
+      'BLOCK',
+      5000,
+      'STREAMS',
+      'outbox-events',
+      '>',
+    );
+    expect(result).toEqual([
+      { id: '1-0', fields: { type: 'APPLICATION_CREATED', payload: '{"id":1}' } },
+    ]);
+  });
+
+  it('should return an empty array when xreadgroup returns null', async () => {
+    const result = await service.readNewStreamEntries(
+      'outbox-events',
+      'notification-service',
+      'notification-service',
+      5000,
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('should read the pending entries list with id "0"', async () => {
+    await service.readPendingStreamEntries(
+      'outbox-events',
+      'notification-service',
+      'notification-service',
+    );
+    expect(jest.mocked(mockRedisClient.xreadgroup)).toHaveBeenCalledWith(
+      'GROUP',
+      'notification-service',
+      'notification-service',
+      'STREAMS',
+      'outbox-events',
+      '0',
+    );
+  });
+
+  it('should call xack with the given entry id', async () => {
+    await service.ackStreamEntry('outbox-events', 'notification-service', '1-0');
+    expect(jest.mocked(mockRedisClient.xack)).toHaveBeenCalledWith(
+      'outbox-events',
+      'notification-service',
+      '1-0',
+    );
   });
 });
