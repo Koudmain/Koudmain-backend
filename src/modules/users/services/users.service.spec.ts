@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { User } from '@/modules/users/models/user.model';
-import { Transaction } from 'sequelize';
+import { Transaction, col, fn, where } from 'sequelize';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -83,6 +83,24 @@ describe('UsersService', () => {
 
       expect(mockUserModel.create).toHaveBeenCalledWith(expect.any(Object), {
         transaction: fakeTransaction,
+      });
+    });
+  });
+
+  describe('findAll', () => {
+    it('should never return password hashes', async () => {
+      await service.findAll();
+
+      expect(mockUserModel.findAll).toHaveBeenCalledWith({ attributes: { exclude: ['password'] } });
+    });
+  });
+
+  describe('findOneByEmail', () => {
+    it('should match the email regardless of case', async () => {
+      await service.findOneByEmail('John.Doe@Gmail.com');
+
+      expect(mockUserModel.findOne).toHaveBeenCalledWith({
+        where: where(fn('lower', col('email')), 'john.doe@gmail.com'),
       });
     });
   });
