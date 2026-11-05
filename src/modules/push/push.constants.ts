@@ -1,0 +1,2 @@
+export const FIREBASE_APP = 'FIREBASE_APP';
+export const APNS_PROVIDER = 'APNS_PROVIDER';
