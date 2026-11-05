@@ -3,8 +3,14 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    const statusType = Sequelize.ENUM('Pending', 'Accepted', 'Rejected');
+
+    // Change the type
+    await queryInterface.changeColumn('application', 'status', { type: statusType });
+
+    // Then set default value
     await queryInterface.changeColumn('application', 'status', {
-      type: Sequelize.ENUM('Pending', 'Accepted', 'Rejected'),
+      type: statusType,
       allowNull: false,
       defaultValue: 'Pending',
     });
