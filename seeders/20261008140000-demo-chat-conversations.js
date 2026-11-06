@@ -262,7 +262,6 @@ module.exports = {
     const companyId = target.company_id;
     const employerUserId = target.user_id;
 
-    // Récupération de tous les membres de l'entreprise pour initialiser leurs conversation_settings
     const companyMembersQuery = await queryInterface.sequelize.query(
       `SELECT user_id FROM company_member WHERE company_id = ${companyId};`,
     );
@@ -270,7 +269,6 @@ module.exports = {
       ...new Set(companyMembersQuery[0].map((m) => m.user_id).concat(employerUserId)),
     ];
 
-    // Récupération des publications correspondantes
     const publicationTitles = [...new Set(CONVERSATIONS_DATA.map((c) => c.publicationTitle))];
     const titlesList = publicationTitles.map((t) => `'${t.replace(/'/g, "''")}'`).join(', ');
     const publicationRows = (
@@ -287,7 +285,6 @@ module.exports = {
     }
     const publicationIdByTitle = new Map(publicationRows.map((p) => [p.title, p.id]));
 
-    // Récupération des profils worker
     const workerEmails = [...new Set(CONVERSATIONS_DATA.map((c) => c.workerEmail))];
     const emailsList = workerEmails.map((e) => `'${e.replace(/'/g, "''")}'`).join(', ');
     const workerRows = (
@@ -309,7 +306,6 @@ module.exports = {
       workerRows.map((w) => [w.email, { workerProfileId: w.worker_profile_id, userId: w.user_id }]),
     );
 
-    // Détermination des IDs de départ
     const maxConvQuery = await queryInterface.sequelize.query(
       `SELECT MAX(id) as max_id FROM "conversation";`,
     );
@@ -335,7 +331,6 @@ module.exports = {
 
       const convId = nextConvId++;
 
-      // Calcul des timestamps des messages
       const sortedMessages = [...convData.messages].sort(
         (a, b) => a.offsetMinutes - b.offsetMinutes,
       );
