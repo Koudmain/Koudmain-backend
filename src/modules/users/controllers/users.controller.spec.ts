@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
-import { UsersService } from './services/users.service';
-import { DriveService } from '../drive/drive.service';
+import { UsersService } from '@/modules/users/services/users.service';
+import { DriveService } from '@/modules/drive/drive.service';
 import { BadRequestException } from '@nestjs/common';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { Readable } from 'stream';
 import { RequestWithUser } from '@/common/types/request.type';
 
@@ -14,7 +14,6 @@ describe('UsersController', () => {
     findOneByIdPublic: jest.fn(),
     updateProfilePicture: jest.fn(),
     update: jest.fn(),
-    findAll: jest.fn(),
   };
 
   const mockDriveService = {
@@ -77,6 +76,18 @@ describe('UsersController', () => {
         message: 'Photo de profil mise à jour avec succès',
         url: 'https://drive.com/avatar.png',
       });
+    });
+  });
+
+  describe('getMe', () => {
+    it('should return current user public profile', async () => {
+      const publicProfile = { id: 42, email: 'test@example.com', first_name: 'John' };
+      mockUserService.findOneByIdPublic.mockResolvedValue(publicProfile);
+
+      const result = await controller.getMe(mockRequest);
+
+      expect(mockUserService.findOneByIdPublic).toHaveBeenCalledWith(42);
+      expect(result).toEqual(publicProfile);
     });
   });
 

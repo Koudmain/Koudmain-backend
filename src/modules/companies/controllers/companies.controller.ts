@@ -17,6 +17,9 @@ import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { UpdateCompanyDto } from '@/modules/companies/dto/update-company.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 
+import { Roles } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
+
 interface RequestWithUser extends ExpressRequest {
   user: {
     sub: number;
@@ -33,6 +36,8 @@ export class CompaniesController {
     description: "Retourne toutes les entreprises rattachées à l'utilisateur connecté.",
   })
   @ApiResponse({ status: 200, description: 'Entreprises récupérées avec succès.' })
+  @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
+  @Roles(UserRole.EMPLOYER)
   @Get('my-companies')
   async getMyCompanies(@Request() req: RequestWithUser) {
     const userId = req.user.sub;
@@ -63,6 +68,7 @@ export class CompaniesController {
   @ApiParam({ name: 'companyId', description: "ID numérique de l'entreprise", type: Number })
   @ApiResponse({ status: 200, description: 'Adresse mise à jour avec succès.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
+  @Roles(UserRole.EMPLOYER)
   @Put(':companyId/address')
   async updateCompanyAddress(
     @Request() req: RequestWithUser,
@@ -83,6 +89,7 @@ export class CompaniesController {
   @ApiParam({ name: 'companyId', description: "ID numérique de l'entreprise", type: Number })
   @ApiResponse({ status: 200, description: 'Profil établissement mis à jour.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
+  @Roles(UserRole.EMPLOYER)
   @Patch(':companyId')
   @UseInterceptors(
     FileFieldsInterceptor(

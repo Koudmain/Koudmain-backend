@@ -1,9 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Reflector } from '@nestjs/core';
 import { CompaniesController } from '@/modules/companies/controllers/companies.controller';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { InternalServerErrorException, ForbiddenException } from '@nestjs/common';
-import { type RequestWithUser } from '@/common/types/request.type';
+import type { Request as ExpressRequest } from 'express';
+import { ROLES_KEY } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
+
+interface RequestWithUser extends ExpressRequest {
+  user: {
+    sub: number;
+    email: string;
+  };
+}
 
 describe('CompaniesController', () => {
   let controller: CompaniesController;
@@ -110,6 +120,26 @@ describe('CompaniesController', () => {
       mockCompaniesService.updateCompany.mockRejectedValue(new ForbiddenException());
 
       await expect(controller.updateCompany(mockReq, 10, {})).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('roles metadata', () => {
+    const reflector = new Reflector();
+
+    it('should require EMPLOYER role on getMyCompanies, updateCompanyAddress, and updateCompany', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getMyCompanies)).toEqual([
+        UserRole.EMPLOYER,
+      ]);
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.updateCompanyAddress)).toEqual([
+        UserRole.EMPLOYER,
+      ]);
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.updateCompany)).toEqual([
+        UserRole.EMPLOYER,
+      ]);
+    });
+
+    it('should not restrict getPublicProfile to a specific role', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getPublicProfile)).toBeUndefined();
     });
   });
 });

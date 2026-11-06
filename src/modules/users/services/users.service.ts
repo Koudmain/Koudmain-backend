@@ -7,10 +7,6 @@ import { Transaction } from 'sequelize';
 export class UsersService {
   constructor(@InjectModel(User) private userModel: typeof User) {}
 
-  findAll() {
-    return this.userModel.findAll();
-  }
-
   findOneById(id: number) {
     return this.userModel.findByPk(id);
   }
