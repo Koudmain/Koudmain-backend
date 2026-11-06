@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { Message } from '../models/message.model';
 import { Conversation } from '@/modules/chat/models/conversation.model';
@@ -37,26 +37,27 @@ describe('ChatService', () => {
   let conversationModel: MockModel<Conversation>;
   let redisPubService: jest.Mocked<RedisPubService>;
 
-  const mockModel: Record<string, jest.Mock> = {
+  const createMockModel = () => ({
     create: jest.fn(),
     findByPk: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
     findOrCreate: jest.fn(),
     bulkCreate: jest.fn(),
-  };
+    update: jest.fn(),
+  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ChatService,
-        { provide: getModelToken(Message), useValue: { ...mockModel } },
-        { provide: getModelToken(Conversation), useValue: { ...mockModel } },
-        { provide: getModelToken(ConversationSetting), useValue: { ...mockModel } },
-        { provide: getModelToken(WorkerProfile), useValue: { ...mockModel } },
-        { provide: getModelToken(CompanyMember), useValue: { ...mockModel } },
-        { provide: getModelToken(Company), useValue: { ...mockModel } },
-        { provide: getModelToken(Publication), useValue: { ...mockModel } },
+        { provide: getModelToken(Message), useValue: createMockModel() },
+        { provide: getModelToken(Conversation), useValue: createMockModel() },
+        { provide: getModelToken(ConversationSetting), useValue: createMockModel() },
+        { provide: getModelToken(WorkerProfile), useValue: createMockModel() },
+        { provide: getModelToken(CompanyMember), useValue: createMockModel() },
+        { provide: getModelToken(Company), useValue: createMockModel() },
+        { provide: getModelToken(Publication), useValue: createMockModel() },
         { provide: RedisPubService, useValue: { publishMessage: jest.fn() } },
         { provide: WorkersService, useValue: { getWorkerIdByUserId: jest.fn() } },
       ],
@@ -75,6 +76,23 @@ describe('ChatService', () => {
   describe('sendMessage', () => {
     it('devrait lever une erreur si le contenu est vide', async () => {
       await expect(service.sendMessage(1, 1, '')).rejects.toThrow(BadRequestException);
+    });
+
+    it('devrait lever NotFoundException si la conversation est introuvable', async () => {
+      conversationModel.findByPk.mockResolvedValue(null);
+
+      await expect(service.sendMessage(10, 999, 'Hello')).rejects.toThrow(NotFoundException);
+    });
+
+    it("devrait lever ForbiddenException si l'utilisateur ne fait pas partie de la conversation", async () => {
+      const mockConv = {
+        id: 1,
+        worker: { userId: 10 },
+        company: { members: [{ userId: 20 }] },
+      };
+      conversationModel.findByPk.mockResolvedValue(mockConv);
+
+      await expect(service.sendMessage(99, 1, 'Hello')).rejects.toThrow(ForbiddenException);
     });
 
     it('devrait créer un message et le publier sur Redis', async () => {
@@ -104,6 +122,25 @@ describe('ChatService', () => {
       serviceMocks.publicationModel.findByPk.mockResolvedValue(null);
 
       await expect(service.findOrCreateConversation(999, 1, 1)).rejects.toThrow(NotFoundException);
+    });
+
+    it('devrait retrouver le worker par userId si non trouvé par ID direct', async () => {
+      const serviceMocks = service as unknown as ChatServiceMocks;
+
+      serviceMocks.publicationModel.findByPk.mockResolvedValue({ id: 1 });
+      serviceMocks.companyModel.findByPk.mockResolvedValue({ id: 1 });
+      serviceMocks.workerModel.findByPk.mockResolvedValue(null);
+      serviceMocks.workerModel.findOne.mockResolvedValue({ id: 42, userId: 100 });
+      conversationModel.findOrCreate.mockResolvedValue([{ id: 50 }, false]);
+
+      const result = await service.findOrCreateConversation(1, 100, 1);
+
+      expect(conversationModel.findOrCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { publicationId: 1, workerId: 42, companyId: 1 },
+        }),
+      );
+      expect(result).toEqual({ id: 50 });
     });
 
     it("devrait créer les réglages de conversation lors d'une création", async () => {
