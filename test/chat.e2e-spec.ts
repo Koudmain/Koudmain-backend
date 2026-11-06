@@ -15,7 +15,13 @@ import { DriveModule } from '@/modules/drive/drive.module';
 import { PlanningModule } from '@/modules/planning/planning.module';
 import { SkillModule } from '@/modules/skill/skill.module';
 import { ChatModule } from '@/modules/chat/chat.module';
-import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { Document } from '@/modules/documents/models/document.model';
+import { Contract } from '@/modules/documents/models/contract.model';
+import { Invoice } from '@/modules/documents/models/invoice.model';
+import { DocumentAssignment } from '@/modules/documents/models/document-assignment.model';
+import { DocumentContext } from '@/modules/documents/models/document-context.model';
+import { SignatureEnvelope } from '@/modules/documents/models/signature-envelope.model';
+import { Mission } from '@/modules/missions/mission.model';
 
 require('dotenv').config();
 
@@ -47,6 +53,15 @@ describe('Chat System (e2e)', () => {
             retryAttempts: 3,
             retryDelay: 2000,
           }),
+          SequelizeModule.forFeature([
+            Document,
+            Contract,
+            Invoice,
+            DocumentAssignment,
+            DocumentContext,
+            SignatureEnvelope,
+            Mission,
+          ]),
           UsersModule,
           AuthModule,
           CompaniesModule,

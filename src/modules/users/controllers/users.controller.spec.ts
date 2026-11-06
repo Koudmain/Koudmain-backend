@@ -1,18 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Request as ExpressRequest } from 'express';
 import { UsersController } from './users.controller';
 import { UsersService } from '@/modules/users/services/users.service';
 import { DriveService } from '@/modules/drive/drive.service';
 import { BadRequestException } from '@nestjs/common';
 import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { Readable } from 'stream';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { RequestWithUser } from '@/common/types/request.type';
 
 describe('UsersController', () => {
   let controller: UsersController;

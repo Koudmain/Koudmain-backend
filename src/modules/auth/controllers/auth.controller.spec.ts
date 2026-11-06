@@ -3,7 +3,7 @@ import { AuthController } from '@/modules/auth/controllers/auth.controller';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { UserRole } from '@/modules/users/models/user.model';
-import { RegisterDto, WorkerProfileDto } from '@/modules/auth/models/register.model';
+import { RegisterDto } from '@/modules/auth/models/register.model';
 
 const mockAuthService = {
   signIn: jest.fn(),
@@ -77,7 +77,7 @@ describe('AuthController', () => {
         role: UserRole.WORKER,
         workerProfile: {
           skillCategoryIds: [1],
-        } as WorkerProfileDto,
+        },
       };
 
       const result = await controller.signUp(dto);

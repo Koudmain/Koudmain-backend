@@ -2,16 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { WorkersController } from '@/modules/workers/controllers/workers.controller';
 import { WorkersService } from '@/modules/workers/services/workers.service';
-import type { Request as ExpressRequest } from 'express';
+import { type RequestWithUser } from '@/common/types/request.type';
 import { ROLES_KEY } from '@/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/models/user.model';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
 
 describe('WorkersController', () => {
   let controller: WorkersController;
