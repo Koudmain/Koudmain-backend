@@ -8,9 +8,9 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
 
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
 
     labels:
       - "dependencies"
@@ -27,6 +27,11 @@ updates:
           - "@nestjs/*"
       dev-dependencies:
         dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      prod-dependencies:
+        dependency-type: "production"
         update-types:
           - "minor"
           - "patch"
