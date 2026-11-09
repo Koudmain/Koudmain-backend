@@ -1,26 +1,34 @@
 import { Test } from '@nestjs/testing';
-import { NotificationService } from './notification.service';
+import { ApplicationNotificationService } from './application-notification.service';
 import { RedisService } from '@/shared/redis/redis.service';
-import { PushDispatchService } from './push-dispatch.service';
+import { PublicationService } from '@/modules/publication/services/publication.service';
+import { CompaniesService } from '@/modules/companies/services/companies.service';
+import { PushDispatchService } from '@/modules/notification/push-dispatch.service';
 
-describe('NotificationService', () => {
-  let service: NotificationService;
+describe('ApplicationNotificationService', () => {
+  let service: ApplicationNotificationService;
   let mockRedisService: { incr: jest.Mock; del: jest.Mock };
+  let mockPublicationService: { getById: jest.Mock };
+  let mockCompaniesService: { getCompanyMemberUserIds: jest.Mock };
   let mockPushDispatchService: { dispatch: jest.Mock };
 
   beforeEach(async () => {
     mockRedisService = { incr: jest.fn(), del: jest.fn() };
+    mockPublicationService = { getById: jest.fn().mockResolvedValue({ id: 10, companyId: 5 }) };
+    mockCompaniesService = { getCompanyMemberUserIds: jest.fn().mockResolvedValue([1, 2]) };
     mockPushDispatchService = { dispatch: jest.fn().mockResolvedValue(undefined) };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
-        NotificationService,
+        ApplicationNotificationService,
         { provide: RedisService, useValue: mockRedisService },
+        { provide: PublicationService, useValue: mockPublicationService },
+        { provide: CompaniesService, useValue: mockCompaniesService },
         { provide: PushDispatchService, useValue: mockPushDispatchService },
       ],
     }).compile();
 
-    service = moduleRef.get<NotificationService>(NotificationService);
+    service = moduleRef.get<ApplicationNotificationService>(ApplicationNotificationService);
   });
 
   afterEach(() => {
@@ -43,18 +51,48 @@ describe('NotificationService', () => {
     await expect(service.handleApplicationCreated(10, 43, 101)).resolves.not.toThrow();
   });
 
-  it('should dispatch the push notification with the computed unseen count', async () => {
+  it('should do nothing when the publication has no company', async () => {
+    mockRedisService.incr.mockResolvedValue(1);
+    mockPublicationService.getById.mockResolvedValue({ id: 10, companyId: null });
+
+    await service.handleApplicationCreated(10, 42, 100);
+
+    expect(mockCompaniesService.getCompanyMemberUserIds).not.toHaveBeenCalled();
+    expect(mockPushDispatchService.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('should dispatch the push notification to the company members with the computed unseen count', async () => {
     mockRedisService.incr.mockResolvedValue(3);
 
     await service.handleApplicationCreated(10, 42, 100);
 
+    expect(mockCompaniesService.getCompanyMemberUserIds).toHaveBeenCalledWith(5);
     expect(mockPushDispatchService.dispatch).toHaveBeenCalledWith({
-      publicationId: 10,
-      applicationId: 42,
+      recipientUserIds: [1, 2],
       outboxEventId: 100,
-      unseenCount: 3,
-      isFirstUnseen: false,
+      applicationId: 42,
+      payload: {
+        title: 'Nouvelles candidatures',
+        body: 'Vous avez 3 candidatures non vues sur cette offre',
+        collapseId: 'publication:10',
+        data: { publicationId: '10' },
+      },
     });
+  });
+
+  it('should dispatch with the first-unseen wording when unseenCount is 1', async () => {
+    mockRedisService.incr.mockResolvedValue(1);
+
+    await service.handleApplicationCreated(10, 42, 100);
+
+    expect(mockPushDispatchService.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          title: 'Nouvelle candidature',
+          body: 'Vous avez reçu une nouvelle candidature',
+        }),
+      }),
+    );
   });
 
   it('should reset the unseen counter by deleting the key', async () => {
