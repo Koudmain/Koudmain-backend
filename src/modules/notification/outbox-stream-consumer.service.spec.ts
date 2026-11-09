@@ -1,18 +1,19 @@
 import { Test } from '@nestjs/testing';
-import { ApplicationCreatedConsumerService } from './application-created-consumer.service';
-import { NotificationService } from './notification.service';
+import { OutboxStreamConsumerService } from './outbox-stream-consumer.service';
 import { RedisService, StreamEntry } from '@/shared/redis/redis.service';
 import { OutboxEventType } from '@/modules/application/models/outbox-event.model';
+import { OUTBOX_EVENT_HANDLERS } from '@/modules/notification/notification.constants';
+import { OutboxEventHandler } from '@/modules/notification/outbox-event-handler.interface';
 
-describe('ApplicationCreatedConsumerService', () => {
-  let service: ApplicationCreatedConsumerService;
+describe('OutboxStreamConsumerService', () => {
+  let service: OutboxStreamConsumerService;
   let mockRedisService: {
     ensureConsumerGroup: jest.Mock;
     readPendingStreamEntries: jest.Mock;
     readNewStreamEntries: jest.Mock;
     ackStreamEntry: jest.Mock;
   };
-  let mockNotificationService: { handleApplicationCreated: jest.Mock };
+  let mockApplicationCreatedHandler: OutboxEventHandler & { handle: jest.Mock };
 
   const buildEntry = (overrides: Partial<StreamEntry['fields']> = {}): StreamEntry => ({
     id: '1-0',
@@ -31,21 +32,39 @@ describe('ApplicationCreatedConsumerService', () => {
       readNewStreamEntries: jest.fn().mockResolvedValue([]),
       ackStreamEntry: jest.fn().mockResolvedValue(undefined),
     };
-    mockNotificationService = { handleApplicationCreated: jest.fn().mockResolvedValue(undefined) };
+    mockApplicationCreatedHandler = {
+      eventType: OutboxEventType.APPLICATION_CREATED,
+      handle: jest.fn().mockResolvedValue(undefined),
+    };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
-        ApplicationCreatedConsumerService,
+        OutboxStreamConsumerService,
         { provide: RedisService, useValue: mockRedisService },
-        { provide: NotificationService, useValue: mockNotificationService },
+        { provide: OUTBOX_EVENT_HANDLERS, useValue: [mockApplicationCreatedHandler] },
       ],
     }).compile();
 
-    service = moduleRef.get<ApplicationCreatedConsumerService>(ApplicationCreatedConsumerService);
+    service = moduleRef.get<OutboxStreamConsumerService>(OutboxStreamConsumerService);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it('should throw at construction time if two handlers register the same event type', () => {
+    const duplicateHandler: OutboxEventHandler = {
+      eventType: OutboxEventType.APPLICATION_CREATED,
+      handle: jest.fn(),
+    };
+
+    expect(
+      () =>
+        new OutboxStreamConsumerService(mockRedisService as unknown as RedisService, [
+          mockApplicationCreatedHandler,
+          duplicateHandler,
+        ]),
+    ).toThrow(/Plusieurs OutboxEventHandler/);
   });
 
   it('should ensure the consumer group exists and start the loop on module init', async () => {
@@ -62,13 +81,16 @@ describe('ApplicationCreatedConsumerService', () => {
     expect(runLoopSpy).toHaveBeenCalled();
   });
 
-  it('should process an APPLICATION_CREATED entry, call the notification service, then ack', async () => {
+  it('should route an APPLICATION_CREATED entry to its handler, then ack', async () => {
     const entry = buildEntry();
     await (service as unknown as { handleEntry: (e: StreamEntry) => Promise<void> }).handleEntry(
       entry,
     );
 
-    expect(mockNotificationService.handleApplicationCreated).toHaveBeenCalledWith(10, 42, 100);
+    expect(mockApplicationCreatedHandler.handle).toHaveBeenCalledWith(
+      { publicationId: 10, applicationId: 42 },
+      100,
+    );
     expect(mockRedisService.ackStreamEntry).toHaveBeenCalledWith(
       'outbox-events',
       'notification-service',
@@ -76,18 +98,18 @@ describe('ApplicationCreatedConsumerService', () => {
     );
   });
 
-  it('should ack without calling the notification service for an unrelated event type', async () => {
+  it('should ack without calling any handler for an unrelated event type', async () => {
     const entry = buildEntry({ type: 'SOME_OTHER_EVENT' });
     await (service as unknown as { handleEntry: (e: StreamEntry) => Promise<void> }).handleEntry(
       entry,
     );
 
-    expect(mockNotificationService.handleApplicationCreated).not.toHaveBeenCalled();
+    expect(mockApplicationCreatedHandler.handle).not.toHaveBeenCalled();
     expect(mockRedisService.ackStreamEntry).toHaveBeenCalled();
   });
 
   it('should not ack and keep the entry pending while under the max delivery attempts', async () => {
-    mockNotificationService.handleApplicationCreated.mockRejectedValueOnce(new Error('boom'));
+    mockApplicationCreatedHandler.handle.mockRejectedValueOnce(new Error('boom'));
     const entry = buildEntry();
 
     await (service as unknown as { handleEntry: (e: StreamEntry) => Promise<void> }).handleEntry(
@@ -98,7 +120,7 @@ describe('ApplicationCreatedConsumerService', () => {
   });
 
   it('should give up and ack a poison message after reaching the max delivery attempts', async () => {
-    mockNotificationService.handleApplicationCreated.mockRejectedValue(new Error('boom'));
+    mockApplicationCreatedHandler.handle.mockRejectedValue(new Error('boom'));
     const entry = buildEntry();
     const handleEntry = (
       service as unknown as { handleEntry: (e: StreamEntry) => Promise<void> }
