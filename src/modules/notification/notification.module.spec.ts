@@ -2,9 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Global, Module } from '@nestjs/common';
 import { getModelToken } from '@nestjs/sequelize';
 import { NotificationModule } from './notification.module';
-import { NotificationService } from './notification.service';
+import { ApplicationNotificationService } from './application/application-notification.service';
 import { PushDispatchService } from './push-dispatch.service';
-import { ApplicationCreatedConsumerService } from './application-created-consumer.service';
+import { OutboxStreamConsumerService } from './outbox-stream-consumer.service';
+import { ApplicationCreatedHandler } from './application/application-created.handler';
+import { OUTBOX_EVENT_HANDLERS } from './notification.constants';
 import { RedisService } from '@/shared/redis/redis.service';
 import { NotificationDelivery } from '@/modules/application/models/notification-delivery.model';
 
@@ -99,15 +101,21 @@ describe('NotificationModule', () => {
   it('le module doit être défini et charger correctement ses composants', () => {
     expect(moduleRef).toBeDefined();
 
-    expect(moduleRef.get<NotificationService>(NotificationService)).toBeInstanceOf(
-      NotificationService,
-    );
+    expect(
+      moduleRef.get<ApplicationNotificationService>(ApplicationNotificationService),
+    ).toBeInstanceOf(ApplicationNotificationService);
     expect(moduleRef.get<PushDispatchService>(PushDispatchService)).toBeInstanceOf(
       PushDispatchService,
     );
-    expect(
-      moduleRef.get<ApplicationCreatedConsumerService>(ApplicationCreatedConsumerService),
-    ).toBeInstanceOf(ApplicationCreatedConsumerService);
+    expect(moduleRef.get<OutboxStreamConsumerService>(OutboxStreamConsumerService)).toBeInstanceOf(
+      OutboxStreamConsumerService,
+    );
+    expect(moduleRef.get<ApplicationCreatedHandler>(ApplicationCreatedHandler)).toBeInstanceOf(
+      ApplicationCreatedHandler,
+    );
+    expect(moduleRef.get(OUTBOX_EVENT_HANDLERS)).toEqual([
+      moduleRef.get<ApplicationCreatedHandler>(ApplicationCreatedHandler),
+    ]);
     expect(moduleRef.get(getModelToken(NotificationDelivery))).toBeDefined();
   });
 });
