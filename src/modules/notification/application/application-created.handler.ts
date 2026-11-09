@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OutboxEventType } from '@/modules/application/models/outbox-event.model';
 import { OutboxEventHandler } from '@/modules/notification/outbox-event-handler.interface';
-import { NotificationService } from '@/modules/notification/notification.service';
+import { ApplicationNotificationService } from './application-notification.service';
 
 interface ApplicationCreatedPayload {
   publicationId: number;
@@ -12,7 +12,7 @@ interface ApplicationCreatedPayload {
 export class ApplicationCreatedHandler implements OutboxEventHandler {
   readonly eventType = OutboxEventType.APPLICATION_CREATED;
 
-  constructor(private readonly notificationService: NotificationService) {}
+  constructor(private readonly notificationService: ApplicationNotificationService) {}
 
   async handle(payload: unknown, outboxEventId: number): Promise<void> {
     const { publicationId, applicationId } = payload as ApplicationCreatedPayload;

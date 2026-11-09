@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { ApplicationCreatedHandler } from './application-created.handler';
-import { NotificationService } from '@/modules/notification/notification.service';
+import { ApplicationNotificationService } from './application-notification.service';
 import { OutboxEventType } from '@/modules/application/models/outbox-event.model';
 
 describe('ApplicationCreatedHandler', () => {
@@ -13,7 +13,7 @@ describe('ApplicationCreatedHandler', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         ApplicationCreatedHandler,
-        { provide: NotificationService, useValue: mockNotificationService },
+        { provide: ApplicationNotificationService, useValue: mockNotificationService },
       ],
     }).compile();
 
