@@ -3,8 +3,6 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.sequelize.query('CREATE EXTENSION IF NOT EXISTS postgis;');
-
     await queryInterface.createTable('address', {
       id: {
         type: Sequelize.INTEGER,
@@ -47,15 +45,6 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true,
       },
-      geom: {
-        type: Sequelize.GEOGRAPHY('POINT', 4326),
-        allowNull: true,
-      },
-    });
-
-    await queryInterface.addIndex('address', ['geom'], {
-      name: 'idx_address_geom',
-      using: 'GIST',
     });
 
     await queryInterface.createTable('user', {
@@ -1044,7 +1033,5 @@ module.exports = {
     await queryInterface.dropTable('refresh_session');
     await queryInterface.dropTable('user');
     await queryInterface.dropTable('address');
-    await queryInterface.sequelize.query('DROP EXTENSION IF EXISTS postgis CASCADE;');
   },
 };
-
