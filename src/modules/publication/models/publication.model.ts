@@ -13,7 +13,7 @@ import { Application } from '@/modules/application/models/application.model';
 import { Address } from '@/modules/address/address.model';
 import { Skill } from '@/modules/skill/models/skill.model';
 import { PublicationSkill } from './publication-skill.model';
-import { IsArray, IsNumber, IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsArray, IsBoolean, IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
 
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
@@ -75,18 +75,12 @@ export class Publication extends Model {
   declare updatedAt: Date;
 }
 
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, OmitType, PartialType } from '@nestjs/swagger';
 
 export class PostPublicationDto {
-  @ApiPropertyOptional({ example: 1, description: "ID de l'entreprise rattachée" })
-  @IsOptional()
-  @IsNumber()
-  declare companyId?: number;
-
-  @ApiPropertyOptional({ example: 1, description: 'ID du créateur' })
-  @IsOptional()
-  @IsNumber()
-  declare createdByUserId?: number;
+  @ApiProperty({ example: 1, description: "ID de l'entreprise rattachée" })
+  @IsInt()
+  declare companyId: number;
 
   @ApiPropertyOptional({ example: 1, description: "ID de l'adresse du lieu de travail" })
   @IsOptional()
@@ -133,6 +127,11 @@ export class PostPublicationDto {
   @IsBoolean()
   declare highlight?: boolean;
 }
+
+// A publication cannot be moved to another company.
+export class UpdatePublicationDto extends PartialType(
+  OmitType(PostPublicationDto, ['companyId'] as const),
+) {}
 
 export class PostPublicationResponseDto {
   declare message: string;
