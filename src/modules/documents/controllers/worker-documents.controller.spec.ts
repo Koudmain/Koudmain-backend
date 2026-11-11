@@ -3,6 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { WorkerDocumentsController } from './worker-documents.controller';
 import { DocumentsService } from '@/modules/documents/services/document.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
+import { DocumentCategory } from '@/modules/documents/models/document.model';
 import { type RequestWithUser } from '@/common/types/request.type';
 
 jest.mock('@/modules/pdf/services/pdf.service', () => ({ PdfService: class PdfService {} }));
@@ -36,6 +37,19 @@ describe('WorkerDocumentsController', () => {
     await expect(controller.getDocumentsByWorkerId(req)).resolves.toEqual([{ id: 42 }]);
     expect(mockWorkersService.getWorkerByUserId).toHaveBeenCalledWith(1);
     expect(mockDocumentsService.findAll).toHaveBeenCalledWith(1, { workerId: 3 });
+  });
+
+  it('doit transmettre les filtres de catégorie et de type', async () => {
+    mockWorkersService.getWorkerByUserId.mockResolvedValue({ id: 3 });
+    mockDocumentsService.findAll.mockResolvedValue([{ id: 42 }]);
+
+    const query = { category: DocumentCategory.DIPLOMA, type: 'DIPLOMA_MASTER' };
+    await expect(controller.getDocumentsByWorkerId(req, query)).resolves.toEqual([{ id: 42 }]);
+    expect(mockDocumentsService.findAll).toHaveBeenCalledWith(1, {
+      category: DocumentCategory.DIPLOMA,
+      type: 'DIPLOMA_MASTER',
+      workerId: 3,
+    });
   });
 
   it('doit refuser un utilisateur sans profil worker', async () => {

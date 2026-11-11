@@ -13,7 +13,9 @@ module.exports = {
       `SELECT id, user_id FROM "worker_profile";`,
     );
     const [companies] = await queryInterface.sequelize.query(`SELECT id, name FROM "company";`);
-    const [missions] = await queryInterface.sequelize.query(`SELECT id FROM "mission";`);
+    const [missions] = await queryInterface.sequelize.query(
+      `SELECT id, worker_id, company_id FROM "mission";`,
+    );
 
     const userList = users || [];
     const workerList = workers || [];
@@ -228,6 +230,17 @@ module.exports = {
         updated_at: now,
       });
 
+      assignmentsToInsert.push({
+        document_id: contractDocId,
+        worker_id: m.worker_id || null,
+        company_id: m.company_id || null,
+        user_id: null,
+        type: 'CONTRACT',
+        verified: true,
+        created_at: now,
+        updated_at: now,
+      });
+
       // Facture de mission
       const invoiceDocId = docIdCounter++;
       const amountHt = faker.number.float({ min: 150, max: 1200, fractionDigits: 2 });
@@ -263,6 +276,17 @@ module.exports = {
         amount_ttc: amountTtc,
         fee_amount: feeAmount,
         status: 'PAID',
+        created_at: now,
+        updated_at: now,
+      });
+
+      assignmentsToInsert.push({
+        document_id: invoiceDocId,
+        worker_id: m.worker_id || null,
+        company_id: m.company_id || null,
+        user_id: null,
+        type: 'INVOICE',
+        verified: true,
         created_at: now,
         updated_at: now,
       });

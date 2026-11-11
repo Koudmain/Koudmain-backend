@@ -6,12 +6,14 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  Query,
   Request,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { DocumentsService } from '@/modules/documents/services/document.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { Document } from '@/modules/documents/models/document.model';
+import { EntityDocumentsQueryDto } from '@/modules/documents/dtos/query-document.dto';
 import { type RequestWithUser } from '@/common/types/request.type';
 
 @ApiTags('Documents')
@@ -26,7 +28,7 @@ export class CompanyDocumentsController {
   @ApiOperation({
     summary: "Récupérer les documents d'une entreprise",
     description:
-      "Récupère la liste de tous les documents rattachés à une entreprise spécifique. L'utilisateur doit être membre ou propriétaire.",
+      "Récupère la liste de tous les documents rattachés à une entreprise spécifique. L'utilisateur doit être membre ou propriétaire. Possibilité de filtrer par catégorie (dossier S3), type d'assignation ou nom.",
   })
   @ApiParam({ name: 'companyId', description: "ID de l'entreprise", example: 1 })
   @ApiResponse({ status: 200, description: "Documents de l'entreprise récupérés." })
@@ -37,12 +39,13 @@ export class CompanyDocumentsController {
   async getDocumentsByCompanyId(
     @Request() req: RequestWithUser,
     @Param('companyId', ParseIntPipe) companyId: number,
+    @Query() query: EntityDocumentsQueryDto = {},
   ): Promise<Document[]> {
     const userId = req.user.sub;
     const isInCompany = await this.companiesService.isUserInCompany(userId, companyId);
     if (!isInCompany) {
       throw new ForbiddenException("Vous n'avez pas les droits pour accéder à cette entreprise");
     }
-    return this.documentsService.findAll(userId, { companyId });
+    return this.documentsService.findAll(userId, { ...query, companyId });
   }
 }

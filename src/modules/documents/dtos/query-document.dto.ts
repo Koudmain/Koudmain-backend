@@ -3,12 +3,31 @@ import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { DocumentCategory } from '@/modules/documents/models/document.model';
 
-export class QueryDocumentDto {
-  @ApiPropertyOptional({ enum: DocumentCategory, description: 'Filtrer par catégorie' })
+export class EntityDocumentsQueryDto {
+  @ApiPropertyOptional({
+    enum: DocumentCategory,
+    description: 'Filtrer par catégorie (dossier S3)',
+    example: DocumentCategory.IDENTITY,
+  })
   @IsEnum(DocumentCategory)
   @IsOptional()
   category?: DocumentCategory;
 
+  @ApiPropertyOptional({
+    description: "Filtrer par type d'assignation précis (ex: PROOF_OF_ADDRESS, RIB, DIPLOMA, etc.)",
+    example: 'PROOF_OF_ADDRESS',
+  })
+  @IsString()
+  @IsOptional()
+  type?: string;
+
+  @ApiPropertyOptional({ description: 'Recherche textuelle par nom de document' })
+  @IsString()
+  @IsOptional()
+  search?: string;
+}
+
+export class QueryDocumentDto extends EntityDocumentsQueryDto {
   @ApiPropertyOptional({ description: 'Filtrer par ID worker' })
   @Type(() => Number)
   @IsNumber()
@@ -44,9 +63,4 @@ export class QueryDocumentDto {
   @IsNumber()
   @IsOptional()
   publicationId?: number;
-
-  @ApiPropertyOptional({ description: 'Recherche par nom de document' })
-  @IsString()
-  @IsOptional()
-  search?: string;
 }

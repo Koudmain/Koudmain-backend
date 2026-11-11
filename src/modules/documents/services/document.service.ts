@@ -136,11 +136,12 @@ export class DocumentsService {
     if (query.category) conditions.push({ category: query.category });
     if (query.search) conditions.push({ name: { [Op.iLike]: `%${query.search}%` } });
 
-    if (query.workerId || query.companyId || query.userId) {
+    if (query.workerId || query.companyId || query.userId || query.type) {
       const assignmentWhere: Partial<DocumentAssignmentAttributes> = {};
       if (query.workerId) assignmentWhere.workerId = query.workerId;
       if (query.companyId) assignmentWhere.companyId = query.companyId;
       if (query.userId) assignmentWhere.userId = query.userId;
+      if (query.type) assignmentWhere.type = query.type;
 
       include[0] = { ...include[0], where: assignmentWhere, required: true };
     }

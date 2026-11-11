@@ -532,6 +532,16 @@ describe('DocumentsService', () => {
       });
     });
 
+    it('doit filtrer par type d’assignation', async () => {
+      await service.findAll(1, { type: 'PROOF_OF_ADDRESS' });
+
+      expect(findAllArgs().include[0]).toMatchObject({
+        as: 'assignments',
+        where: { type: 'PROOF_OF_ADDRESS' },
+        required: true,
+      });
+    });
+
     it('doit filtrer par contexte', async () => {
       await service.findAll(1, { missionId: 8, conversationId: 5, publicationId: 6 });
 

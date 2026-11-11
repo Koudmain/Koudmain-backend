@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserDocumentsController } from './user-documents.controller';
 import { DocumentsService } from '@/modules/documents/services/document.service';
+import { DocumentCategory } from '@/modules/documents/models/document.model';
 import { type RequestWithUser } from '@/common/types/request.type';
 
 jest.mock('@/modules/pdf/services/pdf.service', () => ({ PdfService: class PdfService {} }));
@@ -27,5 +28,18 @@ describe('UserDocumentsController', () => {
 
     await expect(controller.getDocumentsByUserId(req)).resolves.toEqual([{ id: 42 }]);
     expect(mockDocumentsService.findAll).toHaveBeenCalledWith(1, { userId: 1 });
+  });
+
+  it('doit transmettre les filtres de catégorie et de type', async () => {
+    const req = { user: { sub: 1, email: 'alex@koudmain.fr' } } as RequestWithUser;
+    mockDocumentsService.findAll.mockResolvedValue([{ id: 42 }]);
+
+    const query = { category: DocumentCategory.IDENTITY, type: 'PASSPORT' };
+    await expect(controller.getDocumentsByUserId(req, query)).resolves.toEqual([{ id: 42 }]);
+    expect(mockDocumentsService.findAll).toHaveBeenCalledWith(1, {
+      category: DocumentCategory.IDENTITY,
+      type: 'PASSPORT',
+      userId: 1,
+    });
   });
 });
