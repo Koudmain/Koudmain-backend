@@ -9,6 +9,17 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+// User input placed inside an HTML template must not be able to add markup (links, images).
+export const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
+
 type MailjetSendMessage = {
   From: { Email: string; Name?: string };
   To: Array<{ Email: string; Name?: string }>;
@@ -183,7 +194,7 @@ export class MailerService {
       variables: {
         preHeader: `${code} est votre code de vérification Koudmain`,
         title: 'Confirmez votre adresse email',
-        leadText: `Bonjour ${firstName},<br />Utilisez le code ci-dessous pour finaliser votre inscription sur Koudmain.`,
+        leadText: `Bonjour ${escapeHtml(firstName)},<br />Utilisez le code ci-dessous pour finaliser votre inscription sur Koudmain.`,
         contentHtml,
         warningHtml,
         signature: 'Cordialement,<br />L’équipe Koudmain',
