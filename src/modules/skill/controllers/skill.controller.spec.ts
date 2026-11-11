@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SkillController } from './skill.controller';
 import { SkillService } from '@/modules/skill/services/skill.service';
@@ -61,6 +62,17 @@ describe('SkillController', () => {
       expect(result).toEqual(expectedServiceResult);
       expect(result.message).toBe('Skill créé avec succès');
       expect(result.id).toBe(1);
+    });
+
+    it('should be disabled in production', async () => {
+      const previousEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        await expect(controller.create({ name: 'Pollution' })).rejects.toThrow(NotFoundException);
+        expect(mockSkillService.create).not.toHaveBeenCalled();
+      } finally {
+        process.env.NODE_ENV = previousEnv;
+      }
     });
   });
 

@@ -7,6 +7,7 @@ import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { AddressService } from '@/modules/address/services/address.service';
+import { RedisService } from '@/shared/redis/redis.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { Address } from '@/modules/address/address.model';
 import { Sequelize } from 'sequelize-typescript';
@@ -87,6 +88,12 @@ describe('AuthService', () => {
     buildAttributes: jest.fn(),
   };
 
+  const mockRedisService = {
+    get: jest.fn(),
+    incr: jest.fn(),
+    del: jest.fn(),
+  };
+
   const mockAddressModel = {
     create: jest.fn(),
   };
@@ -118,6 +125,7 @@ describe('AuthService', () => {
         { provide: CompaniesService, useValue: mockCompaniesService },
         { provide: EmailVerificationService, useValue: mockEmailVerificationService },
         { provide: AddressService, useValue: mockAddressService },
+        { provide: RedisService, useValue: mockRedisService },
         { provide: Sequelize, useValue: mockSequelize },
         { provide: getModelToken(Address), useValue: mockAddressModel },
       ],
@@ -155,6 +163,30 @@ describe('AuthService', () => {
       await expect(service.signIn('test@test.com', 'wrong_pass')).rejects.toThrow(
         UnauthorizedException,
       );
+    });
+
+    it('should count a wrong password as a failed login', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({ id: 1, password: 'hashed' });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(service.signIn('Test@Test.com', 'wrong')).rejects.toThrow(UnauthorizedException);
+      expect(mockRedisService.incr).toHaveBeenCalledWith('login_failures:test@test.com', 900);
+    });
+
+    it('should count an unknown email as a failed login', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue(null);
+
+      await expect(service.signIn('ghost@test.com', 'x')).rejects.toThrow(UnauthorizedException);
+      expect(mockRedisService.incr).toHaveBeenCalledWith('login_failures:ghost@test.com', 900);
+    });
+
+    it('should block the email after 10 failed logins, even with the right password', async () => {
+      mockRedisService.get.mockResolvedValueOnce('10');
+
+      await expect(service.signIn('test@test.com', 'correct_pass')).rejects.toMatchObject({
+        status: 429,
+      });
+      expect(mockUsersService.findOneByEmail).not.toHaveBeenCalled();
     });
 
     it('should refuse a user whose email is not verified', async () => {
@@ -214,6 +246,7 @@ describe('AuthService', () => {
         'refresh_token_mock',
         expect.any(Date),
       );
+      expect(mockRedisService.del).toHaveBeenCalledWith('login_failures:test@test.com');
     });
   });
 

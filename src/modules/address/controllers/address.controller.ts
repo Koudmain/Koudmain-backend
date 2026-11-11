@@ -1,31 +1,12 @@
-import { Body, Controller, Get, Post, Query, Request } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import type { Request as ExpressRequest } from 'express';
+import { Controller, Get, Query } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AddressService } from '@/modules/address/services/address.service';
-import { CreateAddressDto, GetMapAddressesDto } from '@/modules/address/address.dto';
-
-interface RequestWithUser extends ExpressRequest {
-  user: {
-    sub: number;
-    email: string;
-  };
-}
+import { GetMapAddressesDto } from '@/modules/address/address.dto';
 
 @ApiTags('Address')
 @Controller('address')
 export class AddressController {
   constructor(private readonly addressService: AddressService) {}
-
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Créer une adresse',
-    description: 'Enregistre une nouvelle adresse géographique.',
-  })
-  @ApiResponse({ status: 201, description: 'Adresse créée.' })
-  @Post('/')
-  async createAddress(@Request() req: RequestWithUser, @Body() body: CreateAddressDto) {
-    return this.addressService.createAddress(body);
-  }
 
   @ApiOperation({
     summary: 'Obtenir les annonces ouvertes pour la carte',

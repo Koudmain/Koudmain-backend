@@ -1,4 +1,13 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Get, Param } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SkillService } from '@/modules/skill/services/skill.service';
 import { PostSkillDto, PostSkillResponseDto, Skill } from '@/modules/skill/models/skill.model';
@@ -11,11 +20,16 @@ export class SkillController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Créer une compétence',
-    description: 'Ajoute une nouvelle compétence au référentiel.',
+    description: 'Ajoute une nouvelle compétence au référentiel (hors production uniquement).',
   })
   @ApiResponse({ status: 201, description: 'Skill créé avec succès.' })
+  @ApiResponse({ status: 404, description: 'Route désactivée en production.' })
   @Post('create')
   async create(@Body() createDto: PostSkillDto) {
+    // Dev tooling only (script/create_skills_script.py, Bruno, e2e): in production the
+    // shared referential comes from seeders, not from any signed-in user.
+    if (process.env.NODE_ENV === 'production') throw new NotFoundException();
+
     const skill: Skill = await this.skillService.create(createDto);
 
     const res: PostSkillResponseDto = {
