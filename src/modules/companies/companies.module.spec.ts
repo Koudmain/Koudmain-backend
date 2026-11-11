@@ -13,6 +13,7 @@ import { Application } from '@/modules/application/models/application.model';
 import { Mission } from '@/modules/mission/models/mission.model';
 import { Review } from '@/modules/review/models/review.model';
 import { DriveService } from '@/modules/drive/drive.service';
+import { AddressService } from '@/modules/address/services/address.service';
 
 jest.mock('@/modules/auth/auth.module', () => {
   @Module({})
@@ -47,6 +48,8 @@ describe('CompaniesModule', () => {
       .overrideProvider(getModelToken(Review))
       .useValue({})
       .overrideProvider(DriveService)
+      .useValue({})
+      .overrideProvider(AddressService)
       .useValue({})
       .compile();
   });

@@ -21,7 +21,7 @@ import { User, UserRole } from '@/modules/users/models/user.model';
 import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
-import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { AddressAttributes, AddressService } from '@/modules/address/services/address.service';
 import {
   RegisterDto,
   WorkerProfileDto,
@@ -29,14 +29,7 @@ import {
   GoogleRegisterDto,
 } from '@/modules/auth/models/register.model';
 import { AuthTokenResponse } from '@/modules/auth/controllers/auth.controller';
-import { CreateAddressDto } from '@/modules/address/address.dto';
 import { Transaction, UniqueConstraintError } from 'sequelize';
-
-type AddressGeocodeResult = {
-  fullAddress: string;
-  latitude: number | null;
-  longitude: number | null;
-};
 
 type GoogleProfile = {
   email: string;
@@ -64,7 +57,7 @@ export class AuthService {
     private workersService: WorkersService,
     private companiesService: CompaniesService,
     private emailVerificationService: EmailVerificationService,
-    private geocodingService: GeocodingService,
+    private addressService: AddressService,
     private sequelize: Sequelize,
     @InjectModel(Address) private addressModel: typeof Address,
   ) {}
@@ -111,26 +104,6 @@ export class AuthService {
       d: 24 * 60 * 60 * 1000,
     };
     return val * (units[unit] || 1000);
-  }
-
-  private async geocodeAddress(
-    addr: NonNullable<RegisterDto['workerProfile']>['address'],
-  ): Promise<AddressGeocodeResult> {
-    if (!addr) return { fullAddress: '', latitude: null, longitude: null };
-
-    const country = addr.country || 'France';
-    const fullAddress =
-      `${addr.streetNumber || ''} ${addr.streetName}, ${addr.zipCode} ${addr.city}, ${country}`.trim();
-    try {
-      const coords = await this.geocodingService.getCoordsFromAddress(fullAddress);
-      return {
-        fullAddress,
-        latitude: coords?.latitude ?? null,
-        longitude: coords?.longitude ?? null,
-      };
-    } catch {
-      return { fullAddress, latitude: null, longitude: null };
-    }
   }
 
   async signIn(email: string, pass: string): Promise<AuthTokenResponse> {
@@ -383,12 +356,12 @@ export class AuthService {
 
   private async createUser(dto: RegisterDto, extra: Partial<User> = {}): Promise<number> {
     const hashedPassword = await hash(dto.password, 10);
-    const workerGeo =
-      dto.role === UserRole.WORKER ? await this.geocodeAddress(dto.workerProfile?.address) : null;
-    const employerGeo =
-      dto.role === UserRole.EMPLOYER
-        ? await this.geocodeAddress(dto.employerProfile?.address)
-        : null;
+    // Geocoding is an HTTP call: done before the transaction opens.
+    const profileAddress =
+      dto.role === UserRole.WORKER ? dto.workerProfile?.address : dto.employerProfile?.address;
+    const address = profileAddress
+      ? await this.addressService.buildAttributes(profileAddress)
+      : null;
 
     let newUserId!: number;
 
@@ -409,48 +382,26 @@ export class AuthService {
       newUserId = newUser.id;
 
       if (dto.role === UserRole.WORKER && dto.workerProfile) {
-        await this.registerWorker(newUser.id, dto.workerProfile, workerGeo, t);
+        await this.registerWorker(newUser.id, dto.workerProfile, address, t);
       }
 
       if (dto.role === UserRole.EMPLOYER && dto.employerProfile) {
-        await this.registerEmployer(newUser.id, dto.employerProfile, employerGeo, t);
+        await this.registerEmployer(newUser.id, dto.employerProfile, address, t);
       }
     });
 
     return newUserId;
   }
 
-  private async createAddressRecord(
-    addressDto: CreateAddressDto,
-    geo: AddressGeocodeResult,
-    transaction: Transaction,
-  ): Promise<Address> {
-    return this.addressModel.create(
-      {
-        street_number: addressDto.streetNumber,
-        street_name: addressDto.streetName,
-        zip_code: addressDto.zipCode,
-        city: addressDto.city,
-        country: addressDto.country || 'France',
-        full_address: geo.fullAddress,
-        latitude: geo.latitude,
-        longitude: geo.longitude,
-      },
-      { transaction },
-    );
-  }
-
   private async registerWorker(
     userId: number,
     profile: WorkerProfileDto,
-    geo: AddressGeocodeResult | null,
+    address: AddressAttributes | null,
     transaction: Transaction,
   ): Promise<void> {
-    let addressId: number | undefined;
-    if (profile.address && geo) {
-      const address = await this.createAddressRecord(profile.address, geo, transaction);
-      addressId = address.id;
-    }
+    const addressId = address
+      ? (await this.addressModel.create(address, { transaction })).id
+      : undefined;
 
     await this.workersService.create(
       {
@@ -467,14 +418,12 @@ export class AuthService {
   private async registerEmployer(
     userId: number,
     profile: EmployerProfileDto,
-    geo: AddressGeocodeResult | null,
+    address: AddressAttributes | null,
     transaction: Transaction,
   ): Promise<void> {
-    let addressId: number | undefined;
-    if (profile.address && geo) {
-      const address = await this.createAddressRecord(profile.address, geo, transaction);
-      addressId = address.id;
-    }
+    const addressId = address
+      ? (await this.addressModel.create(address, { transaction })).id
+      : undefined;
 
     await this.companiesService.createCompanyWithOwner(
       {

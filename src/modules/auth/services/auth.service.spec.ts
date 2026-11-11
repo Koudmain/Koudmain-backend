@@ -6,7 +6,7 @@ import { RefreshSessionService } from './refresh-session.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
-import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { AddressService } from '@/modules/address/services/address.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { Address } from '@/modules/address/address.model';
 import { Sequelize } from 'sequelize-typescript';
@@ -83,8 +83,8 @@ describe('AuthService', () => {
     sendVerificationCode: jest.fn(),
   };
 
-  const mockGeocodingService = {
-    getCoordsFromAddress: jest.fn(),
+  const mockAddressService = {
+    buildAttributes: jest.fn(),
   };
 
   const mockAddressModel = {
@@ -117,7 +117,7 @@ describe('AuthService', () => {
         { provide: WorkersService, useValue: mockWorkersService },
         { provide: CompaniesService, useValue: mockCompaniesService },
         { provide: EmailVerificationService, useValue: mockEmailVerificationService },
-        { provide: GeocodingService, useValue: mockGeocodingService },
+        { provide: AddressService, useValue: mockAddressService },
         { provide: Sequelize, useValue: mockSequelize },
         { provide: getModelToken(Address), useValue: mockAddressModel },
       ],
@@ -314,6 +314,43 @@ describe('AuthService', () => {
       await expect(service.register(baseWorkerDto)).rejects.toThrow(ConflictException);
       expect(mockUsersService.update).not.toHaveBeenCalled();
       expect(mockEmailVerificationService.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    it('should geocode the address before the transaction and create it inside', async () => {
+      const attributes = {
+        street_name: 'Rue de la Paix',
+        full_address: '...',
+        latitude: 1,
+        longitude: 2,
+      };
+      mockUsersService.findOneByEmail.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      mockAddressService.buildAttributes.mockResolvedValue(attributes);
+      mockAddressModel.create.mockResolvedValue({ id: 77 });
+      mockUsersService.create.mockResolvedValue({ id: 3 });
+      mockUsersService.findOneById.mockResolvedValue({
+        id: 3,
+        email: 'w@test.com',
+        first_name: 'W',
+      });
+
+      const address = { streetName: 'Rue de la Paix', zipCode: '75002', city: 'Paris' };
+      await service.register({
+        ...baseWorkerDto,
+        workerProfile: { ...baseWorkerDto.workerProfile!, address },
+      });
+
+      expect(mockAddressService.buildAttributes).toHaveBeenCalledWith(address);
+      expect(mockAddressService.buildAttributes.mock.invocationCallOrder[0]).toBeLessThan(
+        mockSequelize.transaction.mock.invocationCallOrder[0],
+      );
+      expect(mockAddressModel.create).toHaveBeenCalledWith(attributes, {
+        transaction: expect.anything() as unknown,
+      });
+      expect(mockWorkersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ addressId: 77 }),
+        expect.anything(),
+      );
     });
 
     it('should create WORKER: hash password, run transaction, create user + worker profile, send email', async () => {

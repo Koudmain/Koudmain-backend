@@ -83,8 +83,32 @@ describe('AddressService', () => {
           latitude: mockCoords.latitude,
           longitude: mockCoords.longitude,
         }),
+        { transaction: undefined },
       );
       expect(result).toEqual(created);
+    });
+  });
+
+  describe('buildAttributes', () => {
+    it('should default the country to France in both full_address and country', async () => {
+      mockGeocodingService.getCoordsFromAddress.mockResolvedValue(null);
+
+      const attributes = await service.buildAttributes({
+        streetName: 'Rue Neuve',
+        zipCode: '69001',
+        city: 'Lyon',
+      });
+
+      expect(attributes).toEqual({
+        street_number: undefined,
+        street_name: 'Rue Neuve',
+        zip_code: '69001',
+        city: 'Lyon',
+        country: 'France',
+        full_address: 'Rue Neuve, 69001 Lyon, France',
+        latitude: null,
+        longitude: null,
+      });
     });
   });
 

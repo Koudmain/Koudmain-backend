@@ -24,6 +24,9 @@ import {
   Matches,
 } from 'class-validator';
 
+// Publications shown to workers (company profile, map).
+export const OPEN_PUBLICATION_STATUSES = ['Ouverte', 'Urgente'];
+
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
