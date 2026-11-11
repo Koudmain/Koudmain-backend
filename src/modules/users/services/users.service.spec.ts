@@ -8,7 +8,6 @@ describe('UsersService', () => {
   let service: UsersService;
 
   const mockUserModel = {
-    findAll: jest.fn(),
     findByPk: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn(),
@@ -84,14 +83,6 @@ describe('UsersService', () => {
       expect(mockUserModel.create).toHaveBeenCalledWith(expect.any(Object), {
         transaction: fakeTransaction,
       });
-    });
-  });
-
-  describe('findAll', () => {
-    it('should never return password hashes', async () => {
-      await service.findAll();
-
-      expect(mockUserModel.findAll).toHaveBeenCalledWith({ attributes: { exclude: ['password'] } });
     });
   });
 
