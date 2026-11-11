@@ -71,6 +71,12 @@ export class Publication extends Model {
   @Column({ type: DataType.STRING })
   declare status: string;
 
+  @Column({ field: 'auto_accept', type: DataType.BOOLEAN, defaultValue: false })
+  declare autoAccept: boolean;
+
+  @Column({ field: 'highlighted', type: DataType.BOOLEAN, defaultValue: false })
+  declare highlight: boolean;
+
   @Column({ type: DataType.BIGINT, defaultValue: 0 })
   declare views: number;
 
