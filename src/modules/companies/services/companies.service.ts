@@ -1,19 +1,17 @@
-import {
-  ForbiddenException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { CompanyJob } from '@/modules/companies/models/company-job.model';
 import { CreationAttributes, Op, Transaction } from 'sequelize';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
-import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { AddressService } from '@/modules/address/services/address.service';
 import { Address } from '@/modules/address/address.model';
 import { CompanyType, OwnerPosition } from '@/modules/auth/models/register.model';
-import { Publication } from '@/modules/publication/models/publication.model';
+import {
+  OPEN_PUBLICATION_STATUSES,
+  Publication,
+} from '@/modules/publication/models/publication.model';
 import { Skill } from '@/modules/skill/models/skill.model';
 import { Application } from '@/modules/application/models/application.model';
 import { Mission } from '@/modules/mission/models/mission.model';
@@ -23,20 +21,17 @@ import { buildRatingSummary } from '@/modules/review/review.utils';
 import { DriveService } from '@/modules/drive/drive.service';
 import { UpdateCompanyDto } from '@/modules/companies/dto/update-company.dto';
 
-export const OPEN_PUBLICATION_STATUSES = ['Ouverte', 'Urgente'];
-
 @Injectable()
 export class CompaniesService {
   constructor(
     @InjectModel(Company) private companyModel: typeof Company,
     @InjectModel(CompanyMember) private memberModel: typeof CompanyMember,
     @InjectModel(CompanyJob) private companyJobModel: typeof CompanyJob,
-    @InjectModel(Address) private addressModel: typeof Address,
     @InjectModel(Publication) private publicationModel: typeof Publication,
     @InjectModel(Application) private applicationModel: typeof Application,
     @InjectModel(Mission) private missionModel: typeof Mission,
     @InjectModel(Review) private reviewModel: typeof Review,
-    private geocodingService: GeocodingService,
+    private addressService: AddressService,
     private driveService: DriveService,
   ) {}
 
@@ -109,42 +104,16 @@ export class CompaniesService {
   ) {
     await this.assertCompanyOwner(userId, companyId);
 
-    const company = await this.companyModel.findByPk(companyId, {
-      include: ['address'],
-    });
+    const company = await this.companyModel.findByPk(companyId);
 
     if (!company) {
       throw new NotFoundException('Entreprise introuvable');
     }
 
-    const country = updateAddressDto.country || 'France';
-    const fullAddressString =
-      `${updateAddressDto.streetNumber || ''} ${updateAddressDto.streetName}, ${updateAddressDto.zipCode} ${updateAddressDto.city}, ${country}`.trim();
-
-    let coords;
-    try {
-      coords = await this.geocodingService.getCoordsFromAddress(fullAddressString);
-    } catch (error) {
-      throw new InternalServerErrorException("Erreur lors du géocodage de l'adresse", {
-        cause: error,
-      });
-    }
-
-    const addressPayload = {
-      street_number: updateAddressDto.streetNumber,
-      street_name: updateAddressDto.streetName,
-      zip_code: updateAddressDto.zipCode,
-      city: updateAddressDto.city,
-      country,
-      full_address: fullAddressString,
-      latitude: coords?.latitude ?? null,
-      longitude: coords?.longitude ?? null,
-    };
-
-    if (company.address) {
-      await company.address.update(addressPayload);
+    if (company.addressId) {
+      await this.addressService.updateAddress(company.addressId, updateAddressDto);
     } else {
-      const newAddress = await this.addressModel.create(addressPayload);
+      const newAddress = await this.addressService.createAddress(updateAddressDto);
       company.set('addressId', newAddress.id);
       await company.save();
     }

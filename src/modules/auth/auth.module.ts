@@ -18,7 +18,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Address } from '@/modules/address/address.model';
 import { CompanyJob } from '@/modules/companies/models/company-job.model';
 import { WorkerJob } from '@/modules/workers/models/worker-job.model';
-import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { AddressModule } from '@/modules/address/address.module';
 
 @Module({
   imports: [
@@ -27,6 +27,7 @@ import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
     forwardRef(() => CompaniesModule),
     MailerModule,
     RedisModule,
+    forwardRef(() => AddressModule),
     SequelizeModule.forFeature([RefreshSession, Address, CompanyJob, WorkerJob]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -41,7 +42,6 @@ import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
     AuthService,
     RefreshSessionService,
     EmailVerificationService,
-    GeocodingService,
     {
       provide: APP_GUARD,
       useClass: AuthGuard,

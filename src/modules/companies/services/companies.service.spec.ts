@@ -4,8 +4,7 @@ import { CompaniesService } from '@/modules/companies/services/companies.service
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { CompanyJob } from '@/modules/companies/models/company-job.model';
-import { Address } from '@/modules/address/address.model';
-import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { AddressService } from '@/modules/address/services/address.service';
 import {
   ForbiddenException,
   NotFoundException,
@@ -32,10 +31,6 @@ describe('CompaniesService', () => {
     findOne: jest.fn(),
   };
 
-  const mockAddressModel = {
-    create: jest.fn(),
-  };
-
   const mockCompanyJobModel = {
     bulkCreate: jest.fn(),
   };
@@ -57,8 +52,9 @@ describe('CompaniesService', () => {
     findAll: jest.fn(),
   };
 
-  const mockGeocodingService = {
-    getCoordsFromAddress: jest.fn(),
+  const mockAddressService = {
+    createAddress: jest.fn(),
+    updateAddress: jest.fn(),
   };
 
   const mockDriveService = {
@@ -73,12 +69,11 @@ describe('CompaniesService', () => {
         { provide: getModelToken(Company), useValue: mockCompanyModel },
         { provide: getModelToken(CompanyMember), useValue: mockMemberModel },
         { provide: getModelToken(CompanyJob), useValue: mockCompanyJobModel },
-        { provide: getModelToken(Address), useValue: mockAddressModel },
         { provide: getModelToken(Publication), useValue: mockPublicationModel },
         { provide: getModelToken(Application), useValue: mockApplicationModel },
         { provide: getModelToken(Mission), useValue: mockMissionModel },
         { provide: getModelToken(Review), useValue: mockReviewModel },
-        { provide: GeocodingService, useValue: mockGeocodingService },
+        { provide: AddressService, useValue: mockAddressService },
         { provide: DriveService, useValue: mockDriveService },
       ],
     }).compile();
@@ -116,47 +111,26 @@ describe('CompaniesService', () => {
       );
     });
 
-    it("doit mettre à jour l'adresse existante si l'entreprise en a déjà une", async () => {
+    it('should update the existing address of the company', async () => {
       mockMemberModel.findOne.mockResolvedValue({ role: OwnerPosition.OWNER });
-
-      const mockAddressInstance = { id: 50, update: jest.fn() };
-      const mockCompany = { id: companyId, address: mockAddressInstance };
-
-      mockCompanyModel.findByPk.mockResolvedValueOnce(mockCompany);
-      mockGeocodingService.getCoordsFromAddress.mockResolvedValue({
-        latitude: 48.8,
-        longitude: 2.3,
-      });
-      mockCompanyModel.findByPk.mockResolvedValueOnce(mockCompany);
+      const mockCompany = { id: companyId, addressId: 50 };
+      mockCompanyModel.findByPk.mockResolvedValue(mockCompany);
 
       await service.updateCompanyAddress(userId, companyId, dto);
 
-      expect(mockAddressInstance.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          street_name: 'Rue de la Paix',
-          full_address: '15 Rue de la Paix, 75002 Paris, France',
-        }),
-      );
-      expect(mockAddressModel.create).not.toHaveBeenCalled();
+      expect(mockAddressService.updateAddress).toHaveBeenCalledWith(50, dto);
+      expect(mockAddressService.createAddress).not.toHaveBeenCalled();
     });
 
-    it("doit créer une nouvelle adresse si l'entreprise n'en avait pas", async () => {
+    it('should create an address when the company had none', async () => {
       mockMemberModel.findOne.mockResolvedValue({ role: OwnerPosition.OWNER });
-
-      const mockCompany = { id: companyId, address: null, set: jest.fn(), save: jest.fn() };
-
-      mockCompanyModel.findByPk.mockResolvedValueOnce(mockCompany);
-      mockGeocodingService.getCoordsFromAddress.mockResolvedValue({
-        latitude: 48.8,
-        longitude: 2.3,
-      });
-      mockAddressModel.create.mockResolvedValue({ id: 99 });
-      mockCompanyModel.findByPk.mockResolvedValueOnce({ ...mockCompany, address: { id: 99 } });
+      const mockCompany = { id: companyId, addressId: null, set: jest.fn(), save: jest.fn() };
+      mockCompanyModel.findByPk.mockResolvedValue(mockCompany);
+      mockAddressService.createAddress.mockResolvedValue({ id: 99 });
 
       await service.updateCompanyAddress(userId, companyId, dto);
 
-      expect(mockGeocodingService.getCoordsFromAddress).toHaveBeenCalled();
-      expect(mockAddressModel.create).toHaveBeenCalled();
+      expect(mockAddressService.createAddress).toHaveBeenCalledWith(dto);
       expect(mockCompany.set).toHaveBeenCalledWith('addressId', 99);
       expect(mockCompany.save).toHaveBeenCalled();
     });
