@@ -1,3 +1,4 @@
+import { createValidationPipe } from '@/common/utils/validation-pipe';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -59,6 +60,8 @@ describe('AppController (e2e)', () => {
       }).compile();
 
       app = moduleFixture.createNestApplication();
+
+      app.useGlobalPipes(createValidationPipe());
       await app.init();
 
       sequelize = app.get<Sequelize>(getConnectionToken());

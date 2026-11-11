@@ -1,5 +1,6 @@
+import { createValidationPipe } from '@/common/utils/validation-pipe';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { getConnectionToken, SequelizeModule } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
@@ -85,9 +86,7 @@ describe('Profiles & reviews (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
-    );
+    app.useGlobalPipes(createValidationPipe());
     await app.init();
     sequelize = app.get<Sequelize>(getConnectionToken());
 

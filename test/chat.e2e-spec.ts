@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { createValidationPipe } from '@/common/utils/validation-pipe';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -59,6 +60,8 @@ describe('Chat System (e2e)', () => {
       }).compile();
 
       app = moduleFixture.createNestApplication();
+
+      app.useGlobalPipes(createValidationPipe());
       await app.init();
 
       sequelize = app.get<Sequelize>(getConnectionToken());
@@ -217,5 +220,14 @@ describe('Chat System (e2e)', () => {
       .send({ conversationId: convId, content: 'Intrusion' });
 
     expect(response.status).toBe(403);
+  });
+
+  it('POST /chat/messages - rejects an invalid body', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/chat/messages')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ conversationId: 'abc', content: '' });
+
+    expect(response.status).toBe(400);
   });
 });
