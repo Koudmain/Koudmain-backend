@@ -18,14 +18,10 @@ export class PublicationService {
   async create(userId: number, publication: PostPublicationDto) {
     await this.assertCompanyMember(userId, publication.companyId);
 
-    const maxId = await this.publicationModel.max('id');
-    const nextId = (typeof maxId === 'number' ? maxId : 0) + 1;
-
     const { skills, ...pubData } = publication;
 
     const created = await this.publicationModel.create({
       ...pubData,
-      id: nextId,
       createdByUserId: userId,
       status: 'Ouverte',
       createdAt: new Date(),
