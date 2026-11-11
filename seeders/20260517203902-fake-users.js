@@ -69,6 +69,7 @@ module.exports = {
           .split('T')[0],
         profile_picture_url: faker.image.avatar(),
         created_at: now,
+        email_verified_at: now,
       });
     }
 
@@ -86,6 +87,7 @@ module.exports = {
           .split('T')[0],
         profile_picture_url: faker.image.avatar(),
         created_at: now,
+        email_verified_at: now,
       });
     }
 

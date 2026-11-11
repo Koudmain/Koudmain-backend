@@ -108,6 +108,27 @@ describe('AppController (e2e)', () => {
     accessToken = authBody.accessToken;
   });
 
+  it('should refuse to log in an account whose email is not verified', async () => {
+    const email = `unverified-${Date.now()}@koudmain.fr`;
+    // Reuse a seeded hash of 'password123'; ids come from max + 1 like UsersService.create.
+    await sequelize.query(
+      `INSERT INTO "user" (id, first_name, last_name, email, password, role)
+       SELECT MAX(id) + 1, 'Un', 'Verified', '${email}', (SELECT password FROM "user" WHERE email = 'employer1@koudmain.fr'), 'WORKER' FROM "user";`,
+    );
+
+    try {
+      const response = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password: 'password123' });
+
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ message: 'EMAIL_NOT_VERIFIED' });
+      expect(response.body).toHaveProperty('userId');
+    } finally {
+      await sequelize.query(`DELETE FROM "user" WHERE email = '${email}';`);
+    }
+  });
+
   it('should create a publication with associated skills', async () => {
     const suffix = Date.now();
     const categoryName = `E2E Publication Test Category ${suffix}`;

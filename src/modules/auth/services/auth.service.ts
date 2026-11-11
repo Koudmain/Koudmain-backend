@@ -144,6 +144,15 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
+    // userId lets the app open the code screen (POST /auth/resend-verification, /auth/verify-email).
+    if (!user.email_verified_at) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        message: 'EMAIL_NOT_VERIFIED',
+        userId: user.id,
+      });
+    }
+
     const payload = {
       sub: user.id,
       email: user.email,
@@ -213,11 +222,29 @@ export class AuthService {
     const existingUser = await this.usersService.findOneByEmail(dto.email);
     if (existingUser) {
       if (!existingUser.email_verified_at) {
+        if (existingUser.role !== dto.role) {
+          throw new ConflictException(
+            'Un compte non vérifié avec un autre rôle existe déjà pour cet email.',
+          );
+        }
+        // Rate-limited first, so the credentials cannot be overwritten in a loop.
         await this.emailVerificationService.sendVerificationCode(
           existingUser.id,
           existingUser.email,
-          existingUser.first_name,
+          dto.firstName,
+          true,
         );
+        // The last registration owns the account: someone who pre-registered this email
+        // must not keep a password. shortcut: the worker/company profile of the first
+        // registration is kept (only identity fields are replaced); recreate it if needed.
+        await this.usersService.update(existingUser.id, {
+          password: await hash(dto.password, 10),
+          first_name: dto.firstName,
+          last_name: dto.lastName,
+          phone_number: dto.phoneNumber ?? null,
+          birth_date: dto.birthDate ?? null,
+        });
+        await this.refreshSessionService.revokeAllSessions(existingUser.id);
         return {
           userId: existingUser.id,
           message: 'Un code de vérification a été renvoyé à votre adresse email.',
@@ -232,6 +259,7 @@ export class AuthService {
       newUserId,
       createdUser!.email,
       createdUser!.first_name,
+      true,
     );
 
     return {
