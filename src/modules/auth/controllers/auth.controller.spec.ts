@@ -10,7 +10,6 @@ const mockAuthService = {
   register: jest.fn(),
   refresh: jest.fn(),
   logout: jest.fn(),
-  logoutAll: jest.fn(),
   generateTokensForUser: jest.fn(),
   getUserForVerification: jest.fn(),
   getGoogleAuthUrl: jest.fn(),
@@ -114,22 +113,6 @@ describe('AuthController', () => {
 
       expect(mockAuthService.logout).toHaveBeenCalledTimes(1);
       expect(mockAuthService.logout).toHaveBeenCalledWith(123);
-      expect(result).toEqual(mockResponse);
-    });
-  });
-
-  describe('logoutAll', () => {
-    it('should call authService.logoutAll and return message', async () => {
-      const mockResponse = { message: 'All sessions revoked successfully' };
-      mockAuthService.logoutAll.mockResolvedValue(mockResponse);
-
-      const mockReq = {
-        user: { sub: 123 },
-      } as unknown as Parameters<AuthController['logoutAll']>[0];
-      const result = await controller.logoutAll(mockReq);
-
-      expect(mockAuthService.logoutAll).toHaveBeenCalledTimes(1);
-      expect(mockAuthService.logoutAll).toHaveBeenCalledWith(123);
       expect(result).toEqual(mockResponse);
     });
   });

@@ -60,27 +60,6 @@ export class DriveService {
     }
   }
 
-  async getOrCreateFolder(folderName: string): Promise<string> {
-    const response = await this.driveClient.files.list({
-      q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
-      fields: 'files(id)',
-    });
-
-    if (response.data.files && response.data.files.length > 0) {
-      return response.data.files[0].id!;
-    }
-
-    const folder = await this.driveClient.files.create({
-      requestBody: {
-        name: folderName,
-        mimeType: 'application/vnd.google-apps.folder',
-      },
-      fields: 'id',
-    });
-
-    return folder.data.id!;
-  }
-
   async deleteFile(fileUrl: string): Promise<void> {
     try {
       const afterId = fileUrl.split('id=')[1];
