@@ -15,19 +15,17 @@ export class MailerController {
   @ApiOperation({
     summary: 'Envoyer un email de test',
     description:
-      "Route de test d'envoi d'email (active uniquement en dev ou si activée par config).",
+      "Route de test d'envoi d'email, active uniquement si MAILER_TEST_ROUTE_ENABLED=true.",
   })
   @ApiResponse({ status: 201, description: 'Email de test envoyé.' })
-  @ApiResponse({ status: 404, description: 'Route désactivée en production.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Route désactivée (MAILER_TEST_ROUTE_ENABLED != true).',
+  })
   @Post('test')
   async sendTestEmail(@Body() body: SendEmailInput): Promise<{ ok: true }> {
-    const nodeEnv = this.configService.get<string>('NODE_ENV') ?? 'development';
-    const isExplicitlyEnabled =
-      this.configService.get<string>('MAILER_TEST_ROUTE_ENABLED') === 'true';
-
-    // Hide the route in production unless explicitly enabled.
-    const enabled = nodeEnv !== 'production' || isExplicitlyEnabled;
-    if (!enabled) {
+    // Any signed-in user could send any HTML from our address: off unless explicitly enabled.
+    if (this.configService.get<string>('MAILER_TEST_ROUTE_ENABLED') !== 'true') {
       throw new NotFoundException('Mailer test route is disabled');
     }
 

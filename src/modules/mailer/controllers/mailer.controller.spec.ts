@@ -49,57 +49,34 @@ describe('MailerController', () => {
       text: 'Test content',
     };
 
-    it('should successfully send a test email in development mode', async () => {
-      configValues.NODE_ENV = 'development';
-      mailerServiceMock.sendEmail.mockResolvedValue(undefined);
-
-      const result = await controller.sendTestEmail(mockEmailInput);
-
-      expect(result).toEqual({ ok: true });
-      expect(configServiceMock.get).toHaveBeenCalledWith('NODE_ENV');
-      expect(configServiceMock.get).toHaveBeenCalledWith('MAILER_TEST_ROUTE_ENABLED');
-      expect(mailerServiceMock.sendEmail).toHaveBeenCalledWith(mockEmailInput);
-    });
-
-    it('should successfully send a test email if NODE_ENV is undefined (defaults to development)', async () => {
-      configValues.NODE_ENV = undefined;
-      mailerServiceMock.sendEmail.mockResolvedValue(undefined);
-
-      const result = await controller.sendTestEmail(mockEmailInput);
-
-      expect(result).toEqual({ ok: true });
-      expect(mailerServiceMock.sendEmail).toHaveBeenCalledWith(mockEmailInput);
-    });
-
-    it('should successfully send a test email in production mode if explicitly enabled', async () => {
-      configValues.NODE_ENV = 'production';
+    it('should send a test email when MAILER_TEST_ROUTE_ENABLED is true', async () => {
       configValues.MAILER_TEST_ROUTE_ENABLED = 'true';
       mailerServiceMock.sendEmail.mockResolvedValue(undefined);
 
       const result = await controller.sendTestEmail(mockEmailInput);
 
       expect(result).toEqual({ ok: true });
+      expect(configServiceMock.get).toHaveBeenCalledWith('MAILER_TEST_ROUTE_ENABLED');
       expect(mailerServiceMock.sendEmail).toHaveBeenCalledWith(mockEmailInput);
     });
 
-    it('should throw NotFoundException in production mode if not explicitly enabled', async () => {
-      configValues.NODE_ENV = 'production';
-      configValues.MAILER_TEST_ROUTE_ENABLED = 'false';
+    it.each([
+      ['development', undefined],
+      ['development', 'false'],
+      [undefined, undefined],
+      ['production', undefined],
+      ['production', 'false'],
+    ])(
+      'should be disabled when NODE_ENV=%s and MAILER_TEST_ROUTE_ENABLED=%s',
+      async (nodeEnv, enabled) => {
+        configValues.NODE_ENV = nodeEnv;
+        configValues.MAILER_TEST_ROUTE_ENABLED = enabled;
 
-      await expect(controller.sendTestEmail(mockEmailInput)).rejects.toThrow(
-        new NotFoundException('Mailer test route is disabled'),
-      );
-      expect(mailerServiceMock.sendEmail).not.toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException in production mode if MAILER_TEST_ROUTE_ENABLED is undefined', async () => {
-      configValues.NODE_ENV = 'production';
-      configValues.MAILER_TEST_ROUTE_ENABLED = undefined;
-
-      await expect(controller.sendTestEmail(mockEmailInput)).rejects.toThrow(
-        new NotFoundException('Mailer test route is disabled'),
-      );
-      expect(mailerServiceMock.sendEmail).not.toHaveBeenCalled();
-    });
+        await expect(controller.sendTestEmail(mockEmailInput)).rejects.toThrow(
+          new NotFoundException('Mailer test route is disabled'),
+        );
+        expect(mailerServiceMock.sendEmail).not.toHaveBeenCalled();
+      },
+    );
   });
 });

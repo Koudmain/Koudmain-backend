@@ -41,6 +41,9 @@ RUN npm run build
 
 FROM node:24-alpine AS production
 
+# Turns off Swagger and the dev-only routes.
+ENV NODE_ENV=production
+
 COPY --from=build /usr/src/app/dist ./dist
 COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=base /usr/src/app/package.json ./
