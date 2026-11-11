@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InternalServerErrorException } from '@nestjs/common';
 
 import { MAILJET_CLIENT } from '@/modules/mailer/mailer.constants';
-import { MailerService } from '@/modules/mailer/services/mailer.service';
+import { MailerService, escapeHtml } from '@/modules/mailer/services/mailer.service';
 
 describe('MailerService', () => {
   let service: MailerService;
@@ -252,5 +252,41 @@ describe('MailerService', () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
+  });
+
+  describe('sendVerificationEmail', () => {
+    type SentMessage = { Variables: { leadText: string } };
+    const sentLeadText = () =>
+      (requestMock.mock.calls[0] as [{ Messages: SentMessage[] }])[0].Messages[0].Variables
+        .leadText;
+
+    it('should escape HTML in the first name', async () => {
+      requestMock.mockResolvedValue(undefined);
+
+      await service.sendVerificationEmail(
+        'victim@test.com',
+        '<a href="https://evil.example">Cliquez</a>',
+        '123456',
+      );
+
+      expect(sentLeadText()).toContain(
+        'Bonjour &lt;a href=&quot;https://evil.example&quot;&gt;Cliquez&lt;/a&gt;,',
+      );
+      expect(sentLeadText()).not.toContain('<a');
+    });
+
+    it('should keep a regular first name as is', async () => {
+      requestMock.mockResolvedValue(undefined);
+
+      await service.sendVerificationEmail('jean@test.com', 'Jean-Émile', '123456');
+
+      expect(sentLeadText()).toContain('Bonjour Jean-Émile,');
+    });
+  });
+
+  it('escapeHtml should escape the five HTML special characters', () => {
+    expect(escapeHtml(`<b>"Tom" & 'Jerry'</b>`)).toBe(
+      '&lt;b&gt;&quot;Tom&quot; &amp; &#39;Jerry&#39;&lt;/b&gt;',
+    );
   });
 });

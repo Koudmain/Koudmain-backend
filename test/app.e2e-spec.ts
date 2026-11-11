@@ -108,6 +108,21 @@ describe('AppController (e2e)', () => {
     accessToken = authBody.accessToken;
   });
 
+  it('should reject a first name longer than 50 characters at registration', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        firstName: 'A'.repeat(51),
+        lastName: 'Martin',
+        email: `long-name-${Date.now()}@koudmain.fr`,
+        password: 'password123',
+        role: 'WORKER',
+        workerProfile: { skillCategoryIds: [1] },
+      });
+
+    expect(response.status).toBe(400);
+  });
+
   it('should refuse to log in an account whose email is not verified', async () => {
     const email = `unverified-${Date.now()}@koudmain.fr`;
     // Reuse a seeded hash of 'password123'.
