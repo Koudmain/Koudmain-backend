@@ -204,6 +204,7 @@ export class AuthService {
   async getUserForVerification(userId: number) {
     const user = await this.usersService.findOneById(userId);
     if (!user) throw new UnauthorizedException('Utilisateur introuvable.');
+    if (user.email_verified_at) throw new ConflictException('Cet email est déjà vérifié.');
 
     return user;
   }

@@ -26,6 +26,8 @@ describe('RedisService', () => {
     const mockSet = jest.fn().mockResolvedValue('OK');
     const mockGet = jest.fn().mockResolvedValue('mock-value');
     const mockDel = jest.fn().mockResolvedValue(1);
+    const mockIncr = jest.fn().mockResolvedValue(1);
+    const mockExpire = jest.fn().mockResolvedValue(1);
 
     (Redis as unknown as jest.Mock).mockImplementation(() => ({
       on: mockOn,
@@ -33,6 +35,8 @@ describe('RedisService', () => {
       set: mockSet,
       get: mockGet,
       del: mockDel,
+      incr: mockIncr,
+      expire: mockExpire,
     }));
 
     const module: TestingModule = await Test.createTestingModule({
@@ -88,5 +92,15 @@ describe('RedisService', () => {
   it('should call del with correct arguments', async () => {
     await service.del('test-key');
     expect(jest.mocked(mockRedisClient.del)).toHaveBeenCalledWith('test-key');
+  });
+
+  it('should start the TTL on the first increment only', async () => {
+    jest.mocked(mockRedisClient.incr).mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+
+    await expect(service.incr('counter', 60)).resolves.toBe(1);
+    await expect(service.incr('counter', 60)).resolves.toBe(2);
+
+    expect(jest.mocked(mockRedisClient.expire)).toHaveBeenCalledTimes(1);
+    expect(jest.mocked(mockRedisClient.expire)).toHaveBeenCalledWith('counter', 60);
   });
 });
