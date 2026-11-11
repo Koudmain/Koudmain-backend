@@ -1,8 +1,12 @@
 import sharp from 'sharp';
 
-export const processProfilePicture = async (buffer: Buffer): Promise<Buffer> => {
+export const processProfilePicture = async (
+  buffer: Buffer,
+  width = 500,
+  height = 500,
+): Promise<Buffer> => {
   return sharp(buffer)
-    .resize(500, 500, {
+    .resize(width, height, {
       fit: 'cover',
       withoutEnlargement: true,
     })

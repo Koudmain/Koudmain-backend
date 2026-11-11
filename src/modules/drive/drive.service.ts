@@ -21,9 +21,12 @@ export class DriveService {
     this.driveClient = google.drive({ version: 'v3', auth: oauth2Client });
   }
 
-  async uploadImage(file: Express.Multer.File): Promise<string> {
+  async uploadImage(
+    file: Express.Multer.File,
+    size: { width: number; height: number } = { width: 500, height: 500 },
+  ): Promise<string> {
     try {
-      const optimizedBuffer = await processProfilePicture(file.buffer);
+      const optimizedBuffer = await processProfilePicture(file.buffer, size.width, size.height);
 
       const response = await this.driveClient.files.create({
         requestBody: {

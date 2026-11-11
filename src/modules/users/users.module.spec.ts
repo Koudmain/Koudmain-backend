@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { UsersModule } from './users.module';
-import { UsersController } from './users.controller';
+import { UsersController } from './controllers/users.controller';
 import { UsersService } from './services/users.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { User } from './models/user.model';

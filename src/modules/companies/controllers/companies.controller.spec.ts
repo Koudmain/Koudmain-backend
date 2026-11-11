@@ -1,9 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CompaniesController } from './companies.controller';
+import { Reflector } from '@nestjs/core';
+import { CompaniesController } from '@/modules/companies/controllers/companies.controller';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { InternalServerErrorException, ForbiddenException } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
+import { ROLES_KEY } from '@/decorators/roles.decorator';
+import { UserRole } from '@/modules/users/models/user.model';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
@@ -18,6 +21,7 @@ describe('CompaniesController', () => {
   const mockCompaniesService = {
     getUserCompanies: jest.fn(),
     updateCompanyAddress: jest.fn(),
+    updateCompany: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -96,6 +100,46 @@ describe('CompaniesController', () => {
       await expect(controller.updateCompanyAddress(mockReq, companyId, dto)).rejects.toThrow(
         InternalServerErrorException,
       );
+    });
+  });
+  describe('updateCompany', () => {
+    it('should pass the user, company, fields and images to the service', async () => {
+      const mockReq = { user: { sub: 1, email: 'owner@test.com' } } as RequestWithUser;
+      const body = { name: 'Le Bistrot' };
+      const files = { logo: [{ originalname: 'logo.jpg' } as Express.Multer.File] };
+      mockCompaniesService.updateCompany.mockResolvedValue({ id: 10 });
+
+      await expect(controller.updateCompany(mockReq, 10, body, files)).resolves.toEqual({
+        id: 10,
+      });
+      expect(mockCompaniesService.updateCompany).toHaveBeenCalledWith(1, 10, body, files);
+    });
+
+    it('should propagate the ForbiddenException from the service', async () => {
+      const mockReq = { user: { sub: 2, email: 'manager@test.com' } } as RequestWithUser;
+      mockCompaniesService.updateCompany.mockRejectedValue(new ForbiddenException());
+
+      await expect(controller.updateCompany(mockReq, 10, {})).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  describe('roles metadata', () => {
+    const reflector = new Reflector();
+
+    it('should require EMPLOYER role on getMyCompanies, updateCompanyAddress, and updateCompany', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getMyCompanies)).toEqual([
+        UserRole.EMPLOYER,
+      ]);
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.updateCompanyAddress)).toEqual([
+        UserRole.EMPLOYER,
+      ]);
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.updateCompany)).toEqual([
+        UserRole.EMPLOYER,
+      ]);
+    });
+
+    it('should not restrict getPublicProfile to a specific role', () => {
+      expect(reflector.get<UserRole[]>(ROLES_KEY, controller.getPublicProfile)).toBeUndefined();
     });
   });
 });

@@ -101,13 +101,15 @@ describe('Planning (e2e)', () => {
     );
     workerName = `${(workerUserRows[0] as any).first_name} ${(workerUserRows[0] as any).last_name}`;
 
-    // Create publication in current date range (employer owns it)
+    // Create a publication for the employer and an accepted application for the worker
     const now = new Date();
     const startingDate = new Date(now.getFullYear(), now.getMonth(), 1);
     const endingDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const [maxPubIdRows] = await sequelize.query(`SELECT MAX(id) as max_id FROM "publication";`);
+    const nextPubId = Number((maxPubIdRows[0] as { max_id: number | null }).max_id || 0) + 1;
     const [pubRows] = await sequelize.query(
-      `INSERT INTO "publication" (title, description, hourly_rate, starting_date, ending_date, company_id, created_by_user_id)
-       VALUES ('Planning Test Job', 'Desc', 20.0, '${startingDate.toISOString()}', '${endingDate.toISOString()}', ${companyId}, ${employerUserId})
+      `INSERT INTO "publication" (id, title, description, hourly_rate, starting_date, ending_date, company_id, created_by_user_id)
+       VALUES (${nextPubId}, 'Planning Test Job', 'Desc', 20.0, '${startingDate.toISOString()}', '${endingDate.toISOString()}', ${companyId}, ${employerUserId})
        RETURNING id`,
     );
     const pubId = (pubRows[0] as { id: number }).id;
