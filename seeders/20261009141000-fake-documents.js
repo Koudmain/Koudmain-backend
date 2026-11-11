@@ -28,7 +28,11 @@ module.exports = {
     const contractsToInsert = [];
     const invoicesToInsert = [];
 
-    let docIdCounter = 1;
+    const [maxIdRows] = await queryInterface.sequelize.query(
+      `SELECT COALESCE(MAX(id), 0) AS max_id FROM "document";`,
+    );
+    const currentMaxId = Number(maxIdRows[0]?.max_id ?? maxIdRows[0]?.maxid ?? 0);
+    let docIdCounter = currentMaxId + 1;
 
     // --- DOCUMENTS UTILISATEURS (Pièces d'identité, Justificatifs) ---
     userList.forEach((u) => {
