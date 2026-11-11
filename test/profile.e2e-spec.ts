@@ -435,4 +435,36 @@ describe('Profiles & reviews (e2e)', () => {
       expect(res.status).toBe(400);
     });
   });
+
+  describe('GET /address/map', () => {
+    it('returns only open publications, at numeric coordinates', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/address/map')
+        .query({ minLat: 41, maxLat: 51, minLng: -5, maxLng: 10 })
+        .set('Authorization', `Bearer ${worker1Token}`);
+
+      expect(response.status).toBe(200);
+      const rows = response.body as Array<{ id: number; latitude: number; longitude: number }>;
+      expect(rows.length).toBeGreaterThan(0);
+
+      const [openRows] = await sequelize.query(
+        `SELECT id FROM "publication" WHERE status IN ('Ouverte', 'Urgente');`,
+      );
+      const openIds = (openRows as Array<{ id: number }>).map(({ id }) => id).sort();
+      expect(rows.map(({ id }) => id).sort()).toEqual(openIds);
+      rows.forEach((row) => {
+        expect(typeof row.latitude).toBe('number');
+        expect(typeof row.longitude).toBe('number');
+      });
+    });
+
+    it('rejects bounds that are not coordinates', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/address/map')
+        .query({ minLat: 'abc', maxLat: 51, minLng: -5, maxLng: 10 })
+        .set('Authorization', `Bearer ${worker1Token}`);
+
+      expect(response.status).toBe(400);
+    });
+  });
 });

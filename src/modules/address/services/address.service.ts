@@ -4,6 +4,7 @@ import { Address } from '@/modules/address/address.model';
 import { CreateAddressDto, GetMapAddressesDto } from '@/modules/address/address.dto';
 import { Sequelize } from 'sequelize-typescript';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { OPEN_PUBLICATION_STATUSES } from '@/modules/companies/services/companies.service';
 
 @Injectable()
 export class AddressService {
@@ -56,18 +57,23 @@ export class AddressService {
     };
   }
 
-  async getAddressesInZone(dto: GetMapAddressesDto) {
+  // Open publications in the box, placed at their own address or else at their company's.
+  // Worker home addresses are never returned.
+  async getPublicationsInZone(dto: GetMapAddressesDto) {
     const { minLat, maxLat, minLng, maxLng } = dto;
 
     const query = `
-      SELECT id, latitude, longitude
-      FROM "address"
-      WHERE geom && ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)
+      SELECT p.id, a.latitude::float AS latitude, a.longitude::float AS longitude
+      FROM "publication" p
+      JOIN "company" c ON c.id = p.company_id
+      JOIN "address" a ON a.id = COALESCE(p.address_id, c.address_id)
+      WHERE p.status IN (:statuses)
+        AND a.geom && ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)
       LIMIT 300
     `;
 
     return this.sequelize.query(query, {
-      replacements: { minLat, maxLat, minLng, maxLng },
+      replacements: { minLat, maxLat, minLng, maxLng, statuses: OPEN_PUBLICATION_STATUSES },
       type: 'SELECT',
     });
   }
