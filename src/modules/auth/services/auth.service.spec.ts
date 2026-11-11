@@ -443,6 +443,21 @@ describe('AuthService', () => {
     });
   });
 
+  describe('getUserForVerification', () => {
+    it('should return an unverified user', async () => {
+      const user = { id: 1, email_verified_at: null };
+      mockUsersService.findOneById.mockResolvedValue(user);
+
+      await expect(service.getUserForVerification(1)).resolves.toBe(user);
+    });
+
+    it('should refuse to resend a code to an already verified user', async () => {
+      mockUsersService.findOneById.mockResolvedValue({ id: 1, email_verified_at: new Date() });
+
+      await expect(service.getUserForVerification(1)).rejects.toThrow(ConflictException);
+    });
+  });
+
   describe('logout', () => {
     it('should revoke active session for user', async () => {
       const result = await service.logout(1);
