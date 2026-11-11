@@ -75,6 +75,16 @@ describe('PublicationService', () => {
       expect(mockPublicationModel.create).toHaveBeenCalledWith(expect.objectContaining({ id: 6 }));
     });
 
+    it('should open the publication and keep its options', async () => {
+      mockCreate();
+
+      await service.create(EMPLOYER_ID, { ...basePublication, autoAccept: true, highlight: true });
+
+      expect(mockPublicationModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'Ouverte', autoAccept: true, highlight: true }),
+      );
+    });
+
     it('should take the creator from the authenticated user', async () => {
       mockCreate();
 
