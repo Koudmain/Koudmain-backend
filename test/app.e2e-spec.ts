@@ -182,6 +182,21 @@ describe('AppController (e2e)', () => {
     expect(relCheck[0].length).toBe(1);
   });
 
+  it('should reject a publication date without time zone', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/publication/create')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        companyId: 1,
+        title: 'Local time',
+        hourly_rate: 20,
+        starting_date: '2026-08-01T18:00:00',
+        ending_date: '2026-08-01T22:00:00',
+      });
+
+    expect(response.status).toBe(400);
+  });
+
   it('should get all publication previously added by the test', async () => {
     const response = await request(app.getHttpServer())
       .get('/publication/get')
