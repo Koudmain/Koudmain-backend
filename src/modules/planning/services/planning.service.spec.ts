@@ -7,7 +7,6 @@ import { Application } from '@/modules/application/models/application.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
-import { Review } from '@/modules/review/models/review.model';
 import { Address } from '@/modules/address/address.model';
 import { BadRequestException } from '@nestjs/common';
 import { Op } from 'sequelize';
@@ -120,18 +119,6 @@ describe('PlanningService', () => {
                 as: 'company',
                 required: false,
               },
-              {
-                model: User,
-                as: 'creator',
-                required: false,
-                include: [
-                  {
-                    model: Review,
-                    as: 'reviews',
-                    required: false,
-                  },
-                ],
-              },
             ],
           },
         ],
@@ -176,18 +163,6 @@ describe('PlanningService', () => {
                 model: Company,
                 as: 'company',
                 required: false,
-              },
-              {
-                model: User,
-                as: 'creator',
-                required: false,
-                include: [
-                  {
-                    model: Review,
-                    as: 'reviews',
-                    required: false,
-                  },
-                ],
               },
             ],
           },
@@ -305,10 +280,15 @@ describe('PlanningService', () => {
             hourly_rate: 20,
             starting_date: new Date('2026-05-10'),
             ending_date: new Date('2026-05-12'),
-            company: { name: 'Test Company' },
+            company: {
+              name: 'Test Company',
+              averageRating: '4.50',
+              reviewCount: 2,
+              logoUrl: 'http://example.com/logo.jpg',
+            },
             creator: {
-              profile_picture_url: 'http://example.com/pic.jpg',
-              reviews: [{ rating: 4 }, { rating: 5 }],
+              profile_picture_url: 'http://example.com/creator-avatar.jpg',
+              reviews: [],
             },
           },
         },
@@ -342,7 +322,7 @@ describe('PlanningService', () => {
           company_name: 'Test Company',
           companyRating: 4.5,
           companyRatingCount: 2,
-          company_logo: 'http://example.com/pic.jpg',
+          company_logo: 'http://example.com/logo.jpg',
           application_status: 'PENDING',
           city: null,
           zip: null,

@@ -196,18 +196,6 @@ export class PlanningService {
               as: 'company',
               required: false,
             },
-            {
-              model: User,
-              as: 'creator',
-              required: false,
-              include: [
-                {
-                  model: Review,
-                  as: 'reviews',
-                  required: false,
-                },
-              ],
-            },
           ],
         },
       ],
@@ -216,10 +204,8 @@ export class PlanningService {
 
     return applications.map((app) => {
       const pub = app.publication;
-      const reviews = pub?.creator?.reviews || [];
-      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
-      const companyRating = reviews.length > 0 ? totalRating / reviews.length : 0;
 
+      // Worker reviews are stored on the company (rated_company_id), kept in sync by ReviewService.
       return {
         publicationId: pub.id,
         title: pub.title,
@@ -227,9 +213,9 @@ export class PlanningService {
         starting_date: pub.starting_date,
         ending_date: pub.ending_date,
         company_name: pub.company?.name || null,
-        companyRating: Number(companyRating.toFixed(2)),
-        companyRatingCount: reviews.length,
-        company_logo: pub.creator?.profile_picture_url || null,
+        companyRating: Number(pub.company?.averageRating ?? 0),
+        companyRatingCount: pub.company?.reviewCount ?? 0,
+        company_logo: pub.company?.logoUrl ?? null,
         application_status: app.status,
         city: pub.address?.city || null,
         zip: pub.address?.zip_code || null,
