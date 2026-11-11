@@ -17,6 +17,8 @@ import {
   ForbiddenException,
   NotFoundException,
   ServiceUnavailableException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { UserRole } from '@/modules/users/models/user.model';
 import {
@@ -155,12 +157,30 @@ describe('AuthService', () => {
       );
     });
 
+    it('should refuse a user whose email is not verified', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+        password: 'hashed',
+        role: UserRole.WORKER,
+        email_verified_at: null,
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(service.signIn('test@test.com', 'correct_pass')).rejects.toMatchObject({
+        status: 403,
+        response: { message: 'EMAIL_NOT_VERIFIED', userId: 1 },
+      });
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+    });
+
     it('should return tokens if credentials are correct', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue({
         id: 1,
         email: 'test@test.com',
         password: 'hashed',
         role: UserRole.WORKER,
+        email_verified_at: new Date(),
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -242,19 +262,58 @@ describe('AuthService', () => {
         email_verified_at: null,
         email: 'test@test.com',
         first_name: 'John',
+        role: UserRole.WORKER,
       });
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new_hashed_password');
 
       const result = await service.register(baseWorkerDto);
       expect(mockEmailVerificationService.sendVerificationCode).toHaveBeenCalledWith(
         1,
         'test@test.com',
         'John',
+        true,
       );
+      expect(mockUsersService.update).toHaveBeenCalledWith(1, {
+        password: 'new_hashed_password',
+        first_name: 'John',
+        last_name: 'Doe',
+        phone_number: '0600000000',
+        birth_date: '1990-01-01',
+      });
+      expect(mockRefreshSessionService.revokeAllSessions).toHaveBeenCalledWith(1);
       expect(result).toEqual({
         userId: 1,
         message: 'Un code de vérification a été renvoyé à votre adresse email.',
       });
       expect(mockSequelize.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should not overwrite an unverified account when the code cannot be resent yet', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email_verified_at: null,
+        email: 'test@test.com',
+        role: UserRole.WORKER,
+      });
+      mockEmailVerificationService.sendVerificationCode.mockRejectedValueOnce(
+        new HttpException('cooldown', HttpStatus.TOO_MANY_REQUESTS),
+      );
+
+      await expect(service.register(baseWorkerDto)).rejects.toThrow(HttpException);
+      expect(mockUsersService.update).not.toHaveBeenCalled();
+    });
+
+    it('should refuse to re-register an unverified account with another role', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email_verified_at: null,
+        email: 'test@test.com',
+        role: UserRole.EMPLOYER,
+      });
+
+      await expect(service.register(baseWorkerDto)).rejects.toThrow(ConflictException);
+      expect(mockUsersService.update).not.toHaveBeenCalled();
+      expect(mockEmailVerificationService.sendVerificationCode).not.toHaveBeenCalled();
     });
 
     it('should create WORKER: hash password, run transaction, create user + worker profile, send email', async () => {
@@ -303,6 +362,7 @@ describe('AuthService', () => {
         2,
         'worker@test.com',
         'John',
+        true,
       );
       expect(result).toEqual({
         userId: 2,
