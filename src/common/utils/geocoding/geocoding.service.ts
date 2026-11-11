@@ -24,6 +24,8 @@ export class GeocodingService {
           headers: {
             'User-Agent': 'KoudmainApp/1.0',
           },
+          // A slow Nominatim must not block a registration: the address is saved without coordinates.
+          timeout: 5000,
         },
       );
 

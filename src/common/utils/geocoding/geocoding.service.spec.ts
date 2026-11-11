@@ -49,6 +49,7 @@ describe('GeocodingService', () => {
       expect(mockedAxios.get).toHaveBeenCalledWith('https://nominatim.openstreetmap.org/search', {
         params: { q: addressSample, format: 'json', limit: 1 },
         headers: { 'User-Agent': 'KoudmainApp/1.0' },
+        timeout: 5000,
       });
 
       expect(result).toEqual({

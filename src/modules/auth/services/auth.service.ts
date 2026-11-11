@@ -2,6 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -18,6 +20,7 @@ import { compare, hash } from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { google } from 'googleapis';
 import { User, UserRole } from '@/modules/users/models/user.model';
+import { RedisService } from '@/shared/redis/redis.service';
 import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
@@ -39,6 +42,9 @@ type GoogleProfile = {
   nonce?: string;
 };
 
+const MAX_FAILED_LOGINS = 10;
+const FAILED_LOGIN_WINDOW_SECONDS = 15 * 60;
+
 const hashVerifier = (verifier: string) => createHash('sha256').update(verifier).digest('hex');
 
 @Injectable()
@@ -58,6 +64,7 @@ export class AuthService {
     private companiesService: CompaniesService,
     private emailVerificationService: EmailVerificationService,
     private addressService: AddressService,
+    private redisService: RedisService,
     private sequelize: Sequelize,
     @InjectModel(Address) private addressModel: typeof Address,
   ) {}
@@ -107,15 +114,23 @@ export class AuthService {
   }
 
   async signIn(email: string, pass: string): Promise<AuthTokenResponse> {
-    const user = await this.usersService.findOneByEmail(email);
-    if (!user) {
-      throw new UnauthorizedException();
+    // Counted per email, not per IP: behind a proxy every user would share one IP.
+    const failuresKey = `login_failures:${email.toLowerCase()}`;
+    const failures = Number((await this.redisService.get(failuresKey)) ?? 0);
+    if (failures >= MAX_FAILED_LOGINS) {
+      throw new HttpException(
+        'Trop de tentatives de connexion. Réessayez dans 15 minutes.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
-    const isPasswordValid = await compare(pass, user.password);
-    if (!isPasswordValid) {
+    const user = await this.usersService.findOneByEmail(email);
+    const isPasswordValid = user ? await compare(pass, user.password) : false;
+    if (!user || !isPasswordValid) {
+      await this.redisService.incr(failuresKey, FAILED_LOGIN_WINDOW_SECONDS);
       throw new UnauthorizedException();
     }
+    await this.redisService.del(failuresKey);
 
     if (!user.email_verified_at) {
       throw new ForbiddenException({

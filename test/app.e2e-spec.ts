@@ -123,6 +123,22 @@ describe('AppController (e2e)', () => {
     expect(response.status).toBe(400);
   });
 
+  it('should block an email after 10 failed logins', async () => {
+    const email = `brute-force-${Date.now()}@koudmain.fr`;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const failed = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password: `wrong-${attempt}` });
+      expect(failed.status).toBe(401);
+    }
+
+    const blocked = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email, password: 'anything' });
+
+    expect(blocked.status).toBe(429);
+  });
+
   it('should refuse to log in an account whose email is not verified', async () => {
     const email = `unverified-${Date.now()}@koudmain.fr`;
     // Reuse a seeded hash of 'password123'.
