@@ -19,6 +19,7 @@ import { ApplicationModule } from './modules/application/application.module';
 import { OutboxRelayModule } from './modules/outbox-relay/outbox-relay.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { PushModule } from './modules/push/push.module';
+import { InternalModule } from './modules/internal/internal.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PushModule } from './modules/push/push.module';
     OutboxRelayModule,
     NotificationModule,
     PushModule,
+    InternalModule,
   ],
   controllers: [AppController],
   providers: [AppService],
