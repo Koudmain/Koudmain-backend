@@ -23,6 +23,7 @@ import type { Request as ExpressRequest } from 'express';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { UpdateCompanyAddressDto } from '@/modules/address/address.dto';
 import { UpdateCompanyDto } from '@/modules/companies/dto/update-company.dto';
+import { imageUploadOptions } from '@/common/utils/image-upload.options';
 
 import { Roles } from '@/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/models/user.model';
@@ -106,7 +107,7 @@ export class CompaniesController {
         { name: 'logo', maxCount: 1 },
         { name: 'cover', maxCount: 1 },
       ],
-      { limits: { fileSize: 10 * 1024 * 1024 } },
+      imageUploadOptions,
     ),
   )
   async updateCompany(

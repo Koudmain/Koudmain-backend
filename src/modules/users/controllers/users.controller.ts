@@ -22,6 +22,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { DriveService } from '@/modules/drive/drive.service';
 import { UpdateUserDto } from '@/modules/users/dto/update-user.dto';
 import { User } from '@/modules/users/models/user.model';
+import { imageUploadOptions } from '@/common/utils/image-upload.options';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
@@ -60,15 +61,17 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Avatar mis à jour avec succès.' })
   @ApiResponse({ status: 400, description: 'Fichier manquant ou invalide.' })
   @Patch('me/avatar')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image', imageUploadOptions))
   async uploadAvatar(@UploadedFile() file: Express.Multer.File, @Request() req: RequestWithUser) {
     if (!file) {
       throw new BadRequestException('Aucun fichier fourni');
     }
 
     const userId = req.user.sub;
+    const user = await this.usersService.findOneByIdPublic(userId);
     const imageUrl = await this.driveService.uploadImage(file);
     await this.usersService.updateProfilePicture(userId, imageUrl);
+    if (user?.profile_picture_url) await this.driveService.deleteFile(user.profile_picture_url);
 
     return {
       message: 'Photo de profil mise à jour avec succès',
@@ -110,7 +113,7 @@ export class UsersController {
   })
   @ApiResponse({ status: 200, description: 'Profil mis à jour avec succès.' })
   @Patch('me')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image', imageUploadOptions))
   async updateMe(
     @Request() req: RequestWithUser,
     @Body() updateUserDto: UpdateUserDto,
@@ -120,15 +123,16 @@ export class UsersController {
     const user = await this.usersService.findOneByIdPublic(userId);
     const updates: Partial<User> = { ...updateUserDto };
 
+    // Upload, save, then delete the old file: a failed upload must not lose the current avatar.
     if (file) {
-      if (user && user.profile_picture_url) {
-        await this.driveService.deleteFile(user.profile_picture_url);
-      }
-      const newImageUrl = await this.driveService.uploadImage(file);
-      updates.profile_picture_url = newImageUrl;
+      updates.profile_picture_url = await this.driveService.uploadImage(file);
     }
 
     await this.usersService.update(userId, updates);
+
+    if (file && user?.profile_picture_url) {
+      await this.driveService.deleteFile(user.profile_picture_url);
+    }
 
     return this.usersService.findOneByIdPublic(userId);
   }
