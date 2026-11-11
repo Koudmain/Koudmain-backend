@@ -19,6 +19,7 @@ const makeModel = () => ({
   findOne: jest.fn(),
   findOrCreate: jest.fn(),
   bulkCreate: jest.fn(),
+  update: jest.fn(),
 });
 
 type MockModel = ReturnType<typeof makeModel>;
@@ -86,6 +87,10 @@ describe('ChatService', () => {
       const result = await service.sendMessage(10, 1, 'Hello');
 
       expect(messageModel.create).toHaveBeenCalled();
+      expect(conversationModel.update).toHaveBeenCalledWith(
+        { updated_at: expect.any(Date) as Date },
+        { where: { id: 1 } },
+      );
       expect(redisPubService.publishMessage).toHaveBeenCalledWith(
         expect.objectContaining({ receiver_id: 20 }),
       );

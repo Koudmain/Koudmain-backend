@@ -169,11 +169,6 @@ export class AuthService {
     return { message: 'Session revoked successfully' };
   }
 
-  async logoutAll(userId: number): Promise<{ message: string }> {
-    await this.refreshSessionService.revokeAllSessions(userId);
-    return { message: 'All sessions revoked successfully' };
-  }
-
   async generateTokensForUser(userId: number): Promise<AuthTokenResponse> {
     const user = await this.usersService.findOneById(userId);
     if (!user) throw new UnauthorizedException('Utilisateur introuvable.');

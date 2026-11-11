@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   Request,
 } from '@nestjs/common';
 import {
@@ -16,6 +17,7 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -67,9 +69,14 @@ export class PublicationController {
     description: 'Récupère la liste de toutes les publications.',
   })
   @ApiResponse({ status: 200, description: 'Publications récupérées avec succès.' })
+  @ApiQuery({
+    name: 'companyId',
+    required: false,
+    description: "Ne garder que les annonces de l'entreprise",
+  })
   @Get('get')
-  async get() {
-    return this.publicationService.getAll();
+  async get(@Query('companyId', new ParseIntPipe({ optional: true })) companyId?: number) {
+    return this.publicationService.getAll(companyId);
   }
 
   @HttpCode(HttpStatus.OK)
