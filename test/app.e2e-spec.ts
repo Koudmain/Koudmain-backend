@@ -110,10 +110,10 @@ describe('AppController (e2e)', () => {
 
   it('should refuse to log in an account whose email is not verified', async () => {
     const email = `unverified-${Date.now()}@koudmain.fr`;
-    // Reuse a seeded hash of 'password123'; ids come from max + 1 like UsersService.create.
+    // Reuse a seeded hash of 'password123'.
     await sequelize.query(
-      `INSERT INTO "user" (id, first_name, last_name, email, password, role)
-       SELECT MAX(id) + 1, 'Un', 'Verified', '${email}', (SELECT password FROM "user" WHERE email = 'employer1@koudmain.fr'), 'WORKER' FROM "user";`,
+      `INSERT INTO "user" (first_name, last_name, email, password, role)
+       SELECT 'Un', 'Verified', '${email}', password, 'WORKER' FROM "user" WHERE email = 'employer1@koudmain.fr';`,
     );
 
     try {
@@ -283,6 +283,26 @@ describe('AppController (e2e)', () => {
 
     // The publication row is gone; clear the id so afterAll doesn't try to delete it again.
     publicationId = undefined as unknown as number;
+  });
+
+  it('should create skills in parallel without id collisions', async () => {
+    const suffix = Date.now();
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, (_, i) =>
+        request(app.getHttpServer())
+          .post('/skill/create')
+          .set('Authorization', `Bearer ${accessToken}`)
+          .send({ name: `Parallel skill ${suffix}-${i}` }),
+      ),
+    );
+
+    try {
+      expect(responses.map((response) => response.status)).toEqual([201, 201, 201, 201, 201]);
+      const ids = responses.map((response) => (response.body as { id: number }).id);
+      expect(new Set(ids).size).toBe(5);
+    } finally {
+      await sequelize.query(`DELETE FROM "skill" WHERE name LIKE 'Parallel skill ${suffix}-%';`);
+    }
   });
 
   it('should create a skill without any foreign Key constraint field', async () => {

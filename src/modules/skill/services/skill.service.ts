@@ -8,13 +8,7 @@ export class SkillService {
   constructor(@InjectModel(Skill) private skillModel: typeof Skill) {}
 
   async create(skill: Partial<Skill>) {
-    const maxId = await this.skillModel.max('id');
-    const nextId = skill.id ?? (typeof maxId === 'number' ? maxId : 0) + 1;
-
-    return this.skillModel.create({
-      ...skill,
-      id: nextId,
-    });
+    return this.skillModel.create({ ...skill });
   }
 
   async getAll() {

@@ -13,7 +13,6 @@ describe('PublicationService', () => {
 
   const mockPublicationModel = {
     create: jest.fn(),
-    max: jest.fn(),
     findAll: jest.fn(),
     findByPk: jest.fn(),
   };
@@ -64,15 +63,15 @@ describe('PublicationService', () => {
   });
 
   describe('create', () => {
-    it('should create a publication with auto-incremented id', async () => {
-      mockPublicationModel.max.mockResolvedValue(5);
+    it('should let the database assign the id', async () => {
       mockCreate();
 
       const result = await service.create(EMPLOYER_ID, basePublication);
 
-      expect(result.id).toEqual(6);
       expect(result.title).toEqual('Test Publication');
-      expect(mockPublicationModel.create).toHaveBeenCalledWith(expect.objectContaining({ id: 6 }));
+      expect(mockPublicationModel.create).toHaveBeenCalledWith(
+        expect.not.objectContaining({ id: expect.anything() as unknown }),
+      );
     });
 
     it('should open the publication and keep its options', async () => {
