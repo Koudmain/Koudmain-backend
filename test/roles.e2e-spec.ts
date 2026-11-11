@@ -212,7 +212,6 @@ describe('Role-Based Access Control (Functional / e2e)', () => {
     it('POST /publication/create - should reject WORKER (403) and allow EMPLOYER (201)', async () => {
       const pubPayload = {
         companyId: 1,
-        createdByUserId: 2,
         address_id: 1,
         title: 'Serveur Extra',
         description: 'Service du soir',

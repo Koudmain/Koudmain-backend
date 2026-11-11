@@ -6,6 +6,7 @@ import { Publication } from './models/publication.model';
 import { PublicationSkill } from './models/publication-skill.model';
 import { Skill } from '@/modules/skill/models/skill.model';
 import { PublicationModule } from './publication.module';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
 
 describe('PublicationModule', () => {
   let module: TestingModule;
@@ -22,6 +23,8 @@ describe('PublicationModule', () => {
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .overrideProvider(getModelToken(Skill))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(CompanyMember))
+      .useValue({ findOne: jest.fn() })
       .compile();
   });
 

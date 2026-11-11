@@ -1,14 +1,15 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
-  Post,
-  Get,
   Param,
+  ParseIntPipe,
+  Post,
   Put,
-  Delete,
-  BadRequestException,
+  Request,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -19,13 +20,19 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PublicationService } from '@/modules/publication/services/publication.service';
+import type { Request as ExpressRequest } from 'express';
 import {
   PostPublicationDto,
   Publication,
   PostPublicationResponseDto,
+  UpdatePublicationDto,
 } from '@/modules/publication/models/publication.model';
 import { Roles } from '@/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/models/user.model';
+
+interface RequestWithUser extends ExpressRequest {
+  user: { sub: number };
+}
 
 @ApiTags('Publication')
 @ApiBearerAuth()
@@ -42,8 +49,8 @@ export class PublicationController {
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Roles(UserRole.EMPLOYER)
   @Post('create')
-  async create(@Body() createDto: PostPublicationDto) {
-    const publication: Publication = await this.publicationService.create(createDto);
+  async create(@Request() req: RequestWithUser, @Body() createDto: PostPublicationDto) {
+    const publication: Publication = await this.publicationService.create(req.user.sub, createDto);
 
     const res: PostPublicationResponseDto = {
       message: 'Publication créé avec succès',
@@ -73,7 +80,7 @@ export class PublicationController {
   @ApiParam({ name: 'id', description: 'ID numérique de la publication', type: Number })
   @ApiResponse({ status: 200, description: 'Publication trouvée.' })
   @Get(':id')
-  async getById(@Param('id') id: number) {
+  async getById(@Param('id', ParseIntPipe) id: number) {
     return this.publicationService.getById(id);
   }
 
@@ -83,24 +90,23 @@ export class PublicationController {
     description: "Modifie les détails d'une publication existante.",
   })
   @ApiParam({ name: 'id', description: 'ID numérique de la publication', type: Number })
-  @ApiBody({ type: PostPublicationDto })
+  @ApiBody({ type: UpdatePublicationDto })
   @ApiResponse({ status: 200, description: 'Publication éditée avec succès.' })
-  @ApiResponse({ status: 400, description: 'Publication non trouvée.' })
+  @ApiResponse({ status: 404, description: 'Publication non trouvée.' })
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Roles(UserRole.EMPLOYER)
   @Put('/update/:id')
-  async update(@Param('id') id: number, @Body() updateDto: Record<string, unknown>) {
-    const pubId: Publication | null = await this.publicationService.update(id, updateDto);
+  async update(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDto: UpdatePublicationDto,
+  ) {
+    const publication = await this.publicationService.update(req.user.sub, id, updateDto);
 
-    if (!pubId) {
-      throw new BadRequestException('Publication non trouvée');
-    }
-
-    const res = {
+    return {
       message: 'Publication éditée avec succès',
-      id: pubId.id,
+      id: publication.id,
     };
-    return res;
   }
 
   @HttpCode(HttpStatus.OK)
@@ -113,8 +119,8 @@ export class PublicationController {
   @ApiResponse({ status: 403, description: 'Permission insuffisante.' })
   @Roles(UserRole.EMPLOYER)
   @Delete('/delete/:id')
-  async delete(@Param('id') id: number) {
-    await this.publicationService.delete(id);
+  async delete(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
+    await this.publicationService.delete(req.user.sub, id);
 
     const res = {
       message: 'Publication supprimée avec succès',

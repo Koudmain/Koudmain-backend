@@ -19,6 +19,7 @@ const mockPublicationService = {
 
 describe('PublicationController', () => {
   let controller: PublicationController;
+  const req = { user: { sub: 69 } } as Parameters<PublicationController['create']>[0];
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -47,7 +48,6 @@ describe('PublicationController', () => {
       // Arrange
       const createDto: PostPublicationDto = {
         companyId: 1,
-        createdByUserId: 69,
         address_id: 10,
         title: 'Server (H/F)',
         description: "Besoin d'un serveur pour une missions.",
@@ -66,11 +66,11 @@ describe('PublicationController', () => {
       mockPublicationService.create.mockResolvedValue(expectedServiceResult);
 
       // Act
-      const result: PostPublicationResponseDto = await controller.create(createDto);
+      const result: PostPublicationResponseDto = await controller.create(req, createDto);
 
       // Assert
       expect(mockPublicationService.create).toHaveBeenCalledTimes(1);
-      expect(mockPublicationService.create).toHaveBeenCalledWith(createDto);
+      expect(mockPublicationService.create).toHaveBeenCalledWith(69, createDto);
 
       expect(result).toEqual(expectedServiceResult);
       expect(result.message).toBe('Publication créé avec succès');
@@ -118,11 +118,11 @@ describe('PublicationController', () => {
       mockPublicationService.update.mockResolvedValue(expectedResult);
 
       // Act
-      const result = await controller.update(1, updateDto);
+      const result = await controller.update(req, 1, updateDto);
 
       // Assert
       expect(mockPublicationService.update).toHaveBeenCalledTimes(1);
-      expect(mockPublicationService.update).toHaveBeenCalledWith(1, updateDto);
+      expect(mockPublicationService.update).toHaveBeenCalledWith(69, 1, updateDto);
       expect(result).toEqual(expectedResult);
     });
   });
@@ -134,11 +134,11 @@ describe('PublicationController', () => {
       mockPublicationService.delete.mockResolvedValue(expectedResult);
 
       // Act
-      const result = await controller.delete(1);
+      const result = await controller.delete(req, 1);
 
       // Assert
       expect(mockPublicationService.delete).toHaveBeenCalledTimes(1);
-      expect(mockPublicationService.delete).toHaveBeenCalledWith(1);
+      expect(mockPublicationService.delete).toHaveBeenCalledWith(69, 1);
       expect(result).toEqual(expectedResult);
     });
   });
