@@ -126,11 +126,17 @@ describe('AppController (e2e)', () => {
     expect(skillResponse.status).toBe(201);
     publicationSkillId = (skillResponse.body as { id: number }).id;
 
+    const [companyRows] = await sequelize.query(
+      `SELECT company_id FROM "company_member" cm JOIN "user" u ON u.id = cm.user_id WHERE u.email = 'employer1@koudmain.fr' LIMIT 1;`,
+    );
+    const companyId = (companyRows[0] as { company_id: number }).company_id;
+
     const publicationTitle = `E2E Database Test ${suffix}`;
     const response = await request(app.getHttpServer())
       .post('/publication/create')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
+        companyId,
         title: publicationTitle,
         description: "This shouldn't be mocked!",
         hourly_rate: 25.5,
@@ -192,6 +198,33 @@ describe('AppController (e2e)', () => {
       `SELECT * FROM "publication_skill" WHERE publication_id = ${publicationId};`,
     );
     expect(skillCheck[0].length).toBe(0);
+  });
+
+  it('should refuse to edit or delete the publication from another company', async () => {
+    const otherLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'employer2@koudmain.fr', password: 'password123' });
+    const otherToken = (otherLogin.body as AuthResponse).accessToken;
+
+    const updateRes = await request(app.getHttpServer())
+      .put(`/publication/update/${publicationId}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ title: 'Hijacked' });
+    expect(updateRes.status).toBe(403);
+
+    const deleteRes = await request(app.getHttpServer())
+      .delete(`/publication/delete/${publicationId}`)
+      .set('Authorization', `Bearer ${otherToken}`);
+    expect(deleteRes.status).toBe(403);
+  });
+
+  it('should reject an unknown field on update', async () => {
+    const response = await request(app.getHttpServer())
+      .put(`/publication/update/${publicationId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ companyId: 999 });
+
+    expect(response.status).toBe(400);
   });
 
   it('should delete the publication previously added by the test', async () => {

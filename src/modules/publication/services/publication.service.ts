@@ -1,13 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { PostPublicationDto, Publication } from '@/modules/publication/models/publication.model';
+import {
+  PostPublicationDto,
+  Publication,
+  UpdatePublicationDto,
+} from '@/modules/publication/models/publication.model';
 import { Skill } from '@/modules/skill/models/skill.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
 
 @Injectable()
 export class PublicationService {
-  constructor(@InjectModel(Publication) private publicationModel: typeof Publication) {}
+  constructor(
+    @InjectModel(Publication) private publicationModel: typeof Publication,
+    @InjectModel(CompanyMember) private companyMemberModel: typeof CompanyMember,
+  ) {}
 
-  async create(publication: PostPublicationDto) {
+  async create(userId: number, publication: PostPublicationDto) {
+    await this.assertCompanyMember(userId, publication.companyId);
+
     const maxId = await this.publicationModel.max('id');
     const nextId = (typeof maxId === 'number' ? maxId : 0) + 1;
 
@@ -16,6 +26,7 @@ export class PublicationService {
     const created = await this.publicationModel.create({
       ...pubData,
       id: nextId,
+      createdByUserId: userId,
       createdAt: new Date(),
       starting_date: publication.starting_date ?? new Date(),
       ending_date: publication.ending_date ?? new Date(),
@@ -40,30 +51,37 @@ export class PublicationService {
     });
   }
 
-  async update(
-    id: number,
-    publication: Omit<Partial<Publication>, 'skills'> & { skills?: number[] },
-  ) {
+  async update(userId: number, id: number, publication: UpdatePublicationDto) {
+    const existing = await this.getOwnedPublication(userId, id);
     const { skills, ...pubData } = publication;
 
-    await this.publicationModel.update(pubData, { where: { id } });
+    await existing.update(pubData);
 
     if (skills) {
-      const existing = await this.publicationModel.findByPk(id);
-      if (existing) {
-        await existing.$set('skills', skills);
-      }
+      await existing.$set('skills', skills);
     }
 
-    return this.getById(id);
+    return this.getById(id) as Promise<Publication>;
   }
 
-  async delete(publicationId: number) {
-    await this.publicationModel.destroy({
-      where: {
-        id: publicationId,
-      },
-    });
+  async delete(userId: number, publicationId: number) {
+    const existing = await this.getOwnedPublication(userId, publicationId);
+    await existing.destroy();
     return publicationId;
+  }
+
+  private async getOwnedPublication(userId: number, publicationId: number) {
+    const publication = await this.publicationModel.findByPk(publicationId);
+    if (!publication) throw new NotFoundException('Publication non trouvée');
+
+    await this.assertCompanyMember(userId, publication.companyId);
+    return publication;
+  }
+
+  private async assertCompanyMember(userId: number, companyId: number) {
+    const membership = await this.companyMemberModel.findOne({ where: { userId, companyId } });
+    if (!membership) {
+      throw new ForbiddenException("Vous n'êtes pas membre de l'entreprise de cette publication");
+    }
   }
 }
