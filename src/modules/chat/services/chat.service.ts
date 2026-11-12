@@ -50,6 +50,11 @@ export class ChatService {
       content_text: content,
       message_type: type,
     });
+    // Conversation lists are sorted by updated_at (last message first).
+    await this.conversationModel.update(
+      { updated_at: new Date() },
+      { where: { id: conversationId } },
+    );
 
     const targetUserIds = new Set<number>();
 
@@ -150,13 +155,6 @@ export class ChatService {
       order: [['created_at', 'DESC']],
       limit: Math.min(Math.max(limit, 1), MAX_MESSAGES_PAGE),
       offset: Math.max(offset, 0),
-    });
-  }
-
-  async getConversationMessages(conversationId: number) {
-    return this.messageModel.findAll({
-      where: { conversationId: conversationId },
-      order: [['created_at', 'ASC']],
     });
   }
 

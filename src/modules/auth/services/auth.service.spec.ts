@@ -563,14 +563,6 @@ describe('AuthService', () => {
     });
   });
 
-  describe('logoutAll', () => {
-    it('should revoke all sessions for user', async () => {
-      const result = await service.logoutAll(1);
-      expect(mockRefreshSessionService.revokeAllSessions).toHaveBeenCalledWith(1);
-      expect(result).toEqual({ message: 'All sessions revoked successfully' });
-    });
-  });
-
   describe('Google sign-in', () => {
     const redirect = 'exp://192.168.1.10:8083/--/auth/google-callback';
     const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');

@@ -144,6 +144,16 @@ describe('PublicationService', () => {
     expect(result).toEqual(expectedResult);
   });
 
+  it('should filter publications by company when asked', async () => {
+    mockPublicationModel.findAll.mockResolvedValue([]);
+
+    await service.getAll(COMPANY_ID);
+
+    expect(mockPublicationModel.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { companyId: COMPANY_ID } }),
+    );
+  });
+
   it('should get a publication by its ID', async () => {
     const expectedResult = { id: 1, title: 'Test Publication' };
     mockPublicationModel.findByPk.mockResolvedValue(expectedResult);

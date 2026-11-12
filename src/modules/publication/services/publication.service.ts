@@ -36,8 +36,9 @@ export class PublicationService {
     return this.getById(created.id) as Promise<Publication>;
   }
 
-  async getAll() {
+  async getAll(companyId?: number) {
     return this.publicationModel.findAll({
+      ...(companyId !== undefined && { where: { companyId } }),
       include: [Skill],
     });
   }

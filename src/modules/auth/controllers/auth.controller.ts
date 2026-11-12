@@ -267,18 +267,6 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Déconnexion de tous les appareils',
-    description: "Invalide toutes les sessions actives de l'utilisateur.",
-  })
-  @ApiResponse({ status: 200, description: 'Déconnexion globale réussie.' })
-  @Post('logout-all')
-  logoutAll(@Request() req: AuthenticatedRequest): Promise<{ message: string }> {
-    return this.authService.logoutAll(req.user.sub);
-  }
-
-  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtenir le profil JWT',
     description: "Retourne le contenu du payload JWT de l'utilisateur connecté.",
