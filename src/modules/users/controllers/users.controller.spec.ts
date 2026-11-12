@@ -69,7 +69,11 @@ describe('UsersController', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should upload avatar and update profile picture URL', async () => {
+    it('should upload avatar, update profile picture URL, then delete the old file', async () => {
+      mockUserService.findOneByIdPublic.mockResolvedValue({
+        id: 42,
+        profile_picture_url: 'https://drive.com/old.png',
+      });
       mockDriveService.uploadImage.mockResolvedValue('https://drive.com/avatar.png');
 
       const result = await controller.uploadAvatar(mockFile, mockRequest);
@@ -78,6 +82,10 @@ describe('UsersController', () => {
       expect(mockUserService.updateProfilePicture).toHaveBeenCalledWith(
         42,
         'https://drive.com/avatar.png',
+      );
+      expect(mockDriveService.deleteFile).toHaveBeenCalledWith('https://drive.com/old.png');
+      expect(mockDriveService.deleteFile.mock.invocationCallOrder[0]).toBeGreaterThan(
+        mockUserService.updateProfilePicture.mock.invocationCallOrder[0],
       );
       expect(result).toEqual({
         message: 'Photo de profil mise à jour avec succès',
@@ -116,6 +124,22 @@ describe('UsersController', () => {
         first_name: 'John',
         profile_picture_url: 'https://drive.com/new.png',
       });
+      expect(mockDriveService.deleteFile.mock.invocationCallOrder[0]).toBeGreaterThan(
+        mockUserService.update.mock.invocationCallOrder[0],
+      );
+    });
+
+    it('should keep the current avatar when the upload fails', async () => {
+      mockUserService.findOneByIdPublic.mockResolvedValue({
+        id: 42,
+        profile_picture_url: 'https://drive.com/old.png',
+      });
+      mockDriveService.uploadImage.mockRejectedValue(new Error('Drive down'));
+
+      await expect(controller.updateMe(mockRequest, {}, mockFile)).rejects.toThrow('Drive down');
+
+      expect(mockDriveService.deleteFile).not.toHaveBeenCalled();
+      expect(mockUserService.update).not.toHaveBeenCalled();
     });
   });
 });

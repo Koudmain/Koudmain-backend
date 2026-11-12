@@ -467,4 +467,30 @@ describe('Profiles & reviews (e2e)', () => {
       expect(response.status).toBe(400);
     });
   });
+
+  describe('PATCH /users/me/avatar', () => {
+    it('rejects a file that is not an image', async () => {
+      const response = await request(app.getHttpServer())
+        .patch('/users/me/avatar')
+        .set('Authorization', `Bearer ${worker1Token}`)
+        .attach('image', Buffer.from('not an image'), {
+          filename: 'notes.txt',
+          contentType: 'text/plain',
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects an image larger than 10 MB', async () => {
+      const response = await request(app.getHttpServer())
+        .patch('/users/me/avatar')
+        .set('Authorization', `Bearer ${worker1Token}`)
+        .attach('image', Buffer.alloc(10 * 1024 * 1024 + 1), {
+          filename: 'huge.jpg',
+          contentType: 'image/jpeg',
+        });
+
+      expect(response.status).toBe(413);
+    });
+  });
 });
