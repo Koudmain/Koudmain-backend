@@ -8,7 +8,6 @@ describe('SkillService', () => {
 
   const mockSkillModel = {
     create: jest.fn(),
-    max: jest.fn(),
     findAll: jest.fn(),
     findByPk: jest.fn(),
   };
@@ -35,23 +34,14 @@ describe('SkillService', () => {
     service = moduleRef.get<SkillService>(SkillService);
   });
 
-  it('should create a Skill with auto-incremented id', async () => {
-    // Arrange
-    mockSkillModel.max.mockResolvedValue(5);
-    mockSkillModel.create.mockImplementation((data) => Promise.resolve(data));
+  it('should let the database assign the Skill id', async () => {
+    mockSkillModel.create.mockImplementation((data) => Promise.resolve({ id: 6, ...data }));
 
-    const skillData: Partial<Skill> = {
-      name: 'Test Skill',
-    };
+    const result = await service.create({ name: 'Test Skill' });
 
-    // Act
-    const result = await service.create(skillData);
-
-    // Assert
+    expect(mockSkillModel.create).toHaveBeenCalledWith({ name: 'Test Skill' });
     expect(result.id).toEqual(6);
     expect(result.name).toEqual('Test Skill');
-
-    expect(mockSkillModel.create).toHaveBeenCalledWith(expect.objectContaining({ id: 6 }));
   });
 
   it('should get all Skills', async () => {

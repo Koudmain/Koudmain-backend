@@ -8,7 +8,7 @@ export enum UserRole {
 
 @Table({ tableName: 'user', timestamps: false })
 export class User extends Model {
-  @Column({ type: DataType.INTEGER, primaryKey: true })
+  @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
   declare id: number;
 
   @Column({ type: DataType.STRING, allowNull: false })
