@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
   ArrayMinSize,
@@ -110,14 +111,16 @@ export class EmployerProfileDto {
 }
 
 export class RegisterDto {
-  @ApiProperty({ example: 'Alexandre', description: 'Prénom' })
+  @ApiProperty({ example: 'Alexandre', description: 'Prénom (50 caractères max.)' })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(50)
   firstName: string;
 
-  @ApiProperty({ example: 'Martin', description: 'Nom de famille' })
+  @ApiProperty({ example: 'Martin', description: 'Nom de famille (50 caractères max.)' })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(50)
   lastName: string;
 
   @ApiProperty({ example: 'worker1@koudmain.fr', description: 'Adresse email unique' })
