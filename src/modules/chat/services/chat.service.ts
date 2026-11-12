@@ -16,7 +16,6 @@ import { ConversationSetting } from '@/modules/chat/models/conversation-setting.
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
 import { Publication } from '@/modules/publication/models/publication.model';
 
-// Never send a worker's email, phone or birth date to a company.
 const PUBLIC_USER_ATTRIBUTES = ['id', 'first_name', 'last_name', 'profile_picture_url'];
 const MAX_MESSAGES_PAGE = 100;
 
