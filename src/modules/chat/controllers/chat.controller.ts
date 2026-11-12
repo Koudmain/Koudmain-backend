@@ -13,13 +13,14 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
-  ApiProperty,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { ChatService } from '@/modules/chat/services/chat.service';
+import { CreateConversationDto } from '@/modules/chat/dto/create-conversation.dto';
+import { SendMessageDto } from '@/modules/chat/dto/send-message.dto';
 import { Roles } from '@/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/models/user.model';
 
@@ -28,28 +29,6 @@ interface RequestWithUser extends ExpressRequest {
     sub: number;
     email: string;
   };
-}
-
-export class CreateConversationDto {
-  @ApiProperty({ example: 1, description: 'ID de la publication' })
-  publicationId: number;
-
-  @ApiProperty({ example: 42, description: 'ID du travailleur (worker)' })
-  workerId: number;
-
-  @ApiProperty({ example: 10, description: "ID de l'entreprise" })
-  companyId: number;
-}
-
-export class SendMessageDto {
-  @ApiProperty({ example: 5, description: 'ID de la conversation' })
-  conversationId: number;
-
-  @ApiProperty({
-    example: 'Bonjour, je suis disponible pour la mission.',
-    description: 'Contenu du message',
-  })
-  content: string;
 }
 
 @ApiTags('Chat')
