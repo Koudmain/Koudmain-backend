@@ -144,7 +144,6 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    // userId lets the app open the code screen (POST /auth/resend-verification, /auth/verify-email).
     if (!user.email_verified_at) {
       throw new ForbiddenException({
         statusCode: 403,
@@ -227,16 +226,12 @@ export class AuthService {
             'Un compte non vérifié avec un autre rôle existe déjà pour cet email.',
           );
         }
-        // Rate-limited first, so the credentials cannot be overwritten in a loop.
         await this.emailVerificationService.sendVerificationCode(
           existingUser.id,
           existingUser.email,
           dto.firstName,
           true,
         );
-        // The last registration owns the account: someone who pre-registered this email
-        // must not keep a password. shortcut: the worker/company profile of the first
-        // registration is kept (only identity fields are replaced); recreate it if needed.
         await this.usersService.update(existingUser.id, {
           password: await hash(dto.password, 10),
           first_name: dto.firstName,
