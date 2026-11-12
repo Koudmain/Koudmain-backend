@@ -161,6 +161,8 @@ describe('AppController (e2e)', () => {
         title: publicationTitle,
         description: "This shouldn't be mocked!",
         hourly_rate: 25.5,
+        autoAccept: true,
+        highlight: true,
         starting_date: new Date(),
         ending_date: new Date(),
         skills: [publicationSkillId],
@@ -175,6 +177,9 @@ describe('AppController (e2e)', () => {
     expect(dbCheck[0].length).toBe(1);
     expect((dbCheck[0][0] as any).title).toBe(publicationTitle);
     expect((dbCheck[0][0] as any).description).toBe("This shouldn't be mocked!");
+    expect((dbCheck[0][0] as any).status).toBe('Ouverte');
+    expect((dbCheck[0][0] as any).auto_accept).toBe(true);
+    expect((dbCheck[0][0] as any).highlighted).toBe(true);
 
     const relCheck = await sequelize.query(
       `SELECT * FROM "publication_skill" WHERE publication_id = ${publicationId};`,

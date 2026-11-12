@@ -27,6 +27,7 @@ export class PublicationService {
       ...pubData,
       id: nextId,
       createdByUserId: userId,
+      status: 'Ouverte',
       createdAt: new Date(),
       starting_date: publication.starting_date ?? new Date(),
       ending_date: publication.ending_date ?? new Date(),
