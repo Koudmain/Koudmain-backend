@@ -16,7 +16,7 @@ describe('AddressController', () => {
 
   const mockAddressService = {
     createAddress: jest.fn(),
-    getAddressesInZone: jest.fn(),
+    getPublicationsInZone: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -64,19 +64,14 @@ describe('AddressController', () => {
   });
 
   describe('getMapAddresses', () => {
-    it('doit appeler addressService.getAddressesInZone avec les paramètres de query', async () => {
-      const query: GetMapAddressesDto = {
-        minLat: '1',
-        maxLat: '2',
-        minLng: '3',
-        maxLng: '4',
-      } as GetMapAddressesDto;
+    it('doit appeler addressService.getPublicationsInZone avec les paramètres de query', async () => {
+      const query: GetMapAddressesDto = { minLat: 1, maxLat: 2, minLng: 3, maxLng: 4 };
       const rows = [{ id: 1, latitude: 1.5, longitude: 3.5 }];
-      mockAddressService.getAddressesInZone.mockResolvedValue(rows);
+      mockAddressService.getPublicationsInZone.mockResolvedValue(rows);
 
       const result = await controller.getMapAddresses(query);
 
-      expect(mockAddressService.getAddressesInZone).toHaveBeenCalledWith(query);
+      expect(mockAddressService.getPublicationsInZone).toHaveBeenCalledWith(query);
       expect(result).toBe(rows);
     });
   });

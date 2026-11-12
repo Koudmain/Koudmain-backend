@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
+import {
+  IsLatitude,
+  IsLongitude,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateCompanyAddressDto {
@@ -66,23 +74,23 @@ export class CreateAddressDto {
 }
 
 export class GetMapAddressesDto {
-  @ApiProperty({ example: '48.80' })
-  @IsString()
-  @IsNotEmpty()
-  minLat: string;
+  @ApiProperty({ example: 45.7, description: 'Latitude minimale' })
+  @Type(() => Number)
+  @IsLatitude()
+  minLat: number;
 
-  @ApiProperty({ example: '48.90' })
-  @IsString()
-  @IsNotEmpty()
-  maxLat: string;
+  @ApiProperty({ example: 45.8, description: 'Latitude maximale' })
+  @Type(() => Number)
+  @IsLatitude()
+  maxLat: number;
 
-  @ApiProperty({ example: '2.20' })
-  @IsString()
-  @IsNotEmpty()
-  minLng: string;
+  @ApiProperty({ example: 4.8, description: 'Longitude minimale' })
+  @Type(() => Number)
+  @IsLongitude()
+  minLng: number;
 
-  @ApiProperty({ example: '2.40' })
-  @IsString()
-  @IsNotEmpty()
-  maxLng: string;
+  @ApiProperty({ example: 4.9, description: 'Longitude maximale' })
+  @Type(() => Number)
+  @IsLongitude()
+  maxLng: number;
 }
