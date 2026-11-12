@@ -57,8 +57,6 @@ export class AddressService {
     };
   }
 
-  // Open publications in the box, placed at their own address or else at their company's.
-  // Worker home addresses are never returned.
   async getPublicationsInZone(dto: GetMapAddressesDto) {
     const { minLat, maxLat, minLng, maxLng } = dto;
 
