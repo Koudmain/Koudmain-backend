@@ -1,209 +1,233 @@
 import { Test } from '@nestjs/testing';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { getModelToken } from '@nestjs/sequelize';
 import { PublicationService } from './publication.service';
-import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
 import { PostPublicationDto, Publication } from '@/modules/publication/models/publication.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
+
+const EMPLOYER_ID = 7;
+const COMPANY_ID = 3;
 
 describe('PublicationService', () => {
   let service: PublicationService;
 
   const mockPublicationModel = {
     create: jest.fn(),
-    max: jest.fn(),
     findAll: jest.fn(),
     findByPk: jest.fn(),
-    update: jest.fn(),
-    destroy: jest.fn(),
   };
 
-  const mockSequelize = {
-    query: jest.fn(),
+  const mockCompanyMemberModel = {
+    findOne: jest.fn(),
   };
+
+  const basePublication: PostPublicationDto = {
+    companyId: COMPANY_ID,
+    title: 'Test Publication',
+    hourly_rate: 20.0,
+    starting_date: new Date().toISOString(),
+    ending_date: new Date().toISOString(),
+  };
+
+  // Simulates Model.create followed by the getById reload.
+  const mockCreate = ($set = jest.fn().mockResolvedValue(undefined)) =>
+    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
+      const instance = { ...data, $set };
+      mockPublicationModel.findByPk.mockResolvedValue(instance);
+      return Promise.resolve(instance);
+    });
+
+  const existingPublication = () => ({
+    id: 1,
+    companyId: COMPANY_ID,
+    update: jest.fn().mockResolvedValue(undefined),
+    destroy: jest.fn().mockResolvedValue(undefined),
+    $set: jest.fn().mockResolvedValue(undefined),
+  });
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PublicationService,
-        {
-          provide: getModelToken(Publication),
-          useValue: mockPublicationModel,
-        },
-        {
-          provide: getConnectionToken(),
-          useValue: mockSequelize,
-        },
+        { provide: getModelToken(Publication), useValue: mockPublicationModel },
+        { provide: getModelToken(CompanyMember), useValue: mockCompanyMemberModel },
       ],
     }).compile();
 
     service = moduleRef.get<PublicationService>(PublicationService);
   });
 
-  afterEach(() => {
+  beforeEach(() => {
     jest.clearAllMocks();
+    mockCompanyMemberModel.findOne.mockResolvedValue({ id: 1 });
   });
 
-  it('should create a publication with auto-incremented id', async () => {
-    // Arrange
-    mockPublicationModel.max.mockResolvedValue(5);
-    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
-      const instance = { ...data, $set: jest.fn().mockResolvedValue(undefined) };
-      mockPublicationModel.findByPk.mockResolvedValue(instance);
-      return Promise.resolve(instance);
+  describe('create', () => {
+    it('should let the database assign the id', async () => {
+      mockCreate();
+
+      const result = await service.create(EMPLOYER_ID, basePublication);
+
+      expect(result.title).toEqual('Test Publication');
+      expect(mockPublicationModel.create).toHaveBeenCalledWith(
+        expect.not.objectContaining({ id: expect.anything() as unknown }),
+      );
     });
 
-    const publicationData: PostPublicationDto = {
-      title: 'Test Publication',
-      hourly_rate: 20.0,
-      starting_date: new Date().toISOString(),
-      ending_date: new Date().toISOString(),
-    };
+    it('should open the publication and keep its options', async () => {
+      mockCreate();
 
-    // Act
-    const result = await service.create(publicationData);
+      await service.create(EMPLOYER_ID, { ...basePublication, autoAccept: true, highlight: true });
 
-    // Assert
-    expect(result.id).toEqual(6);
-    expect(result.title).toEqual('Test Publication');
-
-    expect(mockPublicationModel.create).toHaveBeenCalledWith(expect.objectContaining({ id: 6 }));
-  });
-
-  it('should create a publication and set its skills', async () => {
-    // Arrange
-    const $setSpy = jest.fn().mockResolvedValue(undefined);
-    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
-      const instance = {
-        ...data,
-        $set: $setSpy,
-      };
-      mockPublicationModel.findByPk.mockResolvedValue(instance);
-      return Promise.resolve(instance);
+      expect(mockPublicationModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'Ouverte', autoAccept: true, highlight: true }),
+      );
     });
 
-    const publicationData: PostPublicationDto = {
-      title: 'Skill Test',
-      hourly_rate: 20.0,
-      starting_date: new Date().toISOString(),
-      ending_date: new Date().toISOString(),
-      skills: [1, 2],
-    };
+    it('should take the creator from the authenticated user', async () => {
+      mockCreate();
 
-    // Act
-    const result = await service.create(publicationData);
+      await service.create(EMPLOYER_ID, basePublication);
 
-    // Assert
-    expect(result.title).toEqual('Skill Test');
-    expect($setSpy).toHaveBeenCalledWith('skills', [1, 2]);
-  });
-
-  it('should use provided dates when creating publication', async () => {
-    // Arrange
-    mockPublicationModel.create.mockImplementation((data: Record<string, unknown>) => {
-      const instance = { ...data, $set: jest.fn().mockResolvedValue(undefined) };
-      mockPublicationModel.findByPk.mockResolvedValue(instance);
-      return Promise.resolve(instance);
+      expect(mockPublicationModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({ createdByUserId: EMPLOYER_ID, companyId: COMPANY_ID }),
+      );
     });
 
-    const customDate = new Date('2024-01-01');
-    const publicationData: PostPublicationDto = {
-      title: 'Test Publication',
-      hourly_rate: 20.0,
-      starting_date: customDate.toISOString(),
-      ending_date: customDate.toISOString(),
-    };
+    it('should refuse an employer who is not a member of the company', async () => {
+      mockCompanyMemberModel.findOne.mockResolvedValue(null);
 
-    // Act
-    const result = await service.create(publicationData);
+      await expect(service.create(99, basePublication)).rejects.toThrow(ForbiddenException);
+      expect(mockCompanyMemberModel.findOne).toHaveBeenCalledWith({
+        where: { userId: 99, companyId: COMPANY_ID },
+      });
+      expect(mockPublicationModel.create).not.toHaveBeenCalled();
+    });
 
-    // Assert
-    expect(result.createdAt).toEqual(expect.any(Date));
-    expect(result.starting_date).toEqual(customDate.toISOString());
-    expect(result.ending_date).toEqual(customDate.toISOString());
+    it('should create a publication and set its skills', async () => {
+      const $setSpy = jest.fn().mockResolvedValue(undefined);
+      mockCreate($setSpy);
+
+      const result = await service.create(EMPLOYER_ID, {
+        ...basePublication,
+        title: 'Skill Test',
+        skills: [1, 2],
+      });
+
+      expect(result.title).toEqual('Skill Test');
+      expect($setSpy).toHaveBeenCalledWith('skills', [1, 2]);
+    });
+
+    it('should use provided dates when creating publication', async () => {
+      mockCreate();
+      const customDate = new Date('2024-01-01').toISOString();
+
+      const result = await service.create(EMPLOYER_ID, {
+        ...basePublication,
+        starting_date: customDate,
+        ending_date: customDate,
+      });
+
+      expect(result.createdAt).toEqual(expect.any(Date));
+      expect(result.starting_date).toEqual(customDate);
+      expect(result.ending_date).toEqual(customDate);
+    });
   });
 
   it('should get all publications', async () => {
-    // Arrange
     const expectedResult = [{ id: 1, title: 'Test Publication' }];
     mockPublicationModel.findAll.mockResolvedValue(expectedResult);
 
-    // Act
     const result = await service.getAll();
 
-    // Assert
     expect(mockPublicationModel.findAll).toHaveBeenCalledTimes(1);
     expect(result).toEqual(expectedResult);
   });
 
+  it('should filter publications by company when asked', async () => {
+    mockPublicationModel.findAll.mockResolvedValue([]);
+
+    await service.getAll(COMPANY_ID);
+
+    expect(mockPublicationModel.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { companyId: COMPANY_ID } }),
+    );
+  });
+
   it('should get a publication by its ID', async () => {
-    // Arrange
     const expectedResult = { id: 1, title: 'Test Publication' };
     mockPublicationModel.findByPk.mockResolvedValue(expectedResult);
 
-    // Act
     const result = await service.getById(1);
 
-    // Assert
     expect(mockPublicationModel.findByPk).toHaveBeenCalledTimes(1);
     expect(result).toEqual(expectedResult);
   });
 
-  it('should update a publication and return the updated publication', async () => {
-    // Arrange
-    const updatedData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
-      title: 'Updated Title',
-    };
-    const expectedResult = { id: 1, title: 'Updated Title' };
+  describe('update', () => {
+    it('should update a publication of the employer company', async () => {
+      const publication = existingPublication();
+      mockPublicationModel.findByPk.mockResolvedValue(publication);
 
-    mockPublicationModel.update.mockResolvedValue([1]);
-    mockPublicationModel.findByPk.mockResolvedValue(expectedResult);
+      const result = await service.update(EMPLOYER_ID, 1, { title: 'Updated Title' });
 
-    // Act
-    const result = await service.update(1, updatedData);
+      expect(publication.update).toHaveBeenCalledWith({ title: 'Updated Title' });
+      expect(publication.$set).not.toHaveBeenCalled();
+      expect(result).toBe(publication);
+    });
 
-    // Assert
-    expect(mockPublicationModel.update).toHaveBeenCalledWith(updatedData, { where: { id: 1 } });
-    expect(mockPublicationModel.findByPk).toHaveBeenCalledWith(1, expect.any(Object));
-    expect(result).toEqual(expectedResult);
+    it('should set its skills when provided', async () => {
+      const publication = existingPublication();
+      mockPublicationModel.findByPk.mockResolvedValue(publication);
+
+      await service.update(EMPLOYER_ID, 1, { title: 'Updated Title', skills: [3, 4] });
+
+      expect(publication.update).toHaveBeenCalledWith({ title: 'Updated Title' });
+      expect(publication.$set).toHaveBeenCalledWith('skills', [3, 4]);
+    });
+
+    it('should refuse an employer of another company', async () => {
+      const publication = existingPublication();
+      mockPublicationModel.findByPk.mockResolvedValue(publication);
+      mockCompanyMemberModel.findOne.mockResolvedValue(null);
+
+      await expect(service.update(99, 1, { title: 'Hack' })).rejects.toThrow(ForbiddenException);
+      expect(publication.update).not.toHaveBeenCalled();
+    });
+
+    it('should return 404 for an unknown publication', async () => {
+      mockPublicationModel.findByPk.mockResolvedValue(null);
+
+      await expect(service.update(EMPLOYER_ID, 404, { title: 'x' })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 
-  it('should update a publication and set its skills when provided', async () => {
-    // Arrange
-    const $setSpy = jest.fn().mockResolvedValue(undefined);
-    const mockInstance = {
-      id: 1,
-      title: 'Updated Title',
-      $set: $setSpy,
-    };
-    mockPublicationModel.update.mockResolvedValue([1]);
-    mockPublicationModel.findByPk.mockResolvedValue(mockInstance);
+  describe('delete', () => {
+    it('should delete a publication of the employer company', async () => {
+      const publication = existingPublication();
+      mockPublicationModel.findByPk.mockResolvedValue(publication);
 
-    const updatedData: Omit<Partial<Publication>, 'skills'> & { skills?: number[] } = {
-      title: 'Updated Title',
-      skills: [3, 4],
-    };
+      const result = await service.delete(EMPLOYER_ID, 1);
 
-    // Act
-    const result = await service.update(1, updatedData);
+      expect(publication.destroy).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(1);
+    });
 
-    // Assert
-    expect(mockPublicationModel.update).toHaveBeenCalledWith(
-      { title: 'Updated Title' },
-      { where: { id: 1 } },
-    );
-    expect($setSpy).toHaveBeenCalledWith('skills', [3, 4]);
-    expect(result).toEqual(mockInstance);
-  });
+    it('should refuse an employer of another company', async () => {
+      const publication = existingPublication();
+      mockPublicationModel.findByPk.mockResolvedValue(publication);
+      mockCompanyMemberModel.findOne.mockResolvedValue(null);
 
-  it('should delete a publication by its ID', async () => {
-    // Arrange
-    const expectedResult = 1;
-    mockPublicationModel.destroy.mockResolvedValue(1);
+      await expect(service.delete(99, 1)).rejects.toThrow(ForbiddenException);
+      expect(publication.destroy).not.toHaveBeenCalled();
+    });
 
-    // Act
-    const result = await service.delete(1);
+    it('should return 404 for an unknown publication', async () => {
+      mockPublicationModel.findByPk.mockResolvedValue(null);
 
-    // Assert
-    expect(mockPublicationModel.destroy).toHaveBeenCalledTimes(1);
-    expect(mockPublicationModel.destroy).toHaveBeenCalledWith({ where: { id: 1 } });
-    expect(result).toEqual(expectedResult);
+      await expect(service.delete(EMPLOYER_ID, 404)).rejects.toThrow(NotFoundException);
+    });
   });
 });

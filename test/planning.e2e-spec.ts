@@ -1,3 +1,4 @@
+import { createValidationPipe } from '@/common/utils/validation-pipe';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -50,6 +51,8 @@ describe('Planning (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+
+    app.useGlobalPipes(createValidationPipe());
     await app.init();
     sequelize = app.get<Sequelize>(getConnectionToken());
 
@@ -148,6 +151,10 @@ describe('Planning (e2e)', () => {
   });
 
   it('should return worker planning with correct fields from DB', async () => {
+    await sequelize.query(
+      `UPDATE "company" SET average_rating = 4.5, review_count = 3, logo_url = 'https://example.com/logo.png' WHERE id = ${companyId};`,
+    );
+
     const res = await request(app.getHttpServer())
       .get('/planning')
       .set('Authorization', `Bearer ${workerToken}`);
@@ -161,6 +168,20 @@ describe('Planning (e2e)', () => {
     expect(entry).toHaveProperty('company_name', companyName);
     expect(entry).toHaveProperty('companyRating');
     expect(entry).toHaveProperty('application_status');
+
+    // Same rating as the company public profile, not the reviews of the publication creator.
+    const [companyRows] = await sequelize.query(
+      `SELECT average_rating, review_count, logo_url FROM "company" WHERE id = ${companyId};`,
+    );
+    const company = companyRows[0] as {
+      average_rating: string;
+      review_count: number;
+      logo_url: string | null;
+    };
+    expect(entry.companyRating).toBe(4.5);
+    expect(entry.companyRating).toBe(Number(company.average_rating));
+    expect(entry.companyRatingCount).toBe(company.review_count);
+    expect(entry.company_logo).toBe(company.logo_url);
   });
 
   it('should return employer planning with correct fields from DB', async () => {

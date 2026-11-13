@@ -75,11 +75,6 @@ module.exports = {
       ),
     );
 
-    const maxSkillIdQuery = await queryInterface.sequelize.query(
-      `SELECT MAX(id) as max_id FROM skill;`,
-    );
-    let nextSkillId = Number(maxSkillIdQuery[0][0]?.max_id || 0) + 1;
-
     const skillsToInsert = [];
     const skillsToRelink = [];
 
@@ -101,7 +96,7 @@ module.exports = {
           continue;
         }
 
-        skillsToInsert.push({ id: nextSkillId++, name, category_id: categoryId });
+        skillsToInsert.push({ name, category_id: categoryId });
       }
     }
 

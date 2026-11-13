@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { createValidationPipe } from '@/common/utils/validation-pipe';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule, getConnectionToken } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
-import { AuthResponse, getAuthTokenForEmployer } from './utils/auth.helper';
+import { AuthResponse, getAuthTokenForEmployer, getAuthTokenForWorker } from './utils/auth.helper';
 
 import { PublicationModule } from '../src/modules/publication/publication.module';
 import { CompaniesModule } from '../src/modules/companies/companies.module';
@@ -59,6 +60,8 @@ describe('Chat System (e2e)', () => {
       }).compile();
 
       app = moduleFixture.createNestApplication();
+
+      app.useGlobalPipes(createValidationPipe());
       await app.init();
 
       sequelize = app.get<Sequelize>(getConnectionToken());
@@ -196,5 +199,35 @@ describe('Chat System (e2e)', () => {
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body)).toBe(true);
     expect(response.body.length).toBeGreaterThan(0);
+  });
+
+  it('GET /chat/conversations/:id/messages - refuses a user outside the conversation', async () => {
+    const outsider = await getAuthTokenForWorker(app, 'worker2@koudmain.fr');
+
+    const response = await request(app.getHttpServer())
+      .get(`/chat/conversations/${convId}/messages`)
+      .set('Authorization', `Bearer ${outsider}`);
+
+    expect(response.status).toBe(403);
+  });
+
+  it('POST /chat/messages - refuses a user outside the conversation', async () => {
+    const outsider = await getAuthTokenForWorker(app, 'worker2@koudmain.fr');
+
+    const response = await request(app.getHttpServer())
+      .post('/chat/messages')
+      .set('Authorization', `Bearer ${outsider}`)
+      .send({ conversationId: convId, content: 'Intrusion' });
+
+    expect(response.status).toBe(403);
+  });
+
+  it('POST /chat/messages - rejects an invalid body', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/chat/messages')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({ conversationId: 'abc', content: '' });
+
+    expect(response.status).toBe(400);
   });
 });

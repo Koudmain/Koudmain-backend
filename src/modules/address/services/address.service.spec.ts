@@ -83,8 +83,32 @@ describe('AddressService', () => {
           latitude: mockCoords.latitude,
           longitude: mockCoords.longitude,
         }),
+        { transaction: undefined },
       );
       expect(result).toEqual(created);
+    });
+  });
+
+  describe('buildAttributes', () => {
+    it('should default the country to France in both full_address and country', async () => {
+      mockGeocodingService.getCoordsFromAddress.mockResolvedValue(null);
+
+      const attributes = await service.buildAttributes({
+        streetName: 'Rue Neuve',
+        zipCode: '69001',
+        city: 'Lyon',
+      });
+
+      expect(attributes).toEqual({
+        street_number: undefined,
+        street_name: 'Rue Neuve',
+        zip_code: '69001',
+        city: 'Lyon',
+        country: 'France',
+        full_address: 'Rue Neuve, 69001 Lyon, France',
+        latitude: null,
+        longitude: null,
+      });
     });
   });
 
@@ -126,23 +150,36 @@ describe('AddressService', () => {
     });
   });
 
-  describe('getAddressesInZone', () => {
-    it('should query sequelize with envelope and return rows', async () => {
-      const dto = { minLat: '1', maxLat: '2', minLng: '3', maxLng: '4' } as GetMapAddressesDto;
+  describe('getPublicationsInZone', () => {
+    const dto = { minLat: 1, maxLat: 2, minLng: 3, maxLng: 4 } as GetMapAddressesDto;
+
+    it('should query open publications inside the envelope', async () => {
       const rows = [{ id: 1, latitude: 1.5, longitude: 3.5 }];
       mockSequelize.query.mockResolvedValue(rows);
 
-      const result = await service.getAddressesInZone(dto);
+      const result = await service.getPublicationsInZone(dto);
 
-      expect(mockSequelize.query).toHaveBeenCalled();
       expect(result).toBe(rows);
-      const callArgs = mockSequelize.query.mock.calls[0] as [
+      const [sql, options] = mockSequelize.query.mock.calls[0] as [
         string,
-        { replacements: GetMapAddressesDto; type: string },
+        { replacements: Record<string, unknown>; type: string },
       ];
+      expect(sql).toContain('ST_MakeEnvelope');
+      expect(options).toMatchObject({
+        replacements: { ...dto, statuses: ['Ouverte', 'Urgente'] },
+        type: 'SELECT',
+      });
+    });
 
-      expect(callArgs[0]).toContain('ST_MakeEnvelope');
-      expect(callArgs[1]).toMatchObject({ replacements: dto, type: 'SELECT' });
+    it('should only read publication locations, never the whole address table', async () => {
+      mockSequelize.query.mockResolvedValue([]);
+
+      await service.getPublicationsInZone(dto);
+
+      const [sql] = mockSequelize.query.mock.calls[0] as [string];
+      expect(sql).toMatch(/FROM "publication" p/);
+      expect(sql).toContain('COALESCE(p.address_id, c.address_id)');
+      expect(sql).toMatch(/SELECT p\.id/);
     });
   });
 });

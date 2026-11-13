@@ -1,4 +1,5 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { createValidationPipe } from '@/common/utils/validation-pipe';
+import { INestApplication } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -106,13 +107,7 @@ describe('Role-Based Access Control (Functional / e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
+    app.useGlobalPipes(createValidationPipe());
 
     await app.init();
 
@@ -217,7 +212,6 @@ describe('Role-Based Access Control (Functional / e2e)', () => {
     it('POST /publication/create - should reject WORKER (403) and allow EMPLOYER (201)', async () => {
       const pubPayload = {
         companyId: 1,
-        createdByUserId: 2,
         address_id: 1,
         title: 'Serveur Extra',
         description: 'Service du soir',

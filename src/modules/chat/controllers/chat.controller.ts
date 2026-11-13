@@ -1,15 +1,26 @@
-import { Controller, Post, Body, Request, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  DefaultValuePipe,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  Request,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
-  ApiProperty,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { ChatService } from '@/modules/chat/services/chat.service';
+import { CreateConversationDto } from '@/modules/chat/dto/create-conversation.dto';
+import { SendMessageDto } from '@/modules/chat/dto/send-message.dto';
 import { Roles } from '@/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/models/user.model';
 
@@ -18,28 +29,6 @@ interface RequestWithUser extends ExpressRequest {
     sub: number;
     email: string;
   };
-}
-
-export class CreateConversationDto {
-  @ApiProperty({ example: 1, description: 'ID de la publication' })
-  publicationId: number;
-
-  @ApiProperty({ example: 42, description: 'ID du travailleur (worker)' })
-  workerId: number;
-
-  @ApiProperty({ example: 10, description: "ID de l'entreprise" })
-  companyId: number;
-}
-
-export class SendMessageDto {
-  @ApiProperty({ example: 5, description: 'ID de la conversation' })
-  conversationId: number;
-
-  @ApiProperty({
-    example: 'Bonjour, je suis disponible pour la mission.',
-    description: 'Contenu du message',
-  })
-  content: string;
 }
 
 @ApiTags('Chat')
@@ -55,8 +44,9 @@ export class ChatController {
   })
   @ApiResponse({ status: 201, description: 'Conversation initialisée.' })
   @Post('conversations')
-  async createConversation(@Body() body: CreateConversationDto) {
+  async createConversation(@Request() req: RequestWithUser, @Body() body: CreateConversationDto) {
     return this.chatService.findOrCreateConversation(
+      req.user.sub,
       body.publicationId,
       body.workerId,
       body.companyId,
@@ -119,7 +109,7 @@ export class ChatController {
   @ApiQuery({
     name: 'limit',
     required: false,
-    description: 'Nombre max de messages à retourner (par défaut 20)',
+    description: 'Nombre max de messages à retourner (par défaut 20, max 100)',
   })
   @ApiQuery({
     name: 'offset',
@@ -129,11 +119,12 @@ export class ChatController {
   @ApiResponse({ status: 200, description: 'Messages récupérés.' })
   @Get('conversations/:id/messages')
   async getMessages(
-    @Param('id') conversationId: number,
-    @Query('limit') limit: number = 20,
-    @Query('offset') offset: number = 0,
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) conversationId: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
   ) {
-    return this.chatService.getMessagesByConversation(conversationId, limit, offset);
+    return this.chatService.getMessagesByConversation(req.user.sub, conversationId, limit, offset);
   }
 
   @ApiOperation({

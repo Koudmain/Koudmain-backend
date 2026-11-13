@@ -1,3 +1,4 @@
+import { createValidationPipe } from '@/common/utils/validation-pipe';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -59,6 +60,8 @@ describe('AppController (e2e)', () => {
       }).compile();
 
       app = moduleFixture.createNestApplication();
+
+      app.useGlobalPipes(createValidationPipe());
       await app.init();
 
       sequelize = app.get<Sequelize>(getConnectionToken());
@@ -105,6 +108,58 @@ describe('AppController (e2e)', () => {
     accessToken = authBody.accessToken;
   });
 
+  it('should reject a first name longer than 50 characters at registration', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        firstName: 'A'.repeat(51),
+        lastName: 'Martin',
+        email: `long-name-${Date.now()}@koudmain.fr`,
+        password: 'password123',
+        role: 'WORKER',
+        workerProfile: { skillCategoryIds: [1] },
+      });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('should block an email after 10 failed logins', async () => {
+    const email = `brute-force-${Date.now()}@koudmain.fr`;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const failed = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password: `wrong-${attempt}` });
+      expect(failed.status).toBe(401);
+    }
+
+    const blocked = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email, password: 'anything' });
+
+    expect(blocked.status).toBe(429);
+  });
+
+  it('should refuse to log in an account whose email is not verified', async () => {
+    const email = `unverified-${Date.now()}@koudmain.fr`;
+    // Reuse a seeded hash of 'password123'.
+    await sequelize.query(
+      `INSERT INTO "user" (first_name, last_name, email, password, role)
+       SELECT 'Un', 'Verified', '${email}', password, 'WORKER' FROM "user" WHERE email = 'employer1@koudmain.fr';`,
+    );
+
+    try {
+      const response = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email, password: 'password123' });
+
+      expect(response.status).toBe(403);
+      expect(response.body).toMatchObject({ message: 'EMAIL_NOT_VERIFIED' });
+      expect(response.body).toHaveProperty('userId');
+    } finally {
+      await sequelize.query(`DELETE FROM "user" WHERE email = '${email}';`);
+    }
+  });
+
   it('should create a publication with associated skills', async () => {
     const suffix = Date.now();
     const categoryName = `E2E Publication Test Category ${suffix}`;
@@ -123,14 +178,22 @@ describe('AppController (e2e)', () => {
     expect(skillResponse.status).toBe(201);
     publicationSkillId = (skillResponse.body as { id: number }).id;
 
+    const [companyRows] = await sequelize.query(
+      `SELECT company_id FROM "company_member" cm JOIN "user" u ON u.id = cm.user_id WHERE u.email = 'employer1@koudmain.fr' LIMIT 1;`,
+    );
+    const companyId = (companyRows[0] as { company_id: number }).company_id;
+
     const publicationTitle = `E2E Database Test ${suffix}`;
     const response = await request(app.getHttpServer())
       .post('/publication/create')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({
+        companyId,
         title: publicationTitle,
         description: "This shouldn't be mocked!",
         hourly_rate: 25.5,
+        autoAccept: true,
+        highlight: true,
         starting_date: new Date(),
         ending_date: new Date(),
         skills: [publicationSkillId],
@@ -145,11 +208,29 @@ describe('AppController (e2e)', () => {
     expect(dbCheck[0].length).toBe(1);
     expect((dbCheck[0][0] as any).title).toBe(publicationTitle);
     expect((dbCheck[0][0] as any).description).toBe("This shouldn't be mocked!");
+    expect((dbCheck[0][0] as any).status).toBe('Ouverte');
+    expect((dbCheck[0][0] as any).auto_accept).toBe(true);
+    expect((dbCheck[0][0] as any).highlighted).toBe(true);
 
     const relCheck = await sequelize.query(
       `SELECT * FROM "publication_skill" WHERE publication_id = ${publicationId};`,
     );
     expect(relCheck[0].length).toBe(1);
+  });
+
+  it('should reject a publication date without time zone', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/publication/create')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        companyId: 1,
+        title: 'Local time',
+        hourly_rate: 20,
+        starting_date: '2026-08-01T18:00:00',
+        ending_date: '2026-08-01T22:00:00',
+      });
+
+    expect(response.status).toBe(400);
   });
 
   it('should get all publication previously added by the test', async () => {
@@ -191,6 +272,33 @@ describe('AppController (e2e)', () => {
     expect(skillCheck[0].length).toBe(0);
   });
 
+  it('should refuse to edit or delete the publication from another company', async () => {
+    const otherLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'employer2@koudmain.fr', password: 'password123' });
+    const otherToken = (otherLogin.body as AuthResponse).accessToken;
+
+    const updateRes = await request(app.getHttpServer())
+      .put(`/publication/update/${publicationId}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .send({ title: 'Hijacked' });
+    expect(updateRes.status).toBe(403);
+
+    const deleteRes = await request(app.getHttpServer())
+      .delete(`/publication/delete/${publicationId}`)
+      .set('Authorization', `Bearer ${otherToken}`);
+    expect(deleteRes.status).toBe(403);
+  });
+
+  it('should reject an unknown field on update', async () => {
+    const response = await request(app.getHttpServer())
+      .put(`/publication/update/${publicationId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ companyId: 999 });
+
+    expect(response.status).toBe(400);
+  });
+
   it('should delete the publication previously added by the test', async () => {
     const response = await request(app.getHttpServer())
       .delete(`/publication/delete/${publicationId}`)
@@ -206,6 +314,26 @@ describe('AppController (e2e)', () => {
 
     // The publication row is gone; clear the id so afterAll doesn't try to delete it again.
     publicationId = undefined as unknown as number;
+  });
+
+  it('should create skills in parallel without id collisions', async () => {
+    const suffix = Date.now();
+    const responses = await Promise.all(
+      Array.from({ length: 5 }, (_, i) =>
+        request(app.getHttpServer())
+          .post('/skill/create')
+          .set('Authorization', `Bearer ${accessToken}`)
+          .send({ name: `Parallel skill ${suffix}-${i}` }),
+      ),
+    );
+
+    try {
+      expect(responses.map((response) => response.status)).toEqual([201, 201, 201, 201, 201]);
+      const ids = responses.map((response) => (response.body as { id: number }).id);
+      expect(new Set(ids).size).toBe(5);
+    } finally {
+      await sequelize.query(`DELETE FROM "skill" WHERE name LIKE 'Parallel skill ${suffix}-%';`);
+    }
   });
 
   it('should create a skill without any foreign Key constraint field', async () => {

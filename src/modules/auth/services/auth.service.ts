@@ -2,6 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -18,10 +20,11 @@ import { compare, hash } from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { google } from 'googleapis';
 import { User, UserRole } from '@/modules/users/models/user.model';
+import { RedisService } from '@/shared/redis/redis.service';
 import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
-import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { AddressAttributes, AddressService } from '@/modules/address/services/address.service';
 import {
   RegisterDto,
   WorkerProfileDto,
@@ -29,14 +32,7 @@ import {
   GoogleRegisterDto,
 } from '@/modules/auth/models/register.model';
 import { AuthTokenResponse } from '@/modules/auth/controllers/auth.controller';
-import { CreateAddressDto } from '@/modules/address/address.dto';
 import { Transaction, UniqueConstraintError } from 'sequelize';
-
-type AddressGeocodeResult = {
-  fullAddress: string;
-  latitude: number | null;
-  longitude: number | null;
-};
 
 type GoogleProfile = {
   email: string;
@@ -45,6 +41,9 @@ type GoogleProfile = {
   picture?: string;
   nonce?: string;
 };
+
+const MAX_FAILED_LOGINS = 10;
+const FAILED_LOGIN_WINDOW_SECONDS = 15 * 60;
 
 const hashVerifier = (verifier: string) => createHash('sha256').update(verifier).digest('hex');
 
@@ -64,7 +63,8 @@ export class AuthService {
     private workersService: WorkersService,
     private companiesService: CompaniesService,
     private emailVerificationService: EmailVerificationService,
-    private geocodingService: GeocodingService,
+    private addressService: AddressService,
+    private redisService: RedisService,
     private sequelize: Sequelize,
     @InjectModel(Address) private addressModel: typeof Address,
   ) {}
@@ -113,35 +113,31 @@ export class AuthService {
     return val * (units[unit] || 1000);
   }
 
-  private async geocodeAddress(
-    addr: NonNullable<RegisterDto['workerProfile']>['address'],
-  ): Promise<AddressGeocodeResult> {
-    if (!addr) return { fullAddress: '', latitude: null, longitude: null };
-
-    const country = addr.country || 'France';
-    const fullAddress =
-      `${addr.streetNumber || ''} ${addr.streetName}, ${addr.zipCode} ${addr.city}, ${country}`.trim();
-    try {
-      const coords = await this.geocodingService.getCoordsFromAddress(fullAddress);
-      return {
-        fullAddress,
-        latitude: coords?.latitude ?? null,
-        longitude: coords?.longitude ?? null,
-      };
-    } catch {
-      return { fullAddress, latitude: null, longitude: null };
-    }
-  }
-
   async signIn(email: string, pass: string): Promise<AuthTokenResponse> {
-    const user = await this.usersService.findOneByEmail(email);
-    if (!user) {
-      throw new UnauthorizedException();
+    // Counted per email, not per IP: behind a proxy every user would share one IP.
+    const failuresKey = `login_failures:${email.toLowerCase()}`;
+    const failures = Number((await this.redisService.get(failuresKey)) ?? 0);
+    if (failures >= MAX_FAILED_LOGINS) {
+      throw new HttpException(
+        'Trop de tentatives de connexion. Réessayez dans 15 minutes.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
-    const isPasswordValid = await compare(pass, user.password);
-    if (!isPasswordValid) {
+    const user = await this.usersService.findOneByEmail(email);
+    const isPasswordValid = user ? await compare(pass, user.password) : false;
+    if (!user || !isPasswordValid) {
+      await this.redisService.incr(failuresKey, FAILED_LOGIN_WINDOW_SECONDS);
       throw new UnauthorizedException();
+    }
+    await this.redisService.del(failuresKey);
+
+    if (!user.email_verified_at) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        message: 'EMAIL_NOT_VERIFIED',
+        userId: user.id,
+      });
     }
 
     const payload = {
@@ -188,11 +184,6 @@ export class AuthService {
     return { message: 'Session revoked successfully' };
   }
 
-  async logoutAll(userId: number): Promise<{ message: string }> {
-    await this.refreshSessionService.revokeAllSessions(userId);
-    return { message: 'All sessions revoked successfully' };
-  }
-
   async generateTokensForUser(userId: number): Promise<AuthTokenResponse> {
     const user = await this.usersService.findOneById(userId);
     if (!user) throw new UnauthorizedException('Utilisateur introuvable.');
@@ -204,6 +195,7 @@ export class AuthService {
   async getUserForVerification(userId: number) {
     const user = await this.usersService.findOneById(userId);
     if (!user) throw new UnauthorizedException('Utilisateur introuvable.');
+    if (user.email_verified_at) throw new ConflictException('Cet email est déjà vérifié.');
 
     return user;
   }
@@ -212,11 +204,25 @@ export class AuthService {
     const existingUser = await this.usersService.findOneByEmail(dto.email);
     if (existingUser) {
       if (!existingUser.email_verified_at) {
+        if (existingUser.role !== dto.role) {
+          throw new ConflictException(
+            'Un compte non vérifié avec un autre rôle existe déjà pour cet email.',
+          );
+        }
         await this.emailVerificationService.sendVerificationCode(
           existingUser.id,
           existingUser.email,
-          existingUser.first_name,
+          dto.firstName,
+          true,
         );
+        await this.usersService.update(existingUser.id, {
+          password: await hash(dto.password, 10),
+          first_name: dto.firstName,
+          last_name: dto.lastName,
+          phone_number: dto.phoneNumber ?? null,
+          birth_date: dto.birthDate ?? null,
+        });
+        await this.refreshSessionService.revokeAllSessions(existingUser.id);
         return {
           userId: existingUser.id,
           message: 'Un code de vérification a été renvoyé à votre adresse email.',
@@ -231,6 +237,7 @@ export class AuthService {
       newUserId,
       createdUser!.email,
       createdUser!.first_name,
+      true,
     );
 
     return {
@@ -359,12 +366,12 @@ export class AuthService {
 
   private async createUser(dto: RegisterDto, extra: Partial<User> = {}): Promise<number> {
     const hashedPassword = await hash(dto.password, 10);
-    const workerGeo =
-      dto.role === UserRole.WORKER ? await this.geocodeAddress(dto.workerProfile?.address) : null;
-    const employerGeo =
-      dto.role === UserRole.EMPLOYER
-        ? await this.geocodeAddress(dto.employerProfile?.address)
-        : null;
+    // Geocoding is an HTTP call: done before the transaction opens.
+    const profileAddress =
+      dto.role === UserRole.WORKER ? dto.workerProfile?.address : dto.employerProfile?.address;
+    const address = profileAddress
+      ? await this.addressService.buildAttributes(profileAddress)
+      : null;
 
     let newUserId!: number;
 
@@ -385,48 +392,26 @@ export class AuthService {
       newUserId = newUser.id;
 
       if (dto.role === UserRole.WORKER && dto.workerProfile) {
-        await this.registerWorker(newUser.id, dto.workerProfile, workerGeo, t);
+        await this.registerWorker(newUser.id, dto.workerProfile, address, t);
       }
 
       if (dto.role === UserRole.EMPLOYER && dto.employerProfile) {
-        await this.registerEmployer(newUser.id, dto.employerProfile, employerGeo, t);
+        await this.registerEmployer(newUser.id, dto.employerProfile, address, t);
       }
     });
 
     return newUserId;
   }
 
-  private async createAddressRecord(
-    addressDto: CreateAddressDto,
-    geo: AddressGeocodeResult,
-    transaction: Transaction,
-  ): Promise<Address> {
-    return this.addressModel.create(
-      {
-        street_number: addressDto.streetNumber,
-        street_name: addressDto.streetName,
-        zip_code: addressDto.zipCode,
-        city: addressDto.city,
-        country: addressDto.country || 'France',
-        full_address: geo.fullAddress,
-        latitude: geo.latitude,
-        longitude: geo.longitude,
-      },
-      { transaction },
-    );
-  }
-
   private async registerWorker(
     userId: number,
     profile: WorkerProfileDto,
-    geo: AddressGeocodeResult | null,
+    address: AddressAttributes | null,
     transaction: Transaction,
   ): Promise<void> {
-    let addressId: number | undefined;
-    if (profile.address && geo) {
-      const address = await this.createAddressRecord(profile.address, geo, transaction);
-      addressId = address.id;
-    }
+    const addressId = address
+      ? (await this.addressModel.create(address, { transaction })).id
+      : undefined;
 
     await this.workersService.create(
       {
@@ -443,14 +428,12 @@ export class AuthService {
   private async registerEmployer(
     userId: number,
     profile: EmployerProfileDto,
-    geo: AddressGeocodeResult | null,
+    address: AddressAttributes | null,
     transaction: Transaction,
   ): Promise<void> {
-    let addressId: number | undefined;
-    if (profile.address && geo) {
-      const address = await this.createAddressRecord(profile.address, geo, transaction);
-      addressId = address.id;
-    }
+    const addressId = address
+      ? (await this.addressModel.create(address, { transaction })).id
+      : undefined;
 
     await this.companiesService.createCompanyWithOwner(
       {

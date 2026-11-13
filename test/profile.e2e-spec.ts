@@ -1,5 +1,6 @@
+import { createValidationPipe } from '@/common/utils/validation-pipe';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { getConnectionToken, SequelizeModule } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
@@ -85,9 +86,7 @@ describe('Profiles & reviews (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
-    );
+    app.useGlobalPipes(createValidationPipe());
     await app.init();
     sequelize = app.get<Sequelize>(getConnectionToken());
 
@@ -434,6 +433,64 @@ describe('Profiles & reviews (e2e)', () => {
         .send({ reportType: 'TOO_LOW' });
 
       expect(res.status).toBe(400);
+    });
+  });
+
+  describe('GET /address/map', () => {
+    it('returns only open publications, at numeric coordinates', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/address/map')
+        .query({ minLat: 41, maxLat: 51, minLng: -5, maxLng: 10 })
+        .set('Authorization', `Bearer ${worker1Token}`);
+
+      expect(response.status).toBe(200);
+      const rows = response.body as Array<{ id: number; latitude: number; longitude: number }>;
+      expect(rows.length).toBeGreaterThan(0);
+
+      const [openRows] = await sequelize.query(
+        `SELECT id FROM "publication" WHERE status IN ('Ouverte', 'Urgente');`,
+      );
+      const openIds = (openRows as Array<{ id: number }>).map(({ id }) => id).sort();
+      expect(rows.map(({ id }) => id).sort()).toEqual(openIds);
+      rows.forEach((row) => {
+        expect(typeof row.latitude).toBe('number');
+        expect(typeof row.longitude).toBe('number');
+      });
+    });
+
+    it('rejects bounds that are not coordinates', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/address/map')
+        .query({ minLat: 'abc', maxLat: 51, minLng: -5, maxLng: 10 })
+        .set('Authorization', `Bearer ${worker1Token}`);
+
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe('PATCH /users/me/avatar', () => {
+    it('rejects a file that is not an image', async () => {
+      const response = await request(app.getHttpServer())
+        .patch('/users/me/avatar')
+        .set('Authorization', `Bearer ${worker1Token}`)
+        .attach('image', Buffer.from('not an image'), {
+          filename: 'notes.txt',
+          contentType: 'text/plain',
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects an image larger than 10 MB', async () => {
+      const response = await request(app.getHttpServer())
+        .patch('/users/me/avatar')
+        .set('Authorization', `Bearer ${worker1Token}`)
+        .attach('image', Buffer.alloc(10 * 1024 * 1024 + 1), {
+          filename: 'huge.jpg',
+          contentType: 'image/jpeg',
+        });
+
+      expect(response.status).toBe(413);
     });
   });
 });

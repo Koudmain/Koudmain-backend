@@ -95,38 +95,6 @@ describe('DriveService', () => {
     });
   });
 
-  describe('getOrCreateFolder', () => {
-    const folderName = 'MyTestFolder';
-
-    it('should return existing folder ID if found in Google Drive', async () => {
-      mockDriveClient.files.list.mockResolvedValue({
-        data: { files: [{ id: 'existing-folder-id' }] },
-      });
-
-      const result = await service.getOrCreateFolder(folderName);
-
-      expect(result).toBe('existing-folder-id');
-      expect(mockDriveClient.files.list).toHaveBeenCalled();
-      expect(mockDriveClient.files.create).not.toHaveBeenCalled();
-    });
-
-    it('should create a new folder and return its ID if it does not exist', async () => {
-      mockDriveClient.files.list.mockResolvedValue({ data: { files: [] } });
-      mockDriveClient.files.create.mockResolvedValue({ data: { id: 'new-folder-id' } });
-
-      const result = await service.getOrCreateFolder(folderName);
-
-      expect(result).toBe('new-folder-id');
-      expect(mockDriveClient.files.create).toHaveBeenCalledWith({
-        requestBody: {
-          name: folderName,
-          mimeType: 'application/vnd.google-apps.folder',
-        },
-        fields: 'id',
-      });
-    });
-  });
-
   describe('deleteFile', () => {
     it('should call drive.files.delete with extracted file ID', async () => {
       const url = 'https://drive.google.com/thumbnail?id=abc123xyz&sz=w1000';

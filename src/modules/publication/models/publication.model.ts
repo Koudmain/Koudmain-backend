@@ -13,7 +13,19 @@ import { Application } from '@/modules/application/models/application.model';
 import { Address } from '@/modules/address/address.model';
 import { Skill } from '@/modules/skill/models/skill.model';
 import { PublicationSkill } from './publication-skill.model';
-import { IsArray, IsNumber, IsOptional, IsString, IsBoolean } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+} from 'class-validator';
+
+// Publications shown to workers (company profile, map).
+export const OPEN_PUBLICATION_STATUSES = ['Ouverte', 'Urgente'];
 
 @Table({ tableName: 'publication', timestamps: false })
 export class Publication extends Model {
@@ -62,6 +74,12 @@ export class Publication extends Model {
   @Column({ type: DataType.STRING })
   declare status: string;
 
+  @Column({ field: 'auto_accept', type: DataType.BOOLEAN, defaultValue: false })
+  declare autoAccept: boolean;
+
+  @Column({ field: 'highlighted', type: DataType.BOOLEAN, defaultValue: false })
+  declare highlight: boolean;
+
   @Column({ type: DataType.BIGINT, defaultValue: 0 })
   declare views: number;
 
@@ -75,18 +93,16 @@ export class Publication extends Model {
   declare updatedAt: Date;
 }
 
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, OmitType, PartialType } from '@nestjs/swagger';
+
+// Columns are timestamps without time zone stored in UTC: a date without offset would be
+// read as UTC and shift by the client's offset (18:00 in Paris shown as 19:00 or 20:00).
+const EXPLICIT_TIMEZONE = /(Z|[+-]\d{2}:\d{2})$/;
 
 export class PostPublicationDto {
-  @ApiPropertyOptional({ example: 1, description: "ID de l'entreprise rattachée" })
-  @IsOptional()
-  @IsNumber()
-  declare companyId?: number;
-
-  @ApiPropertyOptional({ example: 1, description: 'ID du créateur' })
-  @IsOptional()
-  @IsNumber()
-  declare createdByUserId?: number;
+  @ApiProperty({ example: 1, description: "ID de l'entreprise rattachée" })
+  @IsInt()
+  declare companyId: number;
 
   @ApiPropertyOptional({ example: 1, description: "ID de l'adresse du lieu de travail" })
   @IsOptional()
@@ -109,12 +125,20 @@ export class PostPublicationDto {
   @IsNumber()
   declare hourly_rate: number;
 
-  @ApiProperty({ example: '2026-08-01T09:00:00.000Z', description: 'Date et heure de début' })
-  @IsString()
+  @ApiProperty({
+    example: '2026-08-01T09:00:00.000Z',
+    description: 'Date et heure de début, ISO 8601 avec fuseau (Z ou ±hh:mm)',
+  })
+  @IsISO8601({ strict: true })
+  @Matches(EXPLICIT_TIMEZONE, { message: 'starting_date doit préciser son fuseau (Z ou ±hh:mm)' })
   declare starting_date: string;
 
-  @ApiProperty({ example: '2026-08-01T17:00:00.000Z', description: 'Date et heure de fin' })
-  @IsString()
+  @ApiProperty({
+    example: '2026-08-01T17:00:00.000Z',
+    description: 'Date et heure de fin, ISO 8601 avec fuseau (Z ou ±hh:mm)',
+  })
+  @IsISO8601({ strict: true })
+  @Matches(EXPLICIT_TIMEZONE, { message: 'ending_date doit préciser son fuseau (Z ou ±hh:mm)' })
   declare ending_date: string;
 
   @ApiPropertyOptional({ example: [1, 2, 3], description: 'Liste des IDs de compétences requises' })
@@ -133,6 +157,11 @@ export class PostPublicationDto {
   @IsBoolean()
   declare highlight?: boolean;
 }
+
+// A publication cannot be moved to another company.
+export class UpdatePublicationDto extends PartialType(
+  OmitType(PostPublicationDto, ['companyId'] as const),
+) {}
 
 export class PostPublicationResponseDto {
   declare message: string;

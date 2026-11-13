@@ -11,7 +11,6 @@ describe('UsersService', () => {
     findByPk: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn(),
-    max: jest.fn(),
     update: jest.fn(),
   };
 
@@ -50,31 +49,19 @@ describe('UsersService', () => {
   });
 
   describe('create', () => {
-    it('should auto-increment ID if not provided', async () => {
-      mockUserModel.max.mockResolvedValue(10);
+    it('should let the database assign the id', async () => {
       mockUserModel.create.mockImplementation((data) => Promise.resolve(data));
 
-      const userData = { email: 'new@test.com' };
-      const result = await service.create(userData);
+      const result = await service.create({ email: 'new@test.com' });
 
-      expect(mockUserModel.max).toHaveBeenCalledWith('id');
-      expect(result.id).toBe(11);
+      expect(mockUserModel.create).toHaveBeenCalledWith(
+        { email: 'new@test.com', updatedAt: expect.any(Date) as Date },
+        { transaction: undefined },
+      );
       expect(result.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('should use provided ID if present', async () => {
-      mockUserModel.create.mockImplementation((data) => Promise.resolve(data));
-
-      const userData = { id: 99, email: 'explicit@test.com' };
-      const result = await service.create(userData);
-
-      expect(mockUserModel.max).not.toHaveBeenCalled();
-      expect(result.id).toBe(99);
-    });
-
     it('should pass down the transaction option', async () => {
-      mockUserModel.max.mockResolvedValue(0);
-
       // Remplacement de {} as any par le type Transaction de Sequelize
       const fakeTransaction = {} as Transaction;
 

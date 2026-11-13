@@ -141,20 +141,21 @@ module.exports = {
       );
     }
 
-    const maxPublicationIdQuery = await queryInterface.sequelize.query(
-      `SELECT MAX(id) as max_id FROM publication;`,
-    );
-    let nextPublicationId = Number(maxPublicationIdQuery[0][0]?.max_id || 0) + 1;
-
     const now = new Date();
+    // startHour is a French wall-clock hour, whatever the time zone of the machine running the seed.
+    const parisTime = (from, offsetDays, hour) => {
+      const day = new Date(from);
+      day.setUTCDate(day.getUTCDate() + offsetDays);
+      day.setUTCHours(hour, 0, 0, 0);
+      const inParis = new Date(day.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
+      const inUtc = new Date(day.toLocaleString('en-US', { timeZone: 'UTC' }));
+      return new Date(day.getTime() - (inParis.getTime() - inUtc.getTime()));
+    };
     const publicationsToInsert = PUBLICATIONS_DATA.map((pub) => {
-      const starting_date = new Date(now);
-      starting_date.setDate(starting_date.getDate() + pub.startOffsetDays);
-      starting_date.setHours(pub.startHour, 0, 0, 0);
+      const starting_date = parisTime(now, pub.startOffsetDays, pub.startHour);
       const ending_date = new Date(starting_date.getTime() + pub.durationHours * 60 * 60 * 1000);
 
       return {
-        id: nextPublicationId++,
         company_id: target.company_id,
         created_by_user_id: target.user_id,
         address_id: target.address_id,
@@ -171,11 +172,15 @@ module.exports = {
       };
     });
 
-    await queryInterface.bulkInsert('publication', publicationsToInsert, {});
+    const insertedPublications = await queryInterface.bulkInsert(
+      'publication',
+      publicationsToInsert,
+      { returning: ['id'] },
+    );
 
     const publicationSkills = [];
     if (skillRows.length > 0) {
-      publicationsToInsert.forEach((pub) => {
+      insertedPublications.forEach((pub) => {
         const numSkills = faker.number.int({ min: 1, max: Math.min(3, skillRows.length) });
         const pickedSkills = faker.helpers.arrayElements(skillRows, numSkills);
         pickedSkills.forEach((skill) => {

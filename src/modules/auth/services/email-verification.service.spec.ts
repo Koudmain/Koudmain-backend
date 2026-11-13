@@ -1,5 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { GoneException, HttpException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  GoneException,
+  HttpException,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { RedisService } from '@/shared/redis/redis.service';
 import { MailerService } from '@/modules/mailer/services/mailer.service';
@@ -9,6 +15,7 @@ const mockRedisService = {
   set: jest.fn(),
   get: jest.fn(),
   del: jest.fn(),
+  incr: jest.fn(),
 };
 
 const mockMailerService = {
@@ -17,6 +24,7 @@ const mockMailerService = {
 
 const mockUsersService = {
   markEmailAsVerified: jest.fn(),
+  findOneById: jest.fn(),
 };
 
 describe('EmailVerificationService', () => {
@@ -35,6 +43,7 @@ describe('EmailVerificationService', () => {
     }).compile();
 
     service = module.get<EmailVerificationService>(EmailVerificationService);
+    mockUsersService.findOneById.mockResolvedValue({ id: 1, email_verified_at: null });
   });
 
   describe('sendVerificationCode()', () => {
@@ -54,6 +63,12 @@ describe('EmailVerificationService', () => {
         'Jean',
         expect.stringMatching(/^\d{6}$/),
       );
+    });
+
+    it('resets the failed attempts counter when a new code is sent', async () => {
+      await service.sendVerificationCode(1, 'test@test.com', 'Jean');
+
+      expect(mockRedisService.del).toHaveBeenCalledWith('email_verification_attempts:1');
     });
 
     it('lève TooManyRequestsException si le cooldown est actif (enforceRateLimit=true)', async () => {
@@ -103,6 +118,40 @@ describe('EmailVerificationService', () => {
 
       await expect(service.verifyCode(1, '000000')).rejects.toThrow(UnauthorizedException);
       expect(mockUsersService.markEmailAsVerified).not.toHaveBeenCalled();
+    });
+
+    it('counts a wrong code as a failed attempt', async () => {
+      mockRedisService.get.mockResolvedValue('654321');
+      mockRedisService.incr.mockResolvedValue(1);
+
+      await expect(service.verifyCode(1, '000000')).rejects.toThrow(UnauthorizedException);
+      expect(mockRedisService.incr).toHaveBeenCalledWith('email_verification_attempts:1', 900);
+      expect(mockRedisService.del).not.toHaveBeenCalledWith('email_verification:1');
+    });
+
+    it('deletes the code after the 5th wrong attempt', async () => {
+      mockRedisService.get.mockResolvedValue('654321');
+      mockRedisService.incr.mockResolvedValue(5);
+
+      await expect(service.verifyCode(1, '000000')).rejects.toMatchObject({
+        status: HttpStatus.TOO_MANY_REQUESTS,
+      });
+      expect(mockRedisService.del).toHaveBeenCalledWith('email_verification:1');
+      expect(mockUsersService.markEmailAsVerified).not.toHaveBeenCalled();
+    });
+
+    it('rejects a user whose email is already verified', async () => {
+      mockUsersService.findOneById.mockResolvedValue({ id: 1, email_verified_at: new Date() });
+      mockRedisService.get.mockResolvedValue('123456');
+
+      await expect(service.verifyCode(1, '123456')).rejects.toThrow(ConflictException);
+      expect(mockUsersService.markEmailAsVerified).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unknown user', async () => {
+      mockUsersService.findOneById.mockResolvedValue(null);
+
+      await expect(service.verifyCode(99, '123456')).rejects.toThrow(UnauthorizedException);
     });
   });
 });

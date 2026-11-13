@@ -6,7 +6,8 @@ import { RefreshSessionService } from './refresh-session.service';
 import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
-import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { AddressService } from '@/modules/address/services/address.service';
+import { RedisService } from '@/shared/redis/redis.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { Address } from '@/modules/address/address.model';
 import { Sequelize } from 'sequelize-typescript';
@@ -17,6 +18,8 @@ import {
   ForbiddenException,
   NotFoundException,
   ServiceUnavailableException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { UserRole } from '@/modules/users/models/user.model';
 import {
@@ -81,8 +84,14 @@ describe('AuthService', () => {
     sendVerificationCode: jest.fn(),
   };
 
-  const mockGeocodingService = {
-    getCoordsFromAddress: jest.fn(),
+  const mockAddressService = {
+    buildAttributes: jest.fn(),
+  };
+
+  const mockRedisService = {
+    get: jest.fn(),
+    incr: jest.fn(),
+    del: jest.fn(),
   };
 
   const mockAddressModel = {
@@ -115,7 +124,8 @@ describe('AuthService', () => {
         { provide: WorkersService, useValue: mockWorkersService },
         { provide: CompaniesService, useValue: mockCompaniesService },
         { provide: EmailVerificationService, useValue: mockEmailVerificationService },
-        { provide: GeocodingService, useValue: mockGeocodingService },
+        { provide: AddressService, useValue: mockAddressService },
+        { provide: RedisService, useValue: mockRedisService },
         { provide: Sequelize, useValue: mockSequelize },
         { provide: getModelToken(Address), useValue: mockAddressModel },
       ],
@@ -155,12 +165,54 @@ describe('AuthService', () => {
       );
     });
 
+    it('should count a wrong password as a failed login', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({ id: 1, password: 'hashed' });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(service.signIn('Test@Test.com', 'wrong')).rejects.toThrow(UnauthorizedException);
+      expect(mockRedisService.incr).toHaveBeenCalledWith('login_failures:test@test.com', 900);
+    });
+
+    it('should count an unknown email as a failed login', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue(null);
+
+      await expect(service.signIn('ghost@test.com', 'x')).rejects.toThrow(UnauthorizedException);
+      expect(mockRedisService.incr).toHaveBeenCalledWith('login_failures:ghost@test.com', 900);
+    });
+
+    it('should block the email after 10 failed logins, even with the right password', async () => {
+      mockRedisService.get.mockResolvedValueOnce('10');
+
+      await expect(service.signIn('test@test.com', 'correct_pass')).rejects.toMatchObject({
+        status: 429,
+      });
+      expect(mockUsersService.findOneByEmail).not.toHaveBeenCalled();
+    });
+
+    it('should refuse a user whose email is not verified', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email: 'test@test.com',
+        password: 'hashed',
+        role: UserRole.WORKER,
+        email_verified_at: null,
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(service.signIn('test@test.com', 'correct_pass')).rejects.toMatchObject({
+        status: 403,
+        response: { message: 'EMAIL_NOT_VERIFIED', userId: 1 },
+      });
+      expect(mockJwtService.signAsync).not.toHaveBeenCalled();
+    });
+
     it('should return tokens if credentials are correct', async () => {
       mockUsersService.findOneByEmail.mockResolvedValue({
         id: 1,
         email: 'test@test.com',
         password: 'hashed',
         role: UserRole.WORKER,
+        email_verified_at: new Date(),
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -194,6 +246,7 @@ describe('AuthService', () => {
         'refresh_token_mock',
         expect.any(Date),
       );
+      expect(mockRedisService.del).toHaveBeenCalledWith('login_failures:test@test.com');
     });
   });
 
@@ -242,19 +295,95 @@ describe('AuthService', () => {
         email_verified_at: null,
         email: 'test@test.com',
         first_name: 'John',
+        role: UserRole.WORKER,
       });
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new_hashed_password');
 
       const result = await service.register(baseWorkerDto);
       expect(mockEmailVerificationService.sendVerificationCode).toHaveBeenCalledWith(
         1,
         'test@test.com',
         'John',
+        true,
       );
+      expect(mockUsersService.update).toHaveBeenCalledWith(1, {
+        password: 'new_hashed_password',
+        first_name: 'John',
+        last_name: 'Doe',
+        phone_number: '0600000000',
+        birth_date: '1990-01-01',
+      });
+      expect(mockRefreshSessionService.revokeAllSessions).toHaveBeenCalledWith(1);
       expect(result).toEqual({
         userId: 1,
         message: 'Un code de vérification a été renvoyé à votre adresse email.',
       });
       expect(mockSequelize.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should not overwrite an unverified account when the code cannot be resent yet', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email_verified_at: null,
+        email: 'test@test.com',
+        role: UserRole.WORKER,
+      });
+      mockEmailVerificationService.sendVerificationCode.mockRejectedValueOnce(
+        new HttpException('cooldown', HttpStatus.TOO_MANY_REQUESTS),
+      );
+
+      await expect(service.register(baseWorkerDto)).rejects.toThrow(HttpException);
+      expect(mockUsersService.update).not.toHaveBeenCalled();
+    });
+
+    it('should refuse to re-register an unverified account with another role', async () => {
+      mockUsersService.findOneByEmail.mockResolvedValue({
+        id: 1,
+        email_verified_at: null,
+        email: 'test@test.com',
+        role: UserRole.EMPLOYER,
+      });
+
+      await expect(service.register(baseWorkerDto)).rejects.toThrow(ConflictException);
+      expect(mockUsersService.update).not.toHaveBeenCalled();
+      expect(mockEmailVerificationService.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    it('should geocode the address before the transaction and create it inside', async () => {
+      const attributes = {
+        street_name: 'Rue de la Paix',
+        full_address: '...',
+        latitude: 1,
+        longitude: 2,
+      };
+      mockUsersService.findOneByEmail.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      mockAddressService.buildAttributes.mockResolvedValue(attributes);
+      mockAddressModel.create.mockResolvedValue({ id: 77 });
+      mockUsersService.create.mockResolvedValue({ id: 3 });
+      mockUsersService.findOneById.mockResolvedValue({
+        id: 3,
+        email: 'w@test.com',
+        first_name: 'W',
+      });
+
+      const address = { streetName: 'Rue de la Paix', zipCode: '75002', city: 'Paris' };
+      await service.register({
+        ...baseWorkerDto,
+        workerProfile: { ...baseWorkerDto.workerProfile!, address },
+      });
+
+      expect(mockAddressService.buildAttributes).toHaveBeenCalledWith(address);
+      expect(mockAddressService.buildAttributes.mock.invocationCallOrder[0]).toBeLessThan(
+        mockSequelize.transaction.mock.invocationCallOrder[0],
+      );
+      expect(mockAddressModel.create).toHaveBeenCalledWith(attributes, {
+        transaction: expect.anything() as unknown,
+      });
+      expect(mockWorkersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ addressId: 77 }),
+        expect.anything(),
+      );
     });
 
     it('should create WORKER: hash password, run transaction, create user + worker profile, send email', async () => {
@@ -303,6 +432,7 @@ describe('AuthService', () => {
         2,
         'worker@test.com',
         'John',
+        true,
       );
       expect(result).toEqual({
         userId: 2,
@@ -443,19 +573,26 @@ describe('AuthService', () => {
     });
   });
 
+  describe('getUserForVerification', () => {
+    it('should return an unverified user', async () => {
+      const user = { id: 1, email_verified_at: null };
+      mockUsersService.findOneById.mockResolvedValue(user);
+
+      await expect(service.getUserForVerification(1)).resolves.toBe(user);
+    });
+
+    it('should refuse to resend a code to an already verified user', async () => {
+      mockUsersService.findOneById.mockResolvedValue({ id: 1, email_verified_at: new Date() });
+
+      await expect(service.getUserForVerification(1)).rejects.toThrow(ConflictException);
+    });
+  });
+
   describe('logout', () => {
     it('should revoke active session for user', async () => {
       const result = await service.logout(1);
       expect(mockRefreshSessionService.revokeActiveSessionByUserId).toHaveBeenCalledWith(1);
       expect(result).toEqual({ message: 'Session revoked successfully' });
-    });
-  });
-
-  describe('logoutAll', () => {
-    it('should revoke all sessions for user', async () => {
-      const result = await service.logoutAll(1);
-      expect(mockRefreshSessionService.revokeAllSessions).toHaveBeenCalledWith(1);
-      expect(result).toEqual({ message: 'All sessions revoked successfully' });
     });
   });
 
