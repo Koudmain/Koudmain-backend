@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from '@/modules/users/models/user.model';
-import { Transaction } from 'sequelize';
+import { Transaction, col, fn, where } from 'sequelize';
 
 @Injectable()
 export class UsersService {
@@ -12,7 +12,9 @@ export class UsersService {
   }
 
   async findOneByEmail(email: string): Promise<User | null> {
-    return this.userModel.findOne({ where: { email } });
+    return this.userModel.findOne({
+      where: where(fn('lower', col('email')), email.toLowerCase()),
+    });
   }
 
   async findOneByIdPublic(id: number): Promise<User | null> {
