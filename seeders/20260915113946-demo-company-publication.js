@@ -141,13 +141,26 @@ module.exports = {
       );
     }
 
+    const existingPublicationsQuery = await queryInterface.sequelize.query(
+      `SELECT title FROM publication WHERE company_id = ${target.company_id};`,
+    );
+    const existingTitles = new Set(existingPublicationsQuery[0].map((p) => p.title));
+    const missingPublications = PUBLICATIONS_DATA.filter((pub) => !existingTitles.has(pub.title));
+
+    if (missingPublications.length === 0) {
+      console.log(
+        `Les publications de démonstration existent déjà pour l'entreprise #${target.company_id}, seed ignoré.`,
+      );
+      return;
+    }
+
     const maxPublicationIdQuery = await queryInterface.sequelize.query(
       `SELECT MAX(id) as max_id FROM publication;`,
     );
     let nextPublicationId = Number(maxPublicationIdQuery[0][0]?.max_id || 0) + 1;
 
     const now = new Date();
-    const publicationsToInsert = PUBLICATIONS_DATA.map((pub) => {
+    const publicationsToInsert = missingPublications.map((pub) => {
       const starting_date = new Date(now);
       starting_date.setDate(starting_date.getDate() + pub.startOffsetDays);
       starting_date.setHours(pub.startHour, 0, 0, 0);
