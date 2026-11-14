@@ -22,7 +22,6 @@ import { UserRole } from '@/modules/users/models/user.model';
 import {
   RegisterDto,
   WorkerProfileDto,
-  EmployerProfileDto,
   OwnerPosition,
   CompanyType,
   GoogleRegisterDto,
@@ -210,7 +209,7 @@ describe('AuthService', () => {
         skillCategoryIds: [1],
         bio: 'Plombier expérimenté',
         workRadius: 30,
-      } as WorkerProfileDto,
+      },
     };
 
     const baseEmployerDto: RegisterDto = {
@@ -226,7 +225,7 @@ describe('AuthService', () => {
         companyType: CompanyType.CAFE_BAR,
         ownerPosition: OwnerPosition.HR,
         desiredJobIds: [1, 2],
-      } as EmployerProfileDto,
+      },
     };
 
     it('should throw ConflictException if email already exists and is verified', async () => {

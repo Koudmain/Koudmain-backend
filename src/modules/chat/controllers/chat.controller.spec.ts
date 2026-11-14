@@ -2,20 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { ChatController } from './chat.controller';
 import { ChatService } from '@/modules/chat/services/chat.service';
-import type { Request as ExpressRequest } from 'express';
+import { type RequestWithUser } from '@/common/types/request.type';
 import { ROLES_KEY } from '@/decorators/roles.decorator';
 import { UserRole } from '@/modules/users/models/user.model';
 
 describe('ChatController', () => {
   let controller: ChatController;
   let service: jest.Mocked<ChatService>;
-
-  interface RequestWithUser extends ExpressRequest {
-    user: {
-      sub: number;
-      email: string;
-    };
-  }
 
   const mockRequest = {
     user: { sub: 1, email: 'test@example.com' },
