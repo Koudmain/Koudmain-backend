@@ -90,6 +90,7 @@ describe('PlanningService', () => {
       await service.getPlanning(userId);
 
       expect(mockApplicationModel.findAll).toHaveBeenCalledWith({
+        where: { status: { [Op.in]: ['Accepted', 'Pending'] } },
         include: [
           {
             model: WorkerProfile,
@@ -147,6 +148,7 @@ describe('PlanningService', () => {
       await service.getPlanning(userId, startDate, endDate);
 
       expect(mockApplicationModel.findAll).toHaveBeenCalledWith({
+        where: { status: { [Op.in]: ['Accepted', 'Pending'] } },
         include: [
           {
             model: WorkerProfile,
@@ -224,6 +226,7 @@ describe('PlanningService', () => {
             {
               status: 'Accepted',
               workerProfile: {
+                id: 42,
                 user: {
                   first_name: 'Jane',
                   last_name: 'Doe',
@@ -232,6 +235,18 @@ describe('PlanningService', () => {
                 },
               },
             },
+            { status: 'Pending', workerProfile: { user: { reviews: [] } } },
+          ],
+        },
+        {
+          id: 30,
+          title: 'Publication with pending applications only',
+          hourly_rate: 14,
+          starting_date: new Date('2026-05-20'),
+          ending_date: new Date('2026-05-20'),
+          applications: [
+            { status: 'Pending', workerProfile: { user: { reviews: [] } } },
+            { status: 'Pending', workerProfile: { user: { reviews: [] } } },
           ],
         },
       ];
@@ -249,10 +264,13 @@ describe('PlanningService', () => {
           salary: 20,
           starting_date: new Date('2026-05-10'),
           ending_date: new Date('2026-05-12'),
+          workerId: null,
           worker_name: null,
           worker_profile_picture: null,
           workerRating: 0,
           workerRatingCount: 0,
+          status: 'no_candidate',
+          pendingApplicationsCount: 0,
         },
         {
           publicationId: 20,
@@ -260,10 +278,27 @@ describe('PlanningService', () => {
           salary: 30,
           starting_date: new Date('2026-05-15'),
           ending_date: new Date('2026-05-16'),
+          workerId: 42,
           worker_name: 'Jane Doe',
           worker_profile_picture: 'http://example.com/pic.jpg',
           workerRating: 4.5,
           workerRatingCount: 2,
+          status: 'filled',
+          pendingApplicationsCount: 1,
+        },
+        {
+          publicationId: 30,
+          title: 'Publication with pending applications only',
+          salary: 14,
+          starting_date: new Date('2026-05-20'),
+          ending_date: new Date('2026-05-20'),
+          workerId: null,
+          worker_name: null,
+          worker_profile_picture: null,
+          workerRating: 0,
+          workerRatingCount: 0,
+          status: 'open',
+          pendingApplicationsCount: 2,
         },
       ]);
     });
@@ -302,7 +337,7 @@ describe('PlanningService', () => {
             hourly_rate: 20,
             starting_date: new Date('2026-05-10'),
             ending_date: new Date('2026-05-12'),
-            company: { name: 'Test Company' },
+            company: { id: 7, name: 'Test Company' },
             creator: {
               profile_picture_url: 'http://example.com/pic.jpg',
               reviews: [{ rating: 4 }, { rating: 5 }],
@@ -336,10 +371,11 @@ describe('PlanningService', () => {
           salary: 20,
           starting_date: new Date('2026-05-10'),
           ending_date: new Date('2026-05-12'),
+          companyId: 7,
           company_name: 'Test Company',
           companyRating: 4.5,
           companyRatingCount: 2,
-          company_logo: 'http://example.com/pic.jpg',
+          company_logo: null,
           application_status: 'PENDING',
           city: null,
           zip: null,
@@ -350,6 +386,7 @@ describe('PlanningService', () => {
           salary: 30,
           starting_date: new Date('2026-05-15'),
           ending_date: new Date('2026-05-16'),
+          companyId: null,
           company_name: null,
           companyRating: 0,
           companyRatingCount: 0,

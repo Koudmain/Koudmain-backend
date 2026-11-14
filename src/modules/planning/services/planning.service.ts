@@ -11,6 +11,8 @@ import { Review } from '@/modules/review/models/review.model';
 import { Address } from '@/modules/address/address.model';
 import { UserRole } from '@/modules/users/models/user.model';
 
+export type EmployerPlanningStatus = 'filled' | 'open' | 'no_candidate';
+
 @Injectable()
 export class PlanningService {
   constructor(
@@ -113,7 +115,7 @@ export class PlanningService {
           required: false,
           where: {
             status: {
-              [Op.in]: ['Accepted'],
+              [Op.in]: ['Accepted', 'Pending'],
             },
           },
           include: [
@@ -143,7 +145,17 @@ export class PlanningService {
     });
 
     return publications.map((pub) => {
-      const acceptedApplication = pub.applications?.[0];
+      const applications = pub.applications || [];
+      const acceptedApplication = applications.find((app) => app.status === 'Accepted');
+      const pendingApplicationsCount = applications.filter(
+        (app) => app.status === 'Pending',
+      ).length;
+      let status: EmployerPlanningStatus = 'no_candidate';
+      if (acceptedApplication) {
+        status = 'filled';
+      } else if (pendingApplicationsCount > 0) {
+        status = 'open';
+      }
       const worker = acceptedApplication?.workerProfile?.user;
       const reviews = worker?.reviews || [];
       const totalRating = reviews.reduce((sum: number, r: Review) => sum + r.rating, 0);
@@ -155,16 +167,24 @@ export class PlanningService {
         salary: pub.hourly_rate,
         starting_date: pub.starting_date,
         ending_date: pub.ending_date,
+        workerId: acceptedApplication?.workerProfile?.id ?? null,
         worker_name: worker ? `${worker.first_name} ${worker.last_name}` : null,
         worker_profile_picture: worker?.profile_picture_url || null,
         workerRating: Number(workerRating.toFixed(2)),
         workerRatingCount: reviews.length,
+        status,
+        pendingApplicationsCount,
       };
     });
   }
 
   private async getWorkerPlanning(userId: number, filterStartDate: Date, filterEndDate: Date) {
     const applications = await this.applicationModel.findAll({
+      where: {
+        status: {
+          [Op.in]: ['Accepted', 'Pending'],
+        },
+      },
       include: [
         {
           model: WorkerProfile,
@@ -225,10 +245,11 @@ export class PlanningService {
         salary: pub.hourly_rate,
         starting_date: pub.starting_date,
         ending_date: pub.ending_date,
+        companyId: pub.company?.id ?? null,
         company_name: pub.company?.name || null,
         companyRating: Number(companyRating.toFixed(2)),
         companyRatingCount: reviews.length,
-        company_logo: pub.creator?.profile_picture_url || null,
+        company_logo: null,
         application_status: app.status,
         city: pub.address?.city || null,
         zip: pub.address?.zip_code || null,
