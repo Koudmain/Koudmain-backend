@@ -1,8 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { RedisService, StreamEntry } from '@/shared/redis/redis.service';
 import { OutboxEventType } from '@/modules/application/models/outbox-event.model';
 import { OUTBOX_STREAM_KEY } from '@/shared/outbox/outbox-stream.constants';
-import { NotificationService } from './notification.service';
+import { OUTBOX_EVENT_HANDLERS } from '@/modules/notification/notification.constants';
+import { OutboxEventHandler } from '@/modules/notification/outbox-event-handler.interface';
 
 const GROUP_NAME = 'notification-service';
 const CONSUMER_NAME = 'notification-service';
@@ -10,22 +11,28 @@ const BLOCK_MS = 5_000;
 const RETRY_DELAY_MS = 2_000;
 const MAX_DELIVERY_ATTEMPTS = 5;
 
-interface ApplicationCreatedPayload {
-  publicationId: number;
-  applicationId: number;
-}
-
 @Injectable()
-export class ApplicationCreatedConsumerService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(ApplicationCreatedConsumerService.name);
+export class OutboxStreamConsumerService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(OutboxStreamConsumerService.name);
   private readonly deliveryAttempts = new Map<string, number>();
+  private readonly handlersByType: Map<OutboxEventType, OutboxEventHandler>;
   private isDestroyed = false;
   private loopPromise?: Promise<void>;
 
   constructor(
     private readonly redisService: RedisService,
-    private readonly notificationService: NotificationService,
-  ) {}
+    @Inject(OUTBOX_EVENT_HANDLERS) handlers: OutboxEventHandler[],
+  ) {
+    this.handlersByType = new Map();
+    for (const handler of handlers) {
+      if (this.handlersByType.has(handler.eventType)) {
+        throw new Error(
+          `Plusieurs OutboxEventHandler enregistrés pour le type ${handler.eventType}`,
+        );
+      }
+      this.handlersByType.set(handler.eventType, handler);
+    }
+  }
 
   async onModuleInit() {
     await this.redisService.ensureConsumerGroup(OUTBOX_STREAM_KEY, GROUP_NAME);
@@ -70,13 +77,10 @@ export class ApplicationCreatedConsumerService implements OnModuleInit, OnModule
 
   private async handleEntry(entry: StreamEntry): Promise<void> {
     try {
-      if (entry.fields.type === OutboxEventType.APPLICATION_CREATED) {
-        const payload = JSON.parse(entry.fields.payload) as ApplicationCreatedPayload;
-        await this.notificationService.handleApplicationCreated(
-          payload.publicationId,
-          payload.applicationId,
-          Number(entry.fields.id),
-        );
+      const handler = this.handlersByType.get(entry.fields.type as OutboxEventType);
+      if (handler) {
+        const payload = JSON.parse(entry.fields.payload);
+        await handler.handle(payload, Number(entry.fields.id));
       }
       await this.redisService.ackStreamEntry(OUTBOX_STREAM_KEY, GROUP_NAME, entry.id);
       this.deliveryAttempts.delete(entry.id);

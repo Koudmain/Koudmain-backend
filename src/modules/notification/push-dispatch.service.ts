@@ -1,7 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { PublicationService } from '@/modules/publication/services/publication.service';
-import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { DeviceTokenService } from '@/modules/push/services/device-token.service';
 import { PushService, PushPayload } from '@/modules/push/services/push.service';
 import { DeviceToken } from '@/modules/push/models/device-token.model';
@@ -11,12 +9,11 @@ import {
   NotificationDeliveryStatus,
 } from '@/modules/application/models/notification-delivery.model';
 
-export interface ApplicationCreatedNotification {
-  publicationId: number;
-  applicationId: number;
+export interface PushDispatchRequest {
+  recipientUserIds: number[];
+  payload: PushPayload;
   outboxEventId: number;
-  unseenCount: number;
-  isFirstUnseen: boolean;
+  applicationId?: number | null;
 }
 
 @Injectable()
@@ -24,52 +21,29 @@ export class PushDispatchService {
   private readonly logger = new Logger(PushDispatchService.name);
 
   constructor(
-    private readonly publicationService: PublicationService,
-    private readonly companiesService: CompaniesService,
     private readonly deviceTokenService: DeviceTokenService,
     private readonly pushService: PushService,
     @InjectModel(NotificationDelivery)
     private readonly notificationDeliveryModel: typeof NotificationDelivery,
   ) {}
 
-  async dispatch(event: ApplicationCreatedNotification): Promise<void> {
-    const publication = await this.publicationService.getById(event.publicationId);
-    if (!publication || !publication.companyId) {
-      this.logger.warn(
-        `Publication ${event.publicationId} introuvable ou sans entreprise, push ignoré`,
-      );
+  async dispatch(request: PushDispatchRequest): Promise<void> {
+    if (request.recipientUserIds.length === 0) {
+      this.logger.log('Aucun destinataire résolu pour cette notification, push ignoré');
       return;
     }
 
-    const userIds = await this.companiesService.getCompanyMemberUserIds(publication.companyId);
-    if (userIds.length === 0) {
-      this.logger.log(
-        `Aucun utilisateur n'a été trouvé pour l'entreprise ${publication.companyId}, push ignoré`,
-      );
-      return;
-    }
-
-    const deviceTokens = await this.deviceTokenService.getTokensByUserIds(userIds);
+    const deviceTokens = await this.deviceTokenService.getTokensByUserIds(request.recipientUserIds);
     if (deviceTokens.length === 0) {
       this.logger.log(
-        `Aucun device token pour les membres de l'entreprise ${publication.companyId}, push ignoré`,
+        'Aucun device token pour les destinataires de cette notification, push ignoré',
       );
       return;
     }
 
-    const payload: PushPayload = {
-      title: event.isFirstUnseen ? 'Nouvelle candidature' : 'Nouvelles candidatures',
-      body: event.isFirstUnseen
-        ? 'Vous avez reçu une nouvelle candidature'
-        : `Vous avez ${event.unseenCount} candidatures non vues sur cette offre`,
-      collapseId: `publication:${event.publicationId}`,
-      data: { publicationId: String(event.publicationId) },
-    };
-
-    // Send push to device
     for (const deviceToken of deviceTokens) {
       try {
-        await this.sendToDevice(deviceToken, payload, event);
+        await this.sendToDevice(deviceToken, request);
       } catch (err) {
         this.logger.error(
           `Échec du push pour le device ${deviceToken.id} (utilisateur ${deviceToken.userId})`,
@@ -81,14 +55,13 @@ export class PushDispatchService {
 
   private async sendToDevice(
     deviceToken: DeviceToken,
-    payload: PushPayload,
-    event: ApplicationCreatedNotification,
+    request: PushDispatchRequest,
   ): Promise<void> {
-    const result = await this.pushService.sendPush(deviceToken, payload);
+    const result = await this.pushService.sendPush(deviceToken, request.payload);
 
     await this.notificationDeliveryModel.create({
-      outboxEventId: event.outboxEventId,
-      applicationId: event.applicationId,
+      outboxEventId: request.outboxEventId,
+      applicationId: request.applicationId ?? null,
       userId: deviceToken.userId,
       platform: deviceToken.platform,
       channel: NotificationChannel.PUSH,

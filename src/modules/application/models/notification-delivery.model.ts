@@ -24,8 +24,8 @@ export class NotificationDelivery extends Model {
   declare outboxEventId: number;
 
   @ForeignKey(() => Application)
-  @Column({ type: DataType.INTEGER, field: 'application_id', allowNull: false })
-  declare applicationId: number;
+  @Column({ type: DataType.INTEGER, field: 'application_id', allowNull: true })
+  declare applicationId: number | null;
 
   @Column({
     type: DataType.ENUM(NotificationChannel.PUSH, NotificationChannel.WEBSOCKET),
