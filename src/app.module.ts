@@ -17,6 +17,7 @@ import { WorkersModule } from './modules/workers/workers.module';
 import { AddressModule } from './modules/address/address.module';
 import { ApplicationModule } from './modules/application/application.module';
 import { OutboxRelayModule } from './modules/outbox-relay/outbox-relay.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { OutboxRelayModule } from './modules/outbox-relay/outbox-relay.module';
     AddressModule,
     ApplicationModule,
     OutboxRelayModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
