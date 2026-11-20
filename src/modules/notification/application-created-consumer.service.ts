@@ -75,6 +75,7 @@ export class ApplicationCreatedConsumerService implements OnModuleInit, OnModule
         await this.notificationService.handleApplicationCreated(
           payload.publicationId,
           payload.applicationId,
+          Number(entry.fields.id),
         );
       }
       await this.redisService.ackStreamEntry(OUTBOX_STREAM_KEY, GROUP_NAME, entry.id);

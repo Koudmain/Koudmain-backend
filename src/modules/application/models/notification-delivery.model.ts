@@ -1,6 +1,8 @@
 import { Column, Model, Table, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { Application } from './application.model';
 import { OutboxEvent } from './outbox-event.model';
+import { User } from '@/modules/users/models/user.model';
+import { DeviceTokenPlatform } from '@/modules/push/models/device-token.model';
 
 export enum NotificationChannel {
   PUSH = 'Push',
@@ -12,11 +14,6 @@ export enum NotificationDeliveryStatus {
   FAILED = 'Failed',
 }
 
-/**
- * Trace un envoi de notification (push ou WebSocket) déclenché par un événement
- * de l'outbox, pour une candidature donnée. Sert de journal de livraison : debug
- * et, plus tard, traçabilité des informations transmises à l'employeur.
- */
 @Table({ tableName: 'notification_delivery', timestamps: false })
 export class NotificationDelivery extends Model {
   @Column({ type: DataType.INTEGER, primaryKey: true, autoIncrement: true })
@@ -42,6 +39,16 @@ export class NotificationDelivery extends Model {
   })
   declare status: NotificationDeliveryStatus;
 
+  @ForeignKey(() => User)
+  @Column({ field: 'user_id', type: DataType.INTEGER, allowNull: true })
+  declare userId: number | null;
+
+  @Column({
+    type: DataType.ENUM(DeviceTokenPlatform.IOS, DeviceTokenPlatform.ANDROID),
+    allowNull: true,
+  })
+  declare platform: DeviceTokenPlatform | null;
+
   @Column({ field: 'error_message', type: DataType.TEXT, allowNull: true })
   declare errorMessage: string | null;
 
@@ -53,4 +60,7 @@ export class NotificationDelivery extends Model {
 
   @BelongsTo(() => Application)
   declare application: Application;
+
+  @BelongsTo(() => User)
+  declare user: User;
 }

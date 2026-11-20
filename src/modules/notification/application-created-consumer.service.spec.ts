@@ -17,6 +17,7 @@ describe('ApplicationCreatedConsumerService', () => {
   const buildEntry = (overrides: Partial<StreamEntry['fields']> = {}): StreamEntry => ({
     id: '1-0',
     fields: {
+      id: '100',
       type: OutboxEventType.APPLICATION_CREATED,
       payload: JSON.stringify({ publicationId: 10, applicationId: 42 }),
       ...overrides,
@@ -67,7 +68,7 @@ describe('ApplicationCreatedConsumerService', () => {
       entry,
     );
 
-    expect(mockNotificationService.handleApplicationCreated).toHaveBeenCalledWith(10, 42);
+    expect(mockNotificationService.handleApplicationCreated).toHaveBeenCalledWith(10, 42, 100);
     expect(mockRedisService.ackStreamEntry).toHaveBeenCalledWith(
       'outbox-events',
       'notification-service',
