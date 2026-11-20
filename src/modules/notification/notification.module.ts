@@ -1,15 +1,18 @@
 import { Module } from '@nestjs/common';
 import { PublicationModule } from '@/modules/publication/publication.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';
+import { ApplicationModule } from '@/modules/application/application.module';
 import { PushJobPublisherService } from './push-job-publisher.service';
 import { OutboxStreamConsumerService } from './outbox-stream-consumer.service';
 import { OUTBOX_EVENT_HANDLERS } from './notification.constants';
 import { OutboxEventHandler } from './outbox-event-handler.interface';
 import { ApplicationNotificationService } from './application/application-notification.service';
 import { ApplicationCreatedHandler } from './application/application-created.handler';
+import { ApplicationController } from '@/modules/application/controllers/application.controller';
 
 @Module({
-  imports: [PublicationModule, CompaniesModule],
+  imports: [PublicationModule, CompaniesModule, ApplicationModule],
+  controllers: [ApplicationController],
   providers: [
     PushJobPublisherService,
     OutboxStreamConsumerService,
