@@ -6,7 +6,7 @@ import { Publication } from '@/modules/publication/models/publication.model';
 import { User } from '@/modules/users/models/user.model';
 import { Company } from '@/modules/companies/models/company.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
-import { Application } from '@/modules/application/models/application.model';
+import { ApplicationModule } from '@/modules/application/application.module';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Review } from '@/modules/review/models/review.model';
 import { Address } from '@/modules/address/address.model';
@@ -18,11 +18,11 @@ import { Address } from '@/modules/address/address.model';
       User,
       Company,
       CompanyMember,
-      Application,
       WorkerProfile,
       Review,
       Address,
     ]),
+    ApplicationModule,
   ],
   controllers: [PlanningController],
   providers: [PlanningService],
