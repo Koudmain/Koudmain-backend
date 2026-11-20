@@ -58,6 +58,11 @@ export class ApplicationNotificationService {
     await this.redisService.del(this.unseenCountKey(publicationId));
   }
 
+  async getUnseenCount(publicationId: number): Promise<number> {
+    const value = await this.redisService.get(this.unseenCountKey(publicationId));
+    return value ? parseInt(value, 10) : 0;
+  }
+
   private unseenCountKey(publicationId: number): string {
     return `publication:${publicationId}:unseen_applications`;
   }

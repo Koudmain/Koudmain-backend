@@ -10,6 +10,8 @@ import { DeviceToken } from '@/modules/push/models/device-token.model';
 import { Application } from '@/modules/application/models/application.model';
 import { OutboxEvent } from '@/modules/application/models/outbox-event.model';
 import { NotificationDelivery } from '@/modules/application/models/notification-delivery.model';
+import { Publication } from '@/modules/publication/models/publication.model';
+import { CompanyMember } from '@/modules/companies/models/company-member.model';
 
 @Global()
 @Module({
@@ -30,6 +32,10 @@ describe('InternalModule', () => {
       .overrideProvider(getModelToken(OutboxEvent))
       .useValue({})
       .overrideProvider(getModelToken(NotificationDelivery))
+      .useValue({})
+      .overrideProvider(getModelToken(Publication))
+      .useValue({})
+      .overrideProvider(getModelToken(CompanyMember))
       .useValue({})
       .compile();
 

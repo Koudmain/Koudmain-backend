@@ -7,13 +7,13 @@ import { PushJobPublisherService } from '@/modules/notification/push-job-publish
 
 describe('ApplicationNotificationService', () => {
   let service: ApplicationNotificationService;
-  let mockRedisService: { incr: jest.Mock; del: jest.Mock };
+  let mockRedisService: { incr: jest.Mock; del: jest.Mock; get: jest.Mock };
   let mockPublicationService: { getById: jest.Mock };
   let mockCompaniesService: { getCompanyMemberUserIds: jest.Mock };
   let mockPushJobPublisherService: { publish: jest.Mock };
 
   beforeEach(async () => {
-    mockRedisService = { incr: jest.fn(), del: jest.fn() };
+    mockRedisService = { incr: jest.fn(), del: jest.fn(), get: jest.fn() };
     mockPublicationService = { getById: jest.fn().mockResolvedValue({ id: 10, companyId: 5 }) };
     mockCompaniesService = { getCompanyMemberUserIds: jest.fn().mockResolvedValue([1, 2]) };
     mockPushJobPublisherService = { publish: jest.fn().mockResolvedValue(undefined) };
@@ -98,5 +98,18 @@ describe('ApplicationNotificationService', () => {
   it('should reset the unseen counter by deleting the key', async () => {
     await service.resetUnseenCount(10);
     expect(mockRedisService.del).toHaveBeenCalledWith('publication:10:unseen_applications');
+  });
+
+  it('should return the unseen count from redis', async () => {
+    mockRedisService.get.mockResolvedValue('4');
+
+    await expect(service.getUnseenCount(10)).resolves.toBe(4);
+    expect(mockRedisService.get).toHaveBeenCalledWith('publication:10:unseen_applications');
+  });
+
+  it('should return 0 when the key does not exist', async () => {
+    mockRedisService.get.mockResolvedValue(null);
+
+    await expect(service.getUnseenCount(10)).resolves.toBe(0);
   });
 });

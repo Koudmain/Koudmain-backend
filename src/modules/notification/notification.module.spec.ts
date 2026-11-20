@@ -7,6 +7,7 @@ import { OutboxStreamConsumerService } from './outbox-stream-consumer.service';
 import { ApplicationCreatedHandler } from './application/application-created.handler';
 import { OUTBOX_EVENT_HANDLERS } from './notification.constants';
 import { RedisService } from '@/shared/redis/redis.service';
+import { ApplicationController } from '@/modules/application/controllers/application.controller';
 
 @Global()
 @Module({
@@ -52,6 +53,26 @@ jest.mock('@/modules/companies/companies.module', () => {
   return { CompaniesModule: InlineCompaniesModule };
 });
 
+jest.mock('@/modules/application/application.module', () => {
+  const { Module: nestModule } = jest.requireActual('@nestjs/common');
+  const { ApplicationService: realApplicationService } = jest.requireActual(
+    '@/modules/application/services/application.service',
+  );
+
+  @nestModule({
+    providers: [
+      {
+        provide: realApplicationService,
+        useValue: { findForUser: jest.fn(), assertMemberOfPublicationCompany: jest.fn() },
+      },
+    ],
+    exports: [realApplicationService],
+  })
+  class InlineApplicationModule {}
+
+  return { ApplicationModule: InlineApplicationModule };
+});
+
 describe('NotificationModule', () => {
   let moduleRef: TestingModule;
 
@@ -79,5 +100,8 @@ describe('NotificationModule', () => {
     expect(moduleRef.get(OUTBOX_EVENT_HANDLERS)).toEqual([
       moduleRef.get<ApplicationCreatedHandler>(ApplicationCreatedHandler),
     ]);
+    expect(moduleRef.get<ApplicationController>(ApplicationController)).toBeInstanceOf(
+      ApplicationController,
+    );
   });
 });
