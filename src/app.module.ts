@@ -15,6 +15,7 @@ import { MailerModule } from './modules/mailer/mailer.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { WorkersModule } from './modules/workers/workers.module';
 import { AddressModule } from './modules/address/address.module';
+import { ApplicationModule } from './modules/application/application.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AddressModule } from './modules/address/address.module';
     ChatModule,
     WorkersModule,
     AddressModule,
+    ApplicationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
