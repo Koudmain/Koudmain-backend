@@ -26,6 +26,7 @@ describe('RedisService', () => {
     const mockSet = jest.fn().mockResolvedValue('OK');
     const mockGet = jest.fn().mockResolvedValue('mock-value');
     const mockDel = jest.fn().mockResolvedValue(1);
+    const mockXadd = jest.fn().mockResolvedValue('1700000000000-0');
 
     (Redis as unknown as jest.Mock).mockImplementation(() => ({
       on: mockOn,
@@ -33,6 +34,7 @@ describe('RedisService', () => {
       set: mockSet,
       get: mockGet,
       del: mockDel,
+      xadd: mockXadd,
     }));
 
     const module: TestingModule = await Test.createTestingModule({
@@ -88,5 +90,21 @@ describe('RedisService', () => {
   it('should call del with correct arguments', async () => {
     await service.del('test-key');
     expect(jest.mocked(mockRedisClient.del)).toHaveBeenCalledWith('test-key');
+  });
+
+  it('should call xadd with flattened fields and return the generated entry id', async () => {
+    const result = await service.publishToStream('outbox-events', {
+      id: '42',
+      type: 'APPLICATION_CREATED',
+    });
+    expect(jest.mocked(mockRedisClient.xadd)).toHaveBeenCalledWith(
+      'outbox-events',
+      '*',
+      'id',
+      '42',
+      'type',
+      'APPLICATION_CREATED',
+    );
+    expect(result).toBe('1700000000000-0');
   });
 });
