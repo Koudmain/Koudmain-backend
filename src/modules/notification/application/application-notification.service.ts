@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '@/shared/redis/redis.service';
 import { PublicationService } from '@/modules/publication/services/publication.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
-import { PushDispatchService } from '@/modules/notification/push-dispatch.service';
+import { PushJobPublisherService } from '@/modules/notification/push-job-publisher.service';
 
 @Injectable()
 export class ApplicationNotificationService {
@@ -12,7 +12,7 @@ export class ApplicationNotificationService {
     private readonly redisService: RedisService,
     private readonly publicationService: PublicationService,
     private readonly companiesService: CompaniesService,
-    private readonly pushDispatchService: PushDispatchService,
+    private readonly pushJobPublisherService: PushJobPublisherService,
   ) {}
 
   async handleApplicationCreated(
@@ -39,7 +39,7 @@ export class ApplicationNotificationService {
       publication.companyId,
     );
 
-    await this.pushDispatchService.dispatch({
+    await this.pushJobPublisherService.publish({
       recipientUserIds,
       outboxEventId,
       applicationId,

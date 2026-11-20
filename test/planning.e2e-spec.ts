@@ -120,10 +120,15 @@ describe('Planning (e2e)', () => {
        VALUES (${pubId}, ${workerProfileId}, 'Accepted')`,
     );
 
-    // Create a pending application on the same publication (should not appear in planning)
+    // Create a pending application on the same publication from another worker
+    // (a worker can only apply once per publication, so we can't reuse workerProfileId)
+    const [otherWorkerProfileRows] = await sequelize.query(
+      `SELECT id FROM "worker_profile" WHERE id <> ${workerProfileId} ORDER BY id LIMIT 1`,
+    );
+    const otherWorkerProfileId = (otherWorkerProfileRows[0] as { id: number }).id;
     await sequelize.query(
       `INSERT INTO "application" (publication_id, worker_id, status)
-       VALUES (${pubId}, ${workerProfileId}, 'Pending')`,
+       VALUES (${pubId}, ${otherWorkerProfileId}, 'Pending')`,
     );
   });
 

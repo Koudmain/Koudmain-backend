@@ -3,20 +3,20 @@ import { ApplicationNotificationService } from './application-notification.servi
 import { RedisService } from '@/shared/redis/redis.service';
 import { PublicationService } from '@/modules/publication/services/publication.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
-import { PushDispatchService } from '@/modules/notification/push-dispatch.service';
+import { PushJobPublisherService } from '@/modules/notification/push-job-publisher.service';
 
 describe('ApplicationNotificationService', () => {
   let service: ApplicationNotificationService;
   let mockRedisService: { incr: jest.Mock; del: jest.Mock };
   let mockPublicationService: { getById: jest.Mock };
   let mockCompaniesService: { getCompanyMemberUserIds: jest.Mock };
-  let mockPushDispatchService: { dispatch: jest.Mock };
+  let mockPushJobPublisherService: { publish: jest.Mock };
 
   beforeEach(async () => {
     mockRedisService = { incr: jest.fn(), del: jest.fn() };
     mockPublicationService = { getById: jest.fn().mockResolvedValue({ id: 10, companyId: 5 }) };
     mockCompaniesService = { getCompanyMemberUserIds: jest.fn().mockResolvedValue([1, 2]) };
-    mockPushDispatchService = { dispatch: jest.fn().mockResolvedValue(undefined) };
+    mockPushJobPublisherService = { publish: jest.fn().mockResolvedValue(undefined) };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -24,7 +24,7 @@ describe('ApplicationNotificationService', () => {
         { provide: RedisService, useValue: mockRedisService },
         { provide: PublicationService, useValue: mockPublicationService },
         { provide: CompaniesService, useValue: mockCompaniesService },
-        { provide: PushDispatchService, useValue: mockPushDispatchService },
+        { provide: PushJobPublisherService, useValue: mockPushJobPublisherService },
       ],
     }).compile();
 
@@ -58,16 +58,16 @@ describe('ApplicationNotificationService', () => {
     await service.handleApplicationCreated(10, 42, 100);
 
     expect(mockCompaniesService.getCompanyMemberUserIds).not.toHaveBeenCalled();
-    expect(mockPushDispatchService.dispatch).not.toHaveBeenCalled();
+    expect(mockPushJobPublisherService.publish).not.toHaveBeenCalled();
   });
 
-  it('should dispatch the push notification to the company members with the computed unseen count', async () => {
+  it('should publish the push job for the company members with the computed unseen count', async () => {
     mockRedisService.incr.mockResolvedValue(3);
 
     await service.handleApplicationCreated(10, 42, 100);
 
     expect(mockCompaniesService.getCompanyMemberUserIds).toHaveBeenCalledWith(5);
-    expect(mockPushDispatchService.dispatch).toHaveBeenCalledWith({
+    expect(mockPushJobPublisherService.publish).toHaveBeenCalledWith({
       recipientUserIds: [1, 2],
       outboxEventId: 100,
       applicationId: 42,
@@ -80,12 +80,12 @@ describe('ApplicationNotificationService', () => {
     });
   });
 
-  it('should dispatch with the first-unseen wording when unseenCount is 1', async () => {
+  it('should publish with the first-unseen wording when unseenCount is 1', async () => {
     mockRedisService.incr.mockResolvedValue(1);
 
     await service.handleApplicationCreated(10, 42, 100);
 
-    expect(mockPushDispatchService.dispatch).toHaveBeenCalledWith(
+    expect(mockPushJobPublisherService.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         payload: expect.objectContaining({
           title: 'Nouvelle candidature',
