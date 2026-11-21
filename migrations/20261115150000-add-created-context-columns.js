@@ -39,7 +39,6 @@ const TABLES_WITH_CREATED_AT = [
 
 const TABLES_WITH_CREATED_BY = [
   'address',
-  'application',
   'company',
   'company_document',
   'company_member',
@@ -47,20 +46,12 @@ const TABLES_WITH_CREATED_BY = [
   'conversation',
   'document',
   'invoice',
-  'message',
   'mission',
-  'payment_report',
-  'review',
   'skill',
   'skill_category',
   'user',
   'wallet',
   'wallet_transaction',
-  'worker_document',
-  'worker_experience',
-  'worker_formation',
-  'worker_profile',
-  'worker_verification',
 ];
 
 /** @type {import('sequelize-cli').Migration} */
