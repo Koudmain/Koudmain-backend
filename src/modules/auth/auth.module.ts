@@ -1,5 +1,6 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { CreatedByInterceptor } from '@/common/created-by.interceptor';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { RefreshSessionService } from '@/modules/auth/services/refresh-session.service';
@@ -49,6 +50,10 @@ import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CreatedByInterceptor,
     },
   ],
   controllers: [AuthController],

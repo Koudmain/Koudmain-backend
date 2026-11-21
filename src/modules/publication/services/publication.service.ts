@@ -16,7 +16,6 @@ export class PublicationService {
     const created = await this.publicationModel.create({
       ...pubData,
       id: nextId,
-      createdAt: new Date(),
       starting_date: publication.starting_date ?? new Date(),
       ending_date: publication.ending_date ?? new Date(),
     });

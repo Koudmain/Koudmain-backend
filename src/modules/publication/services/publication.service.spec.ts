@@ -115,7 +115,6 @@ describe('PublicationService', () => {
     const result = await service.create(publicationData);
 
     // Assert
-    expect(result.createdAt).toEqual(expect.any(Date));
     expect(result.starting_date).toEqual(customDate.toISOString());
     expect(result.ending_date).toEqual(customDate.toISOString());
   });
