@@ -264,7 +264,11 @@ describe('AppController (e2e)', () => {
     expect(skill.id).toBe(standaloneSkillId);
     expect(skill.name).toBe(standaloneSkillName);
     expect(skill.category).toStrictEqual(
-      SkillCategory.build({ id: standaloneCategoryId, name: standaloneCategoryName }).get({
+      SkillCategory.build({
+        id: standaloneCategoryId,
+        name: standaloneCategoryName,
+        createdBy: null,
+      }).get({
         plain: true,
       }),
     );
@@ -280,7 +284,11 @@ describe('AppController (e2e)', () => {
     expect(response.body).toBeInstanceOf(Array);
     expect(response.body.length).toBeGreaterThan(0);
     expect(response.body[0].category).toStrictEqual(
-      SkillCategory.build({ id: standaloneCategoryId, name: standaloneCategoryName }).get({
+      SkillCategory.build({
+        id: standaloneCategoryId,
+        name: standaloneCategoryName,
+        createdBy: null,
+      }).get({
         plain: true,
       }),
     );
