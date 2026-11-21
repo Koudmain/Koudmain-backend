@@ -26,10 +26,10 @@ export class Publication extends Model {
   @BelongsTo(() => Company, 'company_id')
   declare company: Company;
 
-  @Column({ field: 'created_by_user_id', type: DataType.INTEGER })
-  declare createdByUserId: number;
+  @Column({ field: 'created_by', type: DataType.INTEGER })
+  declare createdBy: number;
 
-  @BelongsTo(() => User, 'created_by_user_id')
+  @BelongsTo(() => User, 'created_by')
   declare creator: User;
 
   @HasMany(() => Application, 'publication_id')
@@ -86,7 +86,7 @@ export class PostPublicationDto {
   @ApiPropertyOptional({ example: 1, description: 'ID du créateur' })
   @IsOptional()
   @IsNumber()
-  declare createdByUserId?: number;
+  declare createdBy?: number;
 
   @ApiPropertyOptional({ example: 1, description: "ID de l'adresse du lieu de travail" })
   @IsOptional()

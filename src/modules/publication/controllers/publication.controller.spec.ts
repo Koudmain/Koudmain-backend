@@ -47,7 +47,7 @@ describe('PublicationController', () => {
       // Arrange
       const createDto: PostPublicationDto = {
         companyId: 1,
-        createdByUserId: 69,
+        createdBy: 69,
         address_id: 10,
         title: 'Server (H/F)',
         description: "Besoin d'un serveur pour une missions.",
