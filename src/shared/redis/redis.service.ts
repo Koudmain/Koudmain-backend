@@ -11,23 +11,31 @@ export interface StreamEntry {
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   private client!: Redis;
+  // XREADGROUP BLOCK occupe sa connexion jusqu'à 5 s : sur `client`, il ferait attendre
+  // toutes les autres commandes du process (OTP, XADD du relais, compteurs).
+  private blockingClient!: Redis;
 
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit() {
-    this.client = new Redis({
+    this.client = this.createClient();
+    this.blockingClient = this.createClient();
+  }
+
+  async onModuleDestroy() {
+    await Promise.all([this.client?.quit(), this.blockingClient?.quit()]);
+  }
+
+  private createClient(): Redis {
+    const client = new Redis({
       host: this.configService.get<string>('REDIS_HOST'),
       port: this.configService.get<number>('REDIS_PORT'),
       password: this.configService.get<string>('REDIS_PASSWORD'),
     });
-
-    this.client.on('error', (err) => {
+    client.on('error', (err) => {
       this.logger.error('Redis connection error', err);
     });
-  }
-
-  async onModuleDestroy() {
-    await this.client?.quit();
+    return client;
   }
 
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
@@ -75,7 +83,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     consumer: string,
     blockMs: number,
   ): Promise<StreamEntry[]> {
-    const result = await this.client.xreadgroup(
+    const result = await this.blockingClient.xreadgroup(
       'GROUP',
       group,
       consumer,
