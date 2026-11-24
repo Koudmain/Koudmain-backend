@@ -30,7 +30,8 @@ describe('RedisService', () => {
       get: jest.fn().mockResolvedValue('mock-value'),
       del: jest.fn().mockResolvedValue(1),
       xadd: jest.fn().mockResolvedValue('1700000000000-0'),
-      incr: jest.fn().mockResolvedValue(1),
+      sadd: jest.fn().mockResolvedValue(1),
+      scard: jest.fn().mockResolvedValue(1),
       xgroup: jest.fn().mockResolvedValue('OK'),
       xreadgroup: jest.fn().mockResolvedValue(null),
       xack: jest.fn().mockResolvedValue(1),
@@ -112,12 +113,16 @@ describe('RedisService', () => {
     expect(result).toBe('1700000000000-0');
   });
 
-  it('should call incr and return the new value', async () => {
-    const result = await service.incr('publication:1:unseen_applications');
-    expect(jest.mocked(mockRedisClient.incr)).toHaveBeenCalledWith(
-      'publication:1:unseen_applications',
+  it('should add a member to a set and return the set size', async () => {
+    (mockRedisClient.scard as jest.Mock).mockResolvedValueOnce(2);
+
+    const result = await service.addToSet('publication:1:unseen_application_ids', '42');
+
+    expect(jest.mocked(mockRedisClient.sadd)).toHaveBeenCalledWith(
+      'publication:1:unseen_application_ids',
+      '42',
     );
-    expect(result).toBe(1);
+    expect(result).toBe(2);
   });
 
   it('should create the consumer group with MKSTREAM', async () => {

@@ -20,7 +20,12 @@ export class ApplicationNotificationService {
     applicationId: number,
     outboxEventId: number,
   ): Promise<void> {
-    const unseenCount = await this.redisService.incr(this.unseenCountKey(publicationId));
+    // Un ensemble d'ids et pas un compteur : un événement rejoué (échec plus bas, doublon
+    // du relais, crash avant l'ack) ne compte pas deux fois la même candidature.
+    const unseenCount = await this.redisService.addToSet(
+      this.unseenKey(publicationId),
+      String(applicationId),
+    );
     const isFirstUnseen = unseenCount === 1;
 
     this.logger.log(
@@ -55,15 +60,16 @@ export class ApplicationNotificationService {
   }
 
   async resetUnseenCount(publicationId: number): Promise<void> {
-    await this.redisService.del(this.unseenCountKey(publicationId));
+    await this.redisService.del(this.unseenKey(publicationId));
   }
 
   async getUnseenCount(publicationId: number): Promise<number> {
-    const value = await this.redisService.get(this.unseenCountKey(publicationId));
-    return value ? parseInt(value, 10) : 0;
+    return this.redisService.setSize(this.unseenKey(publicationId));
   }
 
-  private unseenCountKey(publicationId: number): string {
-    return `publication:${publicationId}:unseen_applications`;
+  // Nouveau nom : l'ancienne clé `unseen_applications` était un compteur (chaîne), un
+  // SADD dessus échouerait en WRONGTYPE.
+  private unseenKey(publicationId: number): string {
+    return `publication:${publicationId}:unseen_application_ids`;
   }
 }

@@ -14,7 +14,7 @@ import { ApplicationController } from '@/modules/application/controllers/applica
   providers: [
     {
       provide: RedisService,
-      useValue: { incr: jest.fn(), del: jest.fn(), publishToStream: jest.fn() },
+      useValue: { addToSet: jest.fn(), del: jest.fn(), publishToStream: jest.fn() },
     },
   ],
   exports: [RedisService],
