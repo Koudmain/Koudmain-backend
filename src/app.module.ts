@@ -16,6 +16,11 @@ import { ChatModule } from '@/modules/chat/chat.module';
 import { WorkersModule } from '@/modules/workers/workers.module';
 import { AddressModule } from '@/modules/address/address.module';
 import { ReviewModule } from '@/modules/review/review.module';
+import { ApplicationModule } from '@/modules/application/application.module';
+import { OutboxRelayModule } from '@/modules/outbox-relay/outbox-relay.module';
+import { NotificationModule } from '@/modules/notification/notification.module';
+import { PushModule } from '@/modules/push/push.module';
+import { InternalModule } from '@/modules/internal/internal.module';
 
 @Module({
   imports: [
@@ -43,6 +48,11 @@ import { ReviewModule } from '@/modules/review/review.module';
     WorkersModule,
     AddressModule,
     ReviewModule,
+    ApplicationModule,
+    OutboxRelayModule,
+    NotificationModule,
+    PushModule,
+    InternalModule,
   ],
   controllers: [AppController],
   providers: [AppService],

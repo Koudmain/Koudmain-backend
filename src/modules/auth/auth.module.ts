@@ -13,6 +13,7 @@ import { WorkersModule } from '@/modules/workers/workers.module';
 import { CompaniesModule } from '@/modules/companies/companies.module';
 import { MailerModule } from '@/modules/mailer/mailer.module';
 import { RedisModule } from '@/shared/redis/redis.module';
+import { PushModule } from '@/modules/push/push.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Address } from '@/modules/address/address.model';
@@ -27,6 +28,7 @@ import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
     forwardRef(() => CompaniesModule),
     MailerModule,
     RedisModule,
+    PushModule,
     SequelizeModule.forFeature([RefreshSession, Address, CompanyJob, WorkerJob]),
     JwtModule.registerAsync({
       imports: [ConfigModule],

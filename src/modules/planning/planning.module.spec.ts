@@ -5,6 +5,8 @@ import { Publication } from '@/modules/publication/models/publication.model';
 import { User } from '@/modules/users/models/user.model';
 import { Company } from '@/modules/companies/models/company.model';
 import { Application } from '@/modules/application/models/application.model';
+import { OutboxEvent } from '@/modules/application/models/outbox-event.model';
+import { NotificationDelivery } from '@/modules/application/models/notification-delivery.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Review } from '@/modules/review/models/review.model';
 import { CompanyMember } from '@/modules/companies/models/company-member.model';
@@ -28,6 +30,10 @@ describe('PlanningModule', () => {
       .overrideProvider(getModelToken(Company))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .overrideProvider(getModelToken(Application))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(OutboxEvent))
+      .useValue({ create: jest.fn(), findAll: jest.fn() })
+      .overrideProvider(getModelToken(NotificationDelivery))
       .useValue({ create: jest.fn(), findAll: jest.fn() })
       .overrideProvider(getModelToken(WorkerProfile))
       .useValue({ create: jest.fn(), findAll: jest.fn() })

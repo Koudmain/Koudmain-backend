@@ -102,6 +102,15 @@ export class CompaniesService {
     });
   }
 
+  async getCompanyMemberUserIds(companyId: number): Promise<number[]> {
+    const members = await this.memberModel.findAll({
+      where: { companyId },
+      attributes: ['userId'],
+    });
+
+    return members.map((m) => m.userId);
+  }
+
   async updateCompanyAddress(
     userId: number,
     companyId: number,

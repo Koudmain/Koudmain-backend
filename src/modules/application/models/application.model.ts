@@ -1,7 +1,22 @@
-import { Column, Model, Table, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import {
+  Column,
+  Model,
+  Table,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  HasMany,
+} from 'sequelize-typescript';
 import { Publication } from '@/modules/publication/models/publication.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
 import { Document } from '@/modules/document/models/document.model';
+import { NotificationDelivery } from './notification-delivery.model';
+
+export enum ApplicationStatus {
+  PENDING = 'Pending',
+  ACCEPTED = 'Accepted',
+  REJECTED = 'Rejected',
+}
 
 @Table({ tableName: 'application', timestamps: false })
 export class Application extends Model {
@@ -9,15 +24,23 @@ export class Application extends Model {
   declare id: number;
 
   @ForeignKey(() => Publication)
-  @Column({ type: DataType.INTEGER, field: 'publication_id' })
+  @Column({ type: DataType.INTEGER, field: 'publication_id', allowNull: false })
   declare publicationId: number;
 
   @ForeignKey(() => WorkerProfile)
-  @Column({ type: DataType.INTEGER, field: 'worker_id' })
+  @Column({ type: DataType.INTEGER, field: 'worker_id', allowNull: false })
   declare workerId: number;
 
-  @Column({ type: DataType.STRING })
-  declare status: string;
+  @Column({
+    type: DataType.ENUM(
+      ApplicationStatus.PENDING,
+      ApplicationStatus.ACCEPTED,
+      ApplicationStatus.REJECTED,
+    ),
+    allowNull: false,
+    defaultValue: ApplicationStatus.PENDING,
+  })
+  declare status: ApplicationStatus;
 
   @Column({ field: 'cv_document_id', type: DataType.INTEGER, allowNull: true })
   declare cvDocumentId: number | null;
@@ -42,4 +65,7 @@ export class Application extends Model {
 
   @BelongsTo(() => Document, 'coverLetterDocumentId')
   declare coverLetterDocument: Document | null;
+
+  @HasMany(() => NotificationDelivery, 'application_id')
+  declare notificationDeliveries: NotificationDelivery[];
 }

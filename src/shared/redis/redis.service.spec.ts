@@ -8,6 +8,7 @@ jest.mock('ioredis');
 describe('RedisService', () => {
   let service: RedisService;
   let mockRedisClient: jest.Mocked<Redis>;
+  let mockBlockingClient: jest.Mocked<Redis>;
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
@@ -21,18 +22,18 @@ describe('RedisService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const mockOn = jest.fn();
-    const mockQuit = jest.fn().mockResolvedValue('OK');
-    const mockSet = jest.fn().mockResolvedValue('OK');
-    const mockGet = jest.fn().mockResolvedValue('mock-value');
-    const mockDel = jest.fn().mockResolvedValue(1);
-
+    // Une instance distincte par `new Redis()` pour distinguer la connexion bloquante
     (Redis as unknown as jest.Mock).mockImplementation(() => ({
-      on: mockOn,
-      quit: mockQuit,
-      set: mockSet,
-      get: mockGet,
-      del: mockDel,
+      on: jest.fn(),
+      quit: jest.fn().mockResolvedValue('OK'),
+      set: jest.fn().mockResolvedValue('OK'),
+      get: jest.fn().mockResolvedValue('mock-value'),
+      del: jest.fn().mockResolvedValue(1),
+      xadd: jest.fn().mockResolvedValue('1700000000000-0'),
+      incr: jest.fn().mockResolvedValue(1),
+      xgroup: jest.fn().mockResolvedValue('OK'),
+      xreadgroup: jest.fn().mockResolvedValue(null),
+      xack: jest.fn().mockResolvedValue(1),
     }));
 
     const module: TestingModule = await Test.createTestingModule({
@@ -49,24 +50,29 @@ describe('RedisService', () => {
 
     service.onModuleInit();
     mockRedisClient = service['client'] as unknown as jest.Mocked<Redis>;
+    mockBlockingClient = service['blockingClient'] as unknown as jest.Mocked<Redis>;
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  it('should initialize redis client on module init', () => {
+  it('should open a main and a dedicated blocking connection on module init', () => {
+    expect(Redis).toHaveBeenCalledTimes(2);
     expect(Redis).toHaveBeenCalledWith({
       host: 'localhost',
       port: 6379,
       password: 'secret',
     });
+    expect(mockBlockingClient).not.toBe(mockRedisClient);
     expect(jest.mocked(mockRedisClient.on)).toHaveBeenCalledWith('error', expect.any(Function));
+    expect(jest.mocked(mockBlockingClient.on)).toHaveBeenCalledWith('error', expect.any(Function));
   });
 
-  it('should call quit on module destroy', async () => {
+  it('should quit both connections on module destroy', async () => {
     await service.onModuleDestroy();
     expect(jest.mocked(mockRedisClient.quit)).toHaveBeenCalled();
+    expect(jest.mocked(mockBlockingClient.quit)).toHaveBeenCalled();
   });
 
   it('should call set with correct arguments', async () => {
@@ -88,5 +94,119 @@ describe('RedisService', () => {
   it('should call del with correct arguments', async () => {
     await service.del('test-key');
     expect(jest.mocked(mockRedisClient.del)).toHaveBeenCalledWith('test-key');
+  });
+
+  it('should call xadd with flattened fields and return the generated entry id', async () => {
+    const result = await service.publishToStream('outbox-events', {
+      id: '42',
+      type: 'APPLICATION_CREATED',
+    });
+    expect(jest.mocked(mockRedisClient.xadd)).toHaveBeenCalledWith(
+      'outbox-events',
+      '*',
+      'id',
+      '42',
+      'type',
+      'APPLICATION_CREATED',
+    );
+    expect(result).toBe('1700000000000-0');
+  });
+
+  it('should call incr and return the new value', async () => {
+    const result = await service.incr('publication:1:unseen_applications');
+    expect(jest.mocked(mockRedisClient.incr)).toHaveBeenCalledWith(
+      'publication:1:unseen_applications',
+    );
+    expect(result).toBe(1);
+  });
+
+  it('should create the consumer group with MKSTREAM', async () => {
+    await service.ensureConsumerGroup('outbox-events', 'notification-service');
+    expect(jest.mocked(mockRedisClient.xgroup)).toHaveBeenCalledWith(
+      'CREATE',
+      'outbox-events',
+      'notification-service',
+      '0',
+      'MKSTREAM',
+    );
+  });
+
+  it('should silently ignore BUSYGROUP when the consumer group already exists', async () => {
+    (mockRedisClient.xgroup as jest.Mock).mockRejectedValueOnce(
+      new Error('BUSYGROUP Consumer Group name already exists'),
+    );
+    await expect(
+      service.ensureConsumerGroup('outbox-events', 'notification-service'),
+    ).resolves.not.toThrow();
+  });
+
+  it('should rethrow unexpected errors from xgroup', async () => {
+    (mockRedisClient.xgroup as jest.Mock).mockRejectedValueOnce(new Error('connection refused'));
+    await expect(
+      service.ensureConsumerGroup('outbox-events', 'notification-service'),
+    ).rejects.toThrow('connection refused');
+  });
+
+  it('should read new entries on the blocking connection, not the main one', async () => {
+    (mockBlockingClient.xreadgroup as jest.Mock).mockResolvedValueOnce([
+      ['outbox-events', [['1-0', ['type', 'APPLICATION_CREATED', 'payload', '{"id":1}']]]],
+    ]);
+
+    const result = await service.readNewStreamEntries(
+      'outbox-events',
+      'notification-service',
+      'notification-service',
+      5000,
+    );
+
+    expect(jest.mocked(mockBlockingClient.xreadgroup)).toHaveBeenCalledWith(
+      'GROUP',
+      'notification-service',
+      'notification-service',
+      'BLOCK',
+      5000,
+      'STREAMS',
+      'outbox-events',
+      '>',
+    );
+    expect(jest.mocked(mockRedisClient.xreadgroup)).not.toHaveBeenCalled();
+    expect(result).toEqual([
+      { id: '1-0', fields: { type: 'APPLICATION_CREATED', payload: '{"id":1}' } },
+    ]);
+  });
+
+  it('should return an empty array when xreadgroup returns null', async () => {
+    const result = await service.readNewStreamEntries(
+      'outbox-events',
+      'notification-service',
+      'notification-service',
+      5000,
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('should read the pending entries list with id "0"', async () => {
+    await service.readPendingStreamEntries(
+      'outbox-events',
+      'notification-service',
+      'notification-service',
+    );
+    expect(jest.mocked(mockRedisClient.xreadgroup)).toHaveBeenCalledWith(
+      'GROUP',
+      'notification-service',
+      'notification-service',
+      'STREAMS',
+      'outbox-events',
+      '0',
+    );
+  });
+
+  it('should call xack with the given entry id', async () => {
+    await service.ackStreamEntry('outbox-events', 'notification-service', '1-0');
+    expect(jest.mocked(mockRedisClient.xack)).toHaveBeenCalledWith(
+      'outbox-events',
+      'notification-service',
+      '1-0',
+    );
   });
 });
