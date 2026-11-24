@@ -7,17 +7,15 @@ import { DeviceTokenPlatform } from '@/modules/push/models/device-token-platform
 describe('DeviceTokenService', () => {
   let service: DeviceTokenService;
   let mockDeviceTokenModel: {
-    findOne: jest.Mock;
+    upsert: jest.Mock;
     findAll: jest.Mock;
-    create: jest.Mock;
     destroy: jest.Mock;
   };
 
   beforeEach(async () => {
     mockDeviceTokenModel = {
-      findOne: jest.fn(),
+      upsert: jest.fn(),
       findAll: jest.fn().mockResolvedValue([]),
-      create: jest.fn(),
       destroy: jest.fn().mockResolvedValue(1),
     };
 
@@ -35,32 +33,17 @@ describe('DeviceTokenService', () => {
     jest.clearAllMocks();
   });
 
-  it('should create a new device token when none exists for the given token', async () => {
-    mockDeviceTokenModel.findOne.mockResolvedValue(null);
-    mockDeviceTokenModel.create.mockResolvedValue({ id: 1 });
+  it('should register the token with a single upsert on the token column', async () => {
+    const saved = { id: 1 };
+    mockDeviceTokenModel.upsert.mockResolvedValue([saved, true]);
 
-    await service.registerToken(1, 'abc', DeviceTokenPlatform.ANDROID);
+    const result = await service.registerToken(3, 'abc', DeviceTokenPlatform.IOS);
 
-    expect(mockDeviceTokenModel.create).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 1, token: 'abc', platform: DeviceTokenPlatform.ANDROID }),
+    expect(mockDeviceTokenModel.upsert).toHaveBeenCalledWith(
+      { userId: 3, token: 'abc', platform: DeviceTokenPlatform.IOS, updatedAt: expect.any(Date) },
+      { conflictFields: ['token'] },
     );
-  });
-
-  it('should update the owner and platform of an existing token instead of duplicating it', async () => {
-    const existing = {
-      userId: 2,
-      platform: DeviceTokenPlatform.ANDROID,
-      updatedAt: new Date(0),
-      save: jest.fn().mockResolvedValue(undefined),
-    };
-    mockDeviceTokenModel.findOne.mockResolvedValue(existing);
-
-    await service.registerToken(3, 'abc', DeviceTokenPlatform.IOS);
-
-    expect(existing.userId).toBe(3);
-    expect(existing.platform).toBe(DeviceTokenPlatform.IOS);
-    expect(existing.save).toHaveBeenCalled();
-    expect(mockDeviceTokenModel.create).not.toHaveBeenCalled();
+    expect(result).toBe(saved);
   });
 
   it('should return an empty array without querying when there are no user ids', async () => {
