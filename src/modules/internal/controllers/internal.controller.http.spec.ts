@@ -7,7 +7,7 @@ import { InternalAuthGuard } from '@/modules/internal/internal-auth.guard';
 import { NotificationDeliveryService } from '@/modules/internal/services/notification-delivery.service';
 import { DeviceTokenService } from '@/modules/push/services/device-token.service';
 
-const SECRET = 'test-internal-secret';
+const SECRET = 'test-internal-secret-0123456789abcdef';
 
 describe('InternalController (HTTP)', () => {
   let app: INestApplication;

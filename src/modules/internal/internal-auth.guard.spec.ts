@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { InternalAuthGuard } from './internal-auth.guard';
 
+const SECRET = 'test-internal-secret-0123456789abcdef';
+
 describe('InternalAuthGuard', () => {
   let guard: InternalAuthGuard;
   let configuredSecret: string | undefined;
@@ -13,7 +15,7 @@ describe('InternalAuthGuard', () => {
     }) as unknown as ExecutionContext;
 
   beforeEach(async () => {
-    configuredSecret = 'test-internal-secret';
+    configuredSecret = SECRET;
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -26,9 +28,7 @@ describe('InternalAuthGuard', () => {
   });
 
   it('should allow the request when the X-Internal-Secret header matches', () => {
-    expect(guard.canActivate(buildContext({ 'x-internal-secret': 'test-internal-secret' }))).toBe(
-      true,
-    );
+    expect(guard.canActivate(buildContext({ 'x-internal-secret': SECRET }))).toBe(true);
   });
 
   it('should reject the request when the header is missing', () => {
@@ -43,9 +43,7 @@ describe('InternalAuthGuard', () => {
 
   it('should reject the request when the header is sent several times', () => {
     expect(() =>
-      guard.canActivate(
-        buildContext({ 'x-internal-secret': ['test-internal-secret', 'test-internal-secret'] }),
-      ),
+      guard.canActivate(buildContext({ 'x-internal-secret': [SECRET, SECRET] })),
     ).toThrow(UnauthorizedException);
   });
 
@@ -55,6 +53,13 @@ describe('InternalAuthGuard', () => {
       UnauthorizedException,
     );
     expect(() => guard.canActivate(buildContext({ 'x-internal-secret': 'anything' }))).toThrow(
+      UnauthorizedException,
+    );
+  });
+
+  it('should reject every request when INTERNAL_SERVICE_SECRET is shorter than 32 characters', () => {
+    configuredSecret = 'change-me';
+    expect(() => guard.canActivate(buildContext({ 'x-internal-secret': 'change-me' }))).toThrow(
       UnauthorizedException,
     );
   });
