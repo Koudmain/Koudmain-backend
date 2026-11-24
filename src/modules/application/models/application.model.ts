@@ -9,6 +9,7 @@ import {
 } from 'sequelize-typescript';
 import { Publication } from '@/modules/publication/models/publication.model';
 import { WorkerProfile } from '@/modules/workers/models/worker-profile.model';
+import { Document } from '@/modules/document/models/document.model';
 import { NotificationDelivery } from './notification-delivery.model';
 
 export enum ApplicationStatus {
@@ -41,6 +42,15 @@ export class Application extends Model {
   })
   declare status: ApplicationStatus;
 
+  @Column({ field: 'cv_document_id', type: DataType.INTEGER, allowNull: true })
+  declare cvDocumentId: number | null;
+
+  @Column({ field: 'cover_letter_document_id', type: DataType.INTEGER, allowNull: true })
+  declare coverLetterDocumentId: number | null;
+
+  @Column({ field: 'responded_at', type: DataType.DATE, allowNull: true })
+  declare respondedAt: Date | null;
+
   @Column({ field: 'created_at', type: DataType.DATE })
   declare createdAt: Date;
 
@@ -49,6 +59,12 @@ export class Application extends Model {
 
   @BelongsTo(() => WorkerProfile)
   declare workerProfile: WorkerProfile;
+
+  @BelongsTo(() => Document, 'cvDocumentId')
+  declare cvDocument: Document | null;
+
+  @BelongsTo(() => Document, 'coverLetterDocumentId')
+  declare coverLetterDocument: Document | null;
 
   @HasMany(() => NotificationDelivery, 'application_id')
   declare notificationDeliveries: NotificationDelivery[];
