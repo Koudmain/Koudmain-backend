@@ -34,6 +34,8 @@ describe('RedisService', () => {
       xgroup: jest.fn().mockResolvedValue('OK'),
       xreadgroup: jest.fn().mockResolvedValue(null),
       xack: jest.fn().mockResolvedValue(1),
+      xpending: jest.fn().mockResolvedValue([]),
+      xclaim: jest.fn().mockResolvedValue([]),
     }));
 
     const module: TestingModule = await Test.createTestingModule({
@@ -185,20 +187,51 @@ describe('RedisService', () => {
     expect(result).toEqual([]);
   });
 
-  it('should read the pending entries list with id "0"', async () => {
-    await service.readPendingStreamEntries(
+  it('should list stale pending entries with their delivery count (XPENDING IDLE)', async () => {
+    (mockRedisClient.xpending as jest.Mock).mockResolvedValueOnce([['1-0', 'host-a-1', 45000, 3]]);
+
+    const result = await service.getStalePendingEntries(
       'outbox-events',
       'notification-service',
-      'notification-service',
+      30000,
+      10,
     );
-    expect(jest.mocked(mockRedisClient.xreadgroup)).toHaveBeenCalledWith(
-      'GROUP',
-      'notification-service',
-      'notification-service',
-      'STREAMS',
+
+    expect(jest.mocked(mockRedisClient.xpending)).toHaveBeenCalledWith(
       'outbox-events',
-      '0',
+      'notification-service',
+      'IDLE',
+      30000,
+      '-',
+      '+',
+      10,
     );
+    expect(result).toEqual([{ id: '1-0', deliveryCount: 3 }]);
+  });
+
+  it('should claim entries with XCLAIM and skip the ones deleted from the stream', async () => {
+    (mockRedisClient.xclaim as jest.Mock).mockResolvedValueOnce([
+      ['1-0', ['type', 'APPLICATION_CREATED']],
+      ['2-0', null],
+    ]);
+
+    const result = await service.claimStreamEntries(
+      'outbox-events',
+      'notification-service',
+      'host-b-2',
+      30000,
+      ['1-0', '2-0'],
+    );
+
+    expect(jest.mocked(mockRedisClient.xclaim)).toHaveBeenCalledWith(
+      'outbox-events',
+      'notification-service',
+      'host-b-2',
+      30000,
+      '1-0',
+      '2-0',
+    );
+    expect(result).toEqual([{ id: '1-0', fields: { type: 'APPLICATION_CREATED' } }]);
   });
 
   it('should call xack with the given entry id', async () => {

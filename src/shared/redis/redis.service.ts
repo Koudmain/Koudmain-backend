@@ -7,6 +7,11 @@ export interface StreamEntry {
   fields: Record<string, string>;
 }
 
+export interface PendingStreamEntry {
+  id: string;
+  deliveryCount: number;
+}
+
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
@@ -96,13 +101,42 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.parseStreamResult(result);
   }
 
-  async readPendingStreamEntries(
+  /**
+   * Entrées lues mais pas encore ackées, tous consumers confondus, inactives depuis au
+   * moins `minIdleMs` : échec de traitement, ou instance arrêtée en plein travail.
+   * `deliveryCount` est tenu par Redis (+1 à chaque lecture / XCLAIM). Redis ≥ 6.2.
+   */
+  async getStalePendingEntries(
+    stream: string,
+    group: string,
+    minIdleMs: number,
+    count: number,
+  ): Promise<PendingStreamEntry[]> {
+    const result = (await this.client.xpending(
+      stream,
+      group,
+      'IDLE',
+      minIdleMs,
+      '-',
+      '+',
+      count,
+    )) as [string, string, number, number][];
+    return result.map(([id, , , deliveryCount]) => ({ id, deliveryCount }));
+  }
+
+  /**
+   * Prend la main sur ces entrées, seulement si elles sont toujours inactives depuis
+   * `minIdleMs` : si une autre instance vient de les reprendre, elles ne sont pas renvoyées.
+   */
+  async claimStreamEntries(
     stream: string,
     group: string,
     consumer: string,
+    minIdleMs: number,
+    ids: string[],
   ): Promise<StreamEntry[]> {
-    const result = await this.client.xreadgroup('GROUP', group, consumer, 'STREAMS', stream, '0');
-    return this.parseStreamResult(result);
+    const entries = await this.client.xclaim(stream, group, consumer, minIdleMs, ...ids);
+    return this.parseEntries(entries as [string, string[] | null][]);
   }
 
   async ackStreamEntry(stream: string, group: string, id: string): Promise<void> {
@@ -111,12 +145,17 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   private parseStreamResult(result: unknown): StreamEntry[] {
     if (!result) return [];
-    const streams = result as [string, [string, string[]][]][];
-    const entries = streams[0]?.[1] ?? [];
-    return entries.map(([id, flatFields]) => ({
-      id,
-      fields: this.flatFieldsToObject(flatFields),
-    }));
+    const streams = result as [string, [string, string[] | null][]][];
+    return this.parseEntries(streams[0]?.[1] ?? []);
+  }
+
+  private parseEntries(entries: [string, string[] | null][]): StreamEntry[] {
+    return (
+      entries
+        // Entrée supprimée du stream entre-temps : plus rien à traiter.
+        .filter((entry): entry is [string, string[]] => entry[1] !== null)
+        .map(([id, flatFields]) => ({ id, fields: this.flatFieldsToObject(flatFields) }))
+    );
   }
 
   private flatFieldsToObject(flatFields: string[]): Record<string, string> {

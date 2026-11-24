@@ -1,3 +1,4 @@
+import { hostname } from 'os';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { RedisService, StreamEntry } from '@/shared/redis/redis.service';
 import { OutboxEventType } from '@/modules/application/models/outbox-event.model';
@@ -6,15 +7,22 @@ import { OUTBOX_EVENT_HANDLERS } from '@/modules/notification/notification.const
 import { OutboxEventHandler } from '@/modules/notification/outbox-event-handler.interface';
 
 const GROUP_NAME = 'notification-service';
-const CONSUMER_NAME = 'notification-service';
+// Unique par instance : Redis tient la liste des entrées en cours (PEL) par nom de consumer.
+// Un nom partagé faisait traiter la même entrée par deux instances (scaling, rolling deploy).
+// shortcut: les noms des instances arrêtées restent listés dans XINFO CONSUMERS (sans effet),
+// les nettoyer avec XGROUP DELCONSUMER si la liste devient gênante.
+export const CONSUMER_NAME = `${hostname()}-${process.pid}`;
 const BLOCK_MS = 5_000;
 const RETRY_DELAY_MS = 2_000;
+// Une entrée non ackée depuis ce délai (échec, ou instance arrêtée) est reprise par
+// n'importe quelle instance : c'est aussi le délai entre deux tentatives.
+const RETRY_AFTER_IDLE_MS = 30_000;
+const RETRY_BATCH_SIZE = 10;
 const MAX_DELIVERY_ATTEMPTS = 5;
 
 @Injectable()
 export class OutboxStreamConsumerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OutboxStreamConsumerService.name);
-  private readonly deliveryAttempts = new Map<string, number>();
   private readonly handlersByType: Map<OutboxEventType, OutboxEventHandler>;
   private isDestroyed = false;
   private loopPromise?: Promise<void>;
@@ -47,17 +55,7 @@ export class OutboxStreamConsumerService implements OnModuleInit, OnModuleDestro
   private async runLoop(): Promise<void> {
     while (!this.isDestroyed) {
       try {
-        const pending = await this.redisService.readPendingStreamEntries(
-          OUTBOX_STREAM_KEY,
-          GROUP_NAME,
-          CONSUMER_NAME,
-        );
-        if (pending.length > 0) {
-          for (const entry of pending) {
-            await this.handleEntry(entry);
-          }
-          continue;
-        }
+        if (await this.retryStaleEntries()) continue;
 
         const entries = await this.redisService.readNewStreamEntries(
           OUTBOX_STREAM_KEY,
@@ -75,6 +73,48 @@ export class OutboxStreamConsumerService implements OnModuleInit, OnModuleDestro
     }
   }
 
+  /**
+   * Reprend les entrées non ackées depuis RETRY_AFTER_IDLE_MS, quelle que soit l'instance
+   * qui les avait lues. Le nombre de tentatives vient de Redis : il survit aux redémarrages
+   * et reste juste quand une entrée change d'instance.
+   * @returns true s'il y avait des entrées à reprendre
+   */
+  private async retryStaleEntries(): Promise<boolean> {
+    const stale = await this.redisService.getStalePendingEntries(
+      OUTBOX_STREAM_KEY,
+      GROUP_NAME,
+      RETRY_AFTER_IDLE_MS,
+      RETRY_BATCH_SIZE,
+    );
+    if (stale.length === 0) return false;
+
+    const idsToRetry: string[] = [];
+    for (const { id, deliveryCount } of stale) {
+      if (deliveryCount >= MAX_DELIVERY_ATTEMPTS) {
+        this.logger.error(
+          `Giving up on outbox-events entry ${id} after ${deliveryCount} attempts, acking to unblock the stream`,
+        );
+        await this.redisService.ackStreamEntry(OUTBOX_STREAM_KEY, GROUP_NAME, id);
+      } else {
+        idsToRetry.push(id);
+      }
+    }
+
+    if (idsToRetry.length > 0) {
+      const entries = await this.redisService.claimStreamEntries(
+        OUTBOX_STREAM_KEY,
+        GROUP_NAME,
+        CONSUMER_NAME,
+        RETRY_AFTER_IDLE_MS,
+        idsToRetry,
+      );
+      for (const entry of entries) {
+        await this.handleEntry(entry);
+      }
+    }
+    return true;
+  }
+
   private async handleEntry(entry: StreamEntry): Promise<void> {
     try {
       const handler = this.handlersByType.get(entry.fields.type as OutboxEventType);
@@ -83,23 +123,10 @@ export class OutboxStreamConsumerService implements OnModuleInit, OnModuleDestro
         await handler.handle(payload, Number(entry.fields.id));
       }
       await this.redisService.ackStreamEntry(OUTBOX_STREAM_KEY, GROUP_NAME, entry.id);
-      this.deliveryAttempts.delete(entry.id);
     } catch (err) {
-      const attempts = (this.deliveryAttempts.get(entry.id) ?? 0) + 1;
-
-      if (attempts >= MAX_DELIVERY_ATTEMPTS) {
-        this.logger.error(
-          `Giving up on outbox-events entry ${entry.id} after ${attempts} attempts, acking to unblock the stream`,
-          err,
-        );
-        await this.redisService.ackStreamEntry(OUTBOX_STREAM_KEY, GROUP_NAME, entry.id);
-        this.deliveryAttempts.delete(entry.id);
-        return;
-      }
-
-      this.deliveryAttempts.set(entry.id, attempts);
+      // Pas d'ack : l'entrée reste pending et sera reprise par retryStaleEntries.
       this.logger.error(
-        `Failed to process outbox-events entry ${entry.id} (attempt ${attempts})`,
+        `Failed to process outbox-events entry ${entry.id}, retry in ${RETRY_AFTER_IDLE_MS / 1000}s`,
         err,
       );
     }
