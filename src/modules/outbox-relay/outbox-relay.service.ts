@@ -96,6 +96,10 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
       do {
         processedCount = await this.relayBatch();
       } while (processedCount === BATCH_SIZE);
+    } catch (err) {
+      // Appelé en `void` (poll, NOTIFY, démarrage) : sans ce catch, une erreur DB devient
+      // un rejet non géré qui arrête le process. Le lot est rejoué au prochain passage.
+      this.logger.error('Outbox relay pass failed, retrying on next poll', err);
     } finally {
       this.isProcessing = false;
     }
@@ -112,6 +116,7 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
         skipLocked: true,
       });
 
+      const publishedIds: number[] = [];
       for (const event of pendingEvents) {
         try {
           await this.redisService.publishToStream(OUTBOX_STREAM_KEY, {
@@ -120,17 +125,28 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
             payload: JSON.stringify(event.payload),
             createdAt: event.createdAt.toISOString(),
           });
-
-          event.status = OutboxEventStatus.PUBLISHED;
-          event.publishedAt = new Date();
-          await event.save({ transaction });
+          publishedIds.push(event.id);
         } catch (err) {
-          // L'événement sera traité à la prochaine boucle
+          // Redis indisponible : inutile d'essayer les suivants, ils restent Pending
+          // et seront repris au prochain passage (poll ou NOTIFY).
           this.logger.error(`Failed to publish outbox event ${event.id} to Redis Streams`, err);
+          break;
         }
       }
 
-      return pendingEvents.length;
+      // Un seul UPDATE, et seulement pour ce qui est vraiment parti sur Redis : un save
+      // en échec au milieu du lot annulait toute la transaction, et les événements déjà
+      // publiés repassaient Pending (donc republiés au passage suivant).
+      if (publishedIds.length > 0) {
+        await this.outboxEventModel.update(
+          { status: OutboxEventStatus.PUBLISHED, publishedAt: new Date() },
+          { where: { id: publishedIds }, transaction },
+        );
+      }
+
+      // 0 après un échec : arrête la boucle de relayPendingEvents au lieu de relire
+      // aussitôt le même lot en continu tant que Redis refuse les XADD.
+      return publishedIds.length === pendingEvents.length ? pendingEvents.length : 0;
     });
   }
 }

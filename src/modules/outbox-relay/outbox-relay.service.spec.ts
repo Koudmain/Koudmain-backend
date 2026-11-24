@@ -17,7 +17,7 @@ jest.mock('pg', () => ({
 
 describe('OutboxRelayService', () => {
   let service: OutboxRelayService;
-  let mockOutboxEventModel: { findAll: jest.Mock };
+  let mockOutboxEventModel: { findAll: jest.Mock; update: jest.Mock };
   let mockRedisService: { publishToStream: jest.Mock };
   let mockSequelize: { transaction: jest.Mock };
 
@@ -29,12 +29,14 @@ describe('OutboxRelayService', () => {
       status: OutboxEventStatus.PENDING,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       publishedAt: null,
-      save: jest.fn().mockResolvedValue(undefined),
       ...overrides,
     }) as unknown as OutboxEvent;
 
   beforeEach(async () => {
-    mockOutboxEventModel = { findAll: jest.fn().mockResolvedValue([]) };
+    mockOutboxEventModel = {
+      findAll: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue([1]),
+    };
     mockRedisService = { publishToStream: jest.fn().mockResolvedValue('1-0') };
     mockSequelize = {
       transaction: jest.fn((cb: (transaction: unknown) => Promise<unknown>) => cb({})),
@@ -73,20 +75,45 @@ describe('OutboxRelayService', () => {
       payload: JSON.stringify({ applicationId: 1 }),
       createdAt: '2026-01-01T00:00:00.000Z',
     });
-    expect(event.status).toBe(OutboxEventStatus.PUBLISHED);
-    expect(event.publishedAt).toBeInstanceOf(Date);
-    expect(event.save).toHaveBeenCalled();
+    expect(mockOutboxEventModel.update).toHaveBeenCalledWith(
+      { status: OutboxEventStatus.PUBLISHED, publishedAt: expect.any(Date) },
+      { where: { id: [1] }, transaction: {} },
+    );
   });
 
-  it('should leave the event Pending and keep going when Redis publish fails', async () => {
-    const failingEvent = buildEvent({ id: 1 });
-    mockOutboxEventModel.findAll.mockResolvedValueOnce([failingEvent]).mockResolvedValueOnce([]);
-    mockRedisService.publishToStream.mockRejectedValueOnce(new Error('redis down'));
+  it('should only mark as Published the events sent before Redis failed, and stop there', async () => {
+    const events = [1, 2, 3, 4].map((id) => buildEvent({ id }));
+    mockOutboxEventModel.findAll.mockResolvedValueOnce(events);
+    mockRedisService.publishToStream
+      .mockResolvedValueOnce('1-0')
+      .mockResolvedValueOnce('2-0')
+      .mockRejectedValueOnce(new Error('redis down'));
 
     await expect(service.relayPendingEvents()).resolves.not.toThrow();
 
-    expect(failingEvent.status).toBe(OutboxEventStatus.PENDING);
-    expect(failingEvent.save).not.toHaveBeenCalled();
+    // 3 a échoué : 4 n'est pas tenté, seuls 1 et 2 passent Published.
+    expect(mockRedisService.publishToStream).toHaveBeenCalledTimes(3);
+    expect(mockOutboxEventModel.update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ where: { id: [1, 2] } }),
+    );
+  });
+
+  it('should not spin on the same full batch while Redis rejects every publish', async () => {
+    const fullBatch = Array.from({ length: 100 }, (unusedValue, i) => buildEvent({ id: i + 1 }));
+    mockOutboxEventModel.findAll.mockResolvedValue(fullBatch);
+    mockRedisService.publishToStream.mockRejectedValue(new Error('OOM command not allowed'));
+
+    await service.relayPendingEvents();
+
+    expect(mockOutboxEventModel.findAll).toHaveBeenCalledTimes(1);
+    expect(mockOutboxEventModel.update).not.toHaveBeenCalled();
+  });
+
+  it('should log instead of rejecting when the database fails during a pass', async () => {
+    mockOutboxEventModel.findAll.mockRejectedValueOnce(new Error('connection terminated'));
+
+    await expect(service.relayPendingEvents()).resolves.toBeUndefined();
   });
 
   it('should drain successive full batches without waiting for another trigger', async () => {
