@@ -14,7 +14,7 @@ import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { publicRoute } from '@/decorators/public.decorator';
 import { InternalAuthGuard } from '@/modules/internal/internal-auth.guard';
 import { DeviceTokenService } from '@/modules/push/services/device-token.service';
-import { DeviceTokenPlatform } from '@/modules/push/models/device-token.model';
+import { DeviceTokenPlatform } from '@/modules/push/models/device-token-platform.enum';
 import { NotificationDeliveryService } from '@/modules/internal/services/notification-delivery.service';
 import { GetDeviceTokensQueryDto } from '@/modules/internal/dto/get-device-tokens.query.dto';
 import { CreateNotificationDeliveryDto } from '@/modules/internal/dto/create-notification-delivery.dto';

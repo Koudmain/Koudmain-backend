@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { DeviceToken, DeviceTokenPlatform } from '@/modules/push/models/device-token.model';
+import { DeviceToken } from '@/modules/push/models/device-token.model';
+import { DeviceTokenPlatform } from '@/modules/push/models/device-token-platform.enum';
 
 @Injectable()
 export class DeviceTokenService {

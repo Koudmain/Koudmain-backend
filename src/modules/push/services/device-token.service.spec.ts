@@ -1,7 +1,8 @@
 import { Test } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/sequelize';
 import { DeviceTokenService } from './device-token.service';
-import { DeviceToken, DeviceTokenPlatform } from '@/modules/push/models/device-token.model';
+import { DeviceToken } from '@/modules/push/models/device-token.model';
+import { DeviceTokenPlatform } from '@/modules/push/models/device-token-platform.enum';
 
 describe('DeviceTokenService', () => {
   let service: DeviceTokenService;

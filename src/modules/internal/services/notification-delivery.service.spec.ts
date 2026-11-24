@@ -6,7 +6,7 @@ import {
   NotificationDelivery,
   NotificationDeliveryStatus,
 } from '@/modules/application/models/notification-delivery.model';
-import { DeviceTokenPlatform } from '@/modules/push/models/device-token.model';
+import { DeviceTokenPlatform } from '@/modules/push/models/device-token-platform.enum';
 
 describe('NotificationDeliveryService', () => {
   let service: NotificationDeliveryService;

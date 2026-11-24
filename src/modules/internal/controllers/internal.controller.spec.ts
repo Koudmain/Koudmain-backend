@@ -5,7 +5,7 @@ import { InternalController } from './internal.controller';
 import { InternalAuthGuard } from '@/modules/internal/internal-auth.guard';
 import { NotificationDeliveryService } from '@/modules/internal/services/notification-delivery.service';
 import { DeviceTokenService } from '@/modules/push/services/device-token.service';
-import { DeviceTokenPlatform } from '@/modules/push/models/device-token.model';
+import { DeviceTokenPlatform } from '@/modules/push/models/device-token-platform.enum';
 import {
   NotificationChannel,
   NotificationDeliveryStatus,

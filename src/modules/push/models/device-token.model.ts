@@ -1,10 +1,6 @@
 import { Column, Model, Table, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
 import { User } from '@/modules/users/models/user.model';
-
-export enum DeviceTokenPlatform {
-  IOS = 'IOS',
-  ANDROID = 'ANDROID',
-}
+import { DeviceTokenPlatform } from './device-token-platform.enum';
 
 @Table({ tableName: 'device_token', timestamps: false })
 export class DeviceToken extends Model {

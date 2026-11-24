@@ -2,7 +2,7 @@ import { Column, Model, Table, DataType, ForeignKey, BelongsTo } from 'sequelize
 import { Application } from './application.model';
 import { OutboxEvent } from './outbox-event.model';
 import { User } from '@/modules/users/models/user.model';
-import { DeviceTokenPlatform } from '@/modules/push/models/device-token.model';
+import { DeviceTokenPlatform } from '@/modules/push/models/device-token-platform.enum';
 
 export enum NotificationChannel {
   PUSH = 'Push',

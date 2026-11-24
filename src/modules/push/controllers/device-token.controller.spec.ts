@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { DeviceTokenController } from './device-token.controller';
 import { DeviceTokenService } from '@/modules/push/services/device-token.service';
-import { DeviceTokenPlatform } from '@/modules/push/models/device-token.model';
+import { DeviceTokenPlatform } from '@/modules/push/models/device-token-platform.enum';
 
 describe('DeviceTokenController', () => {
   let controller: DeviceTokenController;
