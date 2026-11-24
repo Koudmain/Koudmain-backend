@@ -48,6 +48,8 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async connectListenClient(): Promise<void> {
+    if (this.isDestroyed) return;
+
     const client = new PgClient({
       host: this.configService.get<string>('DB_HOST'),
       port: this.configService.get<number>('DB_PORT'),
@@ -76,7 +78,9 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
       this.listenClient = client;
     } catch (err) {
       this.logger.error('Failed to establish Postgres LISTEN connection, retrying...', err);
-      setTimeout(() => void this.connectListenClient(), LISTEN_RECONNECT_DELAY_MS);
+      // Le retry est planifié par le handler 'end' (pg l'émet aussi après un connect raté) :
+      // en planifier un second ici doublerait les tentatives à chaque échec.
+      void client.end();
     }
   }
 

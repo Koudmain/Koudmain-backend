@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { getConnectionToken, getModelToken } from '@nestjs/sequelize';
 import { ConfigService } from '@nestjs/config';
+import { Client as PgClient } from 'pg';
 import { OutboxRelayService } from './outbox-relay.service';
 import { OutboxEvent, OutboxEventStatus } from '@/modules/application/models/outbox-event.model';
 import { RedisService } from '@/shared/redis/redis.service';
@@ -116,5 +117,26 @@ describe('OutboxRelayService', () => {
     await Promise.all([firstCall, secondCall]);
 
     expect(mockOutboxEventModel.findAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('should schedule exactly one reconnect when the LISTEN connection fails', async () => {
+    const handlers: Record<string, () => void> = {};
+    const failingClient = {
+      connect: jest.fn().mockRejectedValue(new Error('ECONNREFUSED')),
+      query: jest.fn(),
+      on: jest.fn((event: string, handler: () => void) => {
+        handlers[event] = handler;
+      }),
+      end: jest.fn().mockResolvedValue(undefined),
+    };
+    (PgClient as unknown as jest.Mock).mockImplementationOnce(() => failingClient);
+    const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockReturnValue({} as NodeJS.Timeout);
+
+    await service['connectListenClient']();
+    handlers.end(); // pg émet 'end' après un connect raté
+
+    expect(failingClient.end).toHaveBeenCalled();
+    expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+    setTimeoutSpy.mockRestore();
   });
 });
