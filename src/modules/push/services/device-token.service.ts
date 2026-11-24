@@ -12,22 +12,16 @@ export class DeviceTokenService {
     token: string,
     platform: DeviceTokenPlatform,
   ): Promise<DeviceToken> {
-    const existing = await this.deviceTokenModel.findOne({ where: { token } });
-    if (existing) {
-      existing.userId = userId;
-      existing.platform = platform;
-      existing.updatedAt = new Date();
-      await existing.save();
-      return existing;
-    }
-
-    return this.deviceTokenModel.create({
-      userId,
-      token,
-      platform,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    // Un seul INSERT ... ON CONFLICT (token) : avec findOne puis create, deux requêtes
+    // simultanées pour un même nouveau token (lancement + onTokenRefresh, retry) passaient
+    // toutes les deux le findOne et la seconde cassait sur UNIQUE(token) en 500.
+    // Un token déjà connu change de propriétaire (nouvelle connexion sur le même appareil).
+    // createdAt n'est pas fourni : défaut DB à l'insertion, conservé à la mise à jour.
+    const [deviceToken] = await this.deviceTokenModel.upsert(
+      { userId, token, platform, updatedAt: new Date() },
+      { conflictFields: ['token'] },
+    );
+    return deviceToken;
   }
 
   async getTokensByUserIds(userIds: number[]): Promise<DeviceToken[]> {

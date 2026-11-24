@@ -60,8 +60,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return entryId;
   }
 
-  async incr(key: string): Promise<number> {
-    return this.client.incr(key);
+  /** Ajoute `member` à l'ensemble `key` (sans effet s'il y est déjà) et renvoie sa taille. */
+  async addToSet(key: string, member: string): Promise<number> {
+    await this.client.sadd(key, member);
+    return this.client.scard(key);
+  }
+
+  async setSize(key: string): Promise<number> {
+    return this.client.scard(key);
   }
 
   /**

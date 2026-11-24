@@ -7,13 +7,13 @@ import { PushJobPublisherService } from '@/modules/notification/push-job-publish
 
 describe('ApplicationNotificationService', () => {
   let service: ApplicationNotificationService;
-  let mockRedisService: { incr: jest.Mock; del: jest.Mock; get: jest.Mock };
+  let mockRedisService: { addToSet: jest.Mock; del: jest.Mock; setSize: jest.Mock };
   let mockPublicationService: { getById: jest.Mock };
   let mockCompaniesService: { getCompanyMemberUserIds: jest.Mock };
   let mockPushJobPublisherService: { publish: jest.Mock };
 
   beforeEach(async () => {
-    mockRedisService = { incr: jest.fn(), del: jest.fn(), get: jest.fn() };
+    mockRedisService = { addToSet: jest.fn(), del: jest.fn(), setSize: jest.fn() };
     mockPublicationService = { getById: jest.fn().mockResolvedValue({ id: 10, companyId: 5 }) };
     mockCompaniesService = { getCompanyMemberUserIds: jest.fn().mockResolvedValue([1, 2]) };
     mockPushJobPublisherService = { publish: jest.fn().mockResolvedValue(undefined) };
@@ -35,24 +35,27 @@ describe('ApplicationNotificationService', () => {
     jest.clearAllMocks();
   });
 
-  it('should increment the unseen counter for the publication', async () => {
-    mockRedisService.incr.mockResolvedValue(1);
+  it('should add the application id to the unseen set of the publication', async () => {
+    mockRedisService.addToSet.mockResolvedValue(1);
 
     await service.handleApplicationCreated(10, 42, 100);
 
-    expect(mockRedisService.incr).toHaveBeenCalledWith('publication:10:unseen_applications');
+    expect(mockRedisService.addToSet).toHaveBeenCalledWith(
+      'publication:10:unseen_application_ids',
+      '42',
+    );
   });
 
   it('should not throw whether it is the first or a subsequent unseen application', async () => {
-    mockRedisService.incr.mockResolvedValueOnce(1);
+    mockRedisService.addToSet.mockResolvedValueOnce(1);
     await expect(service.handleApplicationCreated(10, 42, 100)).resolves.not.toThrow();
 
-    mockRedisService.incr.mockResolvedValueOnce(2);
+    mockRedisService.addToSet.mockResolvedValueOnce(2);
     await expect(service.handleApplicationCreated(10, 43, 101)).resolves.not.toThrow();
   });
 
   it('should do nothing when the publication has no company', async () => {
-    mockRedisService.incr.mockResolvedValue(1);
+    mockRedisService.addToSet.mockResolvedValue(1);
     mockPublicationService.getById.mockResolvedValue({ id: 10, companyId: null });
 
     await service.handleApplicationCreated(10, 42, 100);
@@ -62,7 +65,7 @@ describe('ApplicationNotificationService', () => {
   });
 
   it('should publish the push job for the company members with the computed unseen count', async () => {
-    mockRedisService.incr.mockResolvedValue(3);
+    mockRedisService.addToSet.mockResolvedValue(3);
 
     await service.handleApplicationCreated(10, 42, 100);
 
@@ -81,7 +84,7 @@ describe('ApplicationNotificationService', () => {
   });
 
   it('should publish with the first-unseen wording when unseenCount is 1', async () => {
-    mockRedisService.incr.mockResolvedValue(1);
+    mockRedisService.addToSet.mockResolvedValue(1);
 
     await service.handleApplicationCreated(10, 42, 100);
 
@@ -97,19 +100,13 @@ describe('ApplicationNotificationService', () => {
 
   it('should reset the unseen counter by deleting the key', async () => {
     await service.resetUnseenCount(10);
-    expect(mockRedisService.del).toHaveBeenCalledWith('publication:10:unseen_applications');
+    expect(mockRedisService.del).toHaveBeenCalledWith('publication:10:unseen_application_ids');
   });
 
-  it('should return the unseen count from redis', async () => {
-    mockRedisService.get.mockResolvedValue('4');
+  it('should return the size of the unseen set', async () => {
+    mockRedisService.setSize.mockResolvedValue(4);
 
     await expect(service.getUnseenCount(10)).resolves.toBe(4);
-    expect(mockRedisService.get).toHaveBeenCalledWith('publication:10:unseen_applications');
-  });
-
-  it('should return 0 when the key does not exist', async () => {
-    mockRedisService.get.mockResolvedValue(null);
-
-    await expect(service.getUnseenCount(10)).resolves.toBe(0);
+    expect(mockRedisService.setSize).toHaveBeenCalledWith('publication:10:unseen_application_ids');
   });
 });
