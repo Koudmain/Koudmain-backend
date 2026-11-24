@@ -6,6 +6,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // SIGTERM (docker stop) déclenche onModuleDestroy : le relais outbox et le consumer
+  // finissent leur traitement en cours au lieu d'être coupés au milieu.
+  app.enableShutdownHooks();
   app.enableCors({
     origin: true,
     credentials: true,
