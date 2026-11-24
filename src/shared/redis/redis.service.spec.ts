@@ -8,6 +8,7 @@ jest.mock('ioredis');
 describe('RedisService', () => {
   let service: RedisService;
   let mockRedisClient: jest.Mocked<Redis>;
+  let mockBlockingClient: jest.Mocked<Redis>;
 
   const mockConfigService = {
     get: jest.fn((key: string) => {
@@ -21,28 +22,18 @@ describe('RedisService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    const mockOn = jest.fn();
-    const mockQuit = jest.fn().mockResolvedValue('OK');
-    const mockSet = jest.fn().mockResolvedValue('OK');
-    const mockGet = jest.fn().mockResolvedValue('mock-value');
-    const mockDel = jest.fn().mockResolvedValue(1);
-    const mockXadd = jest.fn().mockResolvedValue('1700000000000-0');
-    const mockIncr = jest.fn().mockResolvedValue(1);
-    const mockXgroup = jest.fn().mockResolvedValue('OK');
-    const mockXreadgroup = jest.fn().mockResolvedValue(null);
-    const mockXack = jest.fn().mockResolvedValue(1);
-
+    // Une instance distincte par `new Redis()` pour distinguer la connexion bloquante
     (Redis as unknown as jest.Mock).mockImplementation(() => ({
-      on: mockOn,
-      quit: mockQuit,
-      set: mockSet,
-      get: mockGet,
-      del: mockDel,
-      xadd: mockXadd,
-      incr: mockIncr,
-      xgroup: mockXgroup,
-      xreadgroup: mockXreadgroup,
-      xack: mockXack,
+      on: jest.fn(),
+      quit: jest.fn().mockResolvedValue('OK'),
+      set: jest.fn().mockResolvedValue('OK'),
+      get: jest.fn().mockResolvedValue('mock-value'),
+      del: jest.fn().mockResolvedValue(1),
+      xadd: jest.fn().mockResolvedValue('1700000000000-0'),
+      incr: jest.fn().mockResolvedValue(1),
+      xgroup: jest.fn().mockResolvedValue('OK'),
+      xreadgroup: jest.fn().mockResolvedValue(null),
+      xack: jest.fn().mockResolvedValue(1),
     }));
 
     const module: TestingModule = await Test.createTestingModule({
@@ -59,24 +50,29 @@ describe('RedisService', () => {
 
     service.onModuleInit();
     mockRedisClient = service['client'] as unknown as jest.Mocked<Redis>;
+    mockBlockingClient = service['blockingClient'] as unknown as jest.Mocked<Redis>;
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  it('should initialize redis client on module init', () => {
+  it('should open a main and a dedicated blocking connection on module init', () => {
+    expect(Redis).toHaveBeenCalledTimes(2);
     expect(Redis).toHaveBeenCalledWith({
       host: 'localhost',
       port: 6379,
       password: 'secret',
     });
+    expect(mockBlockingClient).not.toBe(mockRedisClient);
     expect(jest.mocked(mockRedisClient.on)).toHaveBeenCalledWith('error', expect.any(Function));
+    expect(jest.mocked(mockBlockingClient.on)).toHaveBeenCalledWith('error', expect.any(Function));
   });
 
-  it('should call quit on module destroy', async () => {
+  it('should quit both connections on module destroy', async () => {
     await service.onModuleDestroy();
     expect(jest.mocked(mockRedisClient.quit)).toHaveBeenCalled();
+    expect(jest.mocked(mockBlockingClient.quit)).toHaveBeenCalled();
   });
 
   it('should call set with correct arguments', async () => {
@@ -151,8 +147,8 @@ describe('RedisService', () => {
     ).rejects.toThrow('connection refused');
   });
 
-  it('should parse xreadgroup result into stream entries when reading new entries', async () => {
-    (mockRedisClient.xreadgroup as jest.Mock).mockResolvedValueOnce([
+  it('should read new entries on the blocking connection, not the main one', async () => {
+    (mockBlockingClient.xreadgroup as jest.Mock).mockResolvedValueOnce([
       ['outbox-events', [['1-0', ['type', 'APPLICATION_CREATED', 'payload', '{"id":1}']]]],
     ]);
 
@@ -163,7 +159,7 @@ describe('RedisService', () => {
       5000,
     );
 
-    expect(jest.mocked(mockRedisClient.xreadgroup)).toHaveBeenCalledWith(
+    expect(jest.mocked(mockBlockingClient.xreadgroup)).toHaveBeenCalledWith(
       'GROUP',
       'notification-service',
       'notification-service',
@@ -173,6 +169,7 @@ describe('RedisService', () => {
       'outbox-events',
       '>',
     );
+    expect(jest.mocked(mockRedisClient.xreadgroup)).not.toHaveBeenCalled();
     expect(result).toEqual([
       { id: '1-0', fields: { type: 'APPLICATION_CREATED', payload: '{"id":1}' } },
     ]);
