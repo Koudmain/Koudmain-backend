@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { ApplicationController } from './application.controller';
 import { ApplicationService } from '@/modules/application/services/application.service';
 import { ApplicationNotificationService } from '@/modules/notification/application/application-notification.service';
+import { ApplicationStatus } from '@/modules/application/models/application.model';
 
 describe('ApplicationController', () => {
   let controller: ApplicationController;
@@ -48,10 +49,47 @@ describe('ApplicationController', () => {
       expect(mockApplicationNotificationService.resetUnseenCount).not.toHaveBeenCalled();
     });
 
-    it('resets the unseen counter when publicationId is given', async () => {
+    it('checks membership, then resets the counter BEFORE reading the list', async () => {
+      const calls: string[] = [];
+      mockApplicationService.assertMemberOfPublicationCompany.mockImplementation(async () =>
+        calls.push('assert'),
+      );
+      mockApplicationNotificationService.resetUnseenCount.mockImplementation(async () =>
+        calls.push('reset'),
+      );
+      mockApplicationService.findForUser.mockImplementation(async () => calls.push('find'));
+
       await controller.get(req, { publicationId: 10 });
 
+      expect(mockApplicationService.assertMemberOfPublicationCompany).toHaveBeenCalledWith(1, 10);
       expect(mockApplicationNotificationService.resetUnseenCount).toHaveBeenCalledWith(10);
+      expect(calls).toEqual(['assert', 'reset', 'find']);
+    });
+
+    it('also resets the counter when listing the Pending applications of the publication', async () => {
+      await controller.get(req, { publicationId: 10, status: ApplicationStatus.PENDING });
+
+      expect(mockApplicationNotificationService.resetUnseenCount).toHaveBeenCalledWith(10);
+    });
+
+    it.each([ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED])(
+      'does not reset the counter when listing %s applications',
+      async (status) => {
+        await controller.get(req, { publicationId: 10, status });
+
+        expect(mockApplicationNotificationService.resetUnseenCount).not.toHaveBeenCalled();
+        expect(mockApplicationService.findForUser).toHaveBeenCalledWith(1, {
+          publicationId: 10,
+          status,
+        });
+      },
+    );
+
+    it('does not reset the counter when the user is not a member of the company', async () => {
+      mockApplicationService.assertMemberOfPublicationCompany.mockRejectedValue(new Error('403'));
+
+      await expect(controller.get(req, { publicationId: 10 })).rejects.toThrow('403');
+      expect(mockApplicationNotificationService.resetUnseenCount).not.toHaveBeenCalled();
     });
   });
 
