@@ -5,10 +5,13 @@ import { DeviceTokenPlatform } from '@/modules/push/models/device-token-platform
 
 describe('DeviceTokenController', () => {
   let controller: DeviceTokenController;
-  let mockDeviceTokenService: { registerToken: jest.Mock };
+  let mockDeviceTokenService: { registerToken: jest.Mock; removeTokenForUser: jest.Mock };
 
   beforeEach(async () => {
-    mockDeviceTokenService = { registerToken: jest.fn().mockResolvedValue(undefined) };
+    mockDeviceTokenService = {
+      registerToken: jest.fn().mockResolvedValue(undefined),
+      removeTokenForUser: jest.fn().mockResolvedValue(undefined),
+    };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [DeviceTokenController],
@@ -32,5 +35,13 @@ describe('DeviceTokenController', () => {
       DeviceTokenPlatform.IOS,
     );
     expect(result).toEqual({ success: true });
+  });
+
+  it('should unregister the device token only for the authenticated user', async () => {
+    const req = { user: { sub: 7, email: 'a@b.com' } } as never;
+
+    await controller.unregister(req, { token: 'abc' });
+
+    expect(mockDeviceTokenService.removeTokenForUser).toHaveBeenCalledWith(7, 'abc');
   });
 });

@@ -78,4 +78,16 @@ describe('DeviceTokenService', () => {
     await service.removeToken('abc');
     expect(mockDeviceTokenModel.destroy).toHaveBeenCalledWith({ where: { token: 'abc' } });
   });
+
+  it('should only remove the token when it belongs to the given user', async () => {
+    await service.removeTokenForUser(7, 'abc');
+    expect(mockDeviceTokenModel.destroy).toHaveBeenCalledWith({
+      where: { token: 'abc', userId: 7 },
+    });
+  });
+
+  it('should remove every token of the given user', async () => {
+    await service.removeAllForUser(7);
+    expect(mockDeviceTokenModel.destroy).toHaveBeenCalledWith({ where: { userId: 7 } });
+  });
 });

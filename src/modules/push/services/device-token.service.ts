@@ -38,4 +38,13 @@ export class DeviceTokenService {
   async removeToken(token: string): Promise<void> {
     await this.deviceTokenModel.destroy({ where: { token } });
   }
+
+  // Filtré sur userId : un utilisateur ne peut pas désenregistrer l'appareil d'un autre.
+  async removeTokenForUser(userId: number, token: string): Promise<void> {
+    await this.deviceTokenModel.destroy({ where: { token, userId } });
+  }
+
+  async removeAllForUser(userId: number): Promise<void> {
+    await this.deviceTokenModel.destroy({ where: { userId } });
+  }
 }

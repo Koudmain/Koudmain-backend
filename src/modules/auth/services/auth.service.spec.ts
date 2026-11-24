@@ -7,6 +7,7 @@ import { WorkersService } from '@/modules/workers/services/workers.service';
 import { CompaniesService } from '@/modules/companies/services/companies.service';
 import { EmailVerificationService } from '@/modules/auth/services/email-verification.service';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { DeviceTokenService } from '@/modules/push/services/device-token.service';
 import { getModelToken } from '@nestjs/sequelize';
 import { Address } from '@/modules/address/address.model';
 import { Sequelize } from 'sequelize-typescript';
@@ -60,6 +61,8 @@ describe('AuthService', () => {
     signAsync: jest.fn(),
     verifyAsync: jest.fn(),
   };
+
+  const mockDeviceTokenService = { removeAllForUser: jest.fn() };
 
   const mockRefreshSessionService = {
     createSession: jest.fn(),
@@ -116,6 +119,7 @@ describe('AuthService', () => {
         { provide: CompaniesService, useValue: mockCompaniesService },
         { provide: EmailVerificationService, useValue: mockEmailVerificationService },
         { provide: GeocodingService, useValue: mockGeocodingService },
+        { provide: DeviceTokenService, useValue: mockDeviceTokenService },
         { provide: Sequelize, useValue: mockSequelize },
         { provide: getModelToken(Address), useValue: mockAddressModel },
       ],
@@ -452,9 +456,10 @@ describe('AuthService', () => {
   });
 
   describe('logoutAll', () => {
-    it('should revoke all sessions for user', async () => {
+    it('should revoke all sessions and unregister every device of the user', async () => {
       const result = await service.logoutAll(1);
       expect(mockRefreshSessionService.revokeAllSessions).toHaveBeenCalledWith(1);
+      expect(mockDeviceTokenService.removeAllForUser).toHaveBeenCalledWith(1);
       expect(result).toEqual({ message: 'All sessions revoked successfully' });
     });
   });

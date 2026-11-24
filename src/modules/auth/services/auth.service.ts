@@ -22,6 +22,7 @@ import { InjectModel } from '@nestjs/sequelize';
 import { Sequelize } from 'sequelize-typescript';
 import { Address } from '@/modules/address/address.model';
 import { GeocodingService } from '@/common/utils/geocoding/geocoding.service';
+import { DeviceTokenService } from '@/modules/push/services/device-token.service';
 import {
   RegisterDto,
   WorkerProfileDto,
@@ -65,6 +66,7 @@ export class AuthService {
     private companiesService: CompaniesService,
     private emailVerificationService: EmailVerificationService,
     private geocodingService: GeocodingService,
+    private deviceTokenService: DeviceTokenService,
     private sequelize: Sequelize,
     @InjectModel(Address) private addressModel: typeof Address,
   ) {}
@@ -190,6 +192,8 @@ export class AuthService {
 
   async logoutAll(userId: number): Promise<{ message: string }> {
     await this.refreshSessionService.revokeAllSessions(userId);
+    // Plus aucun appareil connecté : ils ne doivent plus recevoir les notifications de l'utilisateur.
+    await this.deviceTokenService.removeAllForUser(userId);
     return { message: 'All sessions revoked successfully' };
   }
 
