@@ -1,8 +1,8 @@
 import { User } from '@/modules/users/models/user.model';
-import { Column, Model, Table, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { Column, Model, Table, ForeignKey, BelongsTo, DataType } from 'sequelize-typescript';
 import { Conversation } from './conversation.model';
 
-@Table({ tableName: 'conversation_settings', timestamps: false }) // timstamp a false car pas de date dans le fichier .sql (created_at, updated_at)
+@Table({ tableName: 'conversation_settings', timestamps: false })
 export class ConversationSetting extends Model {
   @ForeignKey(() => User)
   @Column({ field: 'user_id', primaryKey: true })
@@ -17,6 +17,9 @@ export class ConversationSetting extends Model {
 
   @Column({ defaultValue: false })
   declare is_deleted: boolean;
+
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
 
   @BelongsTo(() => Conversation)
   declare conversation: Conversation;

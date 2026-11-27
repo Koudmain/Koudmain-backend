@@ -11,7 +11,6 @@ import { UsersModule } from '@/modules/users/users.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { DriveModule } from '@/modules/drive/drive.module';
 import { PlanningModule } from '@/modules/planning/planning.module';
-import { SkillCategory } from '@/modules/skill-category/models/skill-category.model';
 import { AuthResponse } from './utils/auth.helper';
 
 require('dotenv').config();
@@ -263,15 +262,12 @@ describe('AppController (e2e)', () => {
 
     expect(skill.id).toBe(standaloneSkillId);
     expect(skill.name).toBe(standaloneSkillName);
-    expect(skill.category).toStrictEqual(
-      SkillCategory.build({
-        id: standaloneCategoryId,
-        name: standaloneCategoryName,
-        createdBy: null,
-      }).get({
-        plain: true,
-      }),
-    );
+    expect(skill.category).toStrictEqual({
+      id: standaloneCategoryId,
+      name: standaloneCategoryName,
+      createdAt: expect.any(String),
+      createdBy: null,
+    });
   });
 
   it('should get skills by category ID', async () => {
@@ -283,14 +279,11 @@ describe('AppController (e2e)', () => {
     expect(response.status).toBe(200);
     expect(response.body).toBeInstanceOf(Array);
     expect(response.body.length).toBeGreaterThan(0);
-    expect(response.body[0].category).toStrictEqual(
-      SkillCategory.build({
-        id: standaloneCategoryId,
-        name: standaloneCategoryName,
-        createdBy: null,
-      }).get({
-        plain: true,
-      }),
-    );
+    expect(response.body[0].category).toStrictEqual({
+      id: standaloneCategoryId,
+      name: standaloneCategoryName,
+      createdAt: expect.any(String),
+      createdBy: null,
+    });
   });
 });

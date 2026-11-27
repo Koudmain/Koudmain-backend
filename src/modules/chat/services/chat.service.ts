@@ -105,7 +105,7 @@ export class ChatService {
           model: Message,
           as: 'last_message',
           limit: 1,
-          order: [['created_at', 'DESC']],
+          order: [['createdAt', 'DESC']],
         },
       ],
       order: [['updated_at', 'DESC']],
@@ -135,7 +135,7 @@ export class ChatService {
   async getMessagesByConversation(conversationId: number, limit: number, offset: number) {
     return this.messageModel.findAll({
       where: { conversationId: conversationId },
-      order: [['created_at', 'DESC']],
+      order: [['createdAt', 'DESC']],
       limit: limit,
       offset: offset,
     });
@@ -144,7 +144,7 @@ export class ChatService {
   async getConversationMessages(conversationId: number) {
     return this.messageModel.findAll({
       where: { conversationId: conversationId },
-      order: [['created_at', 'ASC']],
+      order: [['createdAt', 'ASC']],
     });
   }
 
