@@ -15,6 +15,9 @@ export class WorkerJob extends Model {
   @Column({ field: 'skill_category_id', type: DataType.INTEGER, primaryKey: true, allowNull: true })
   declare skillCategoryId: number | null;
 
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
+
   @BelongsTo(() => SkillCategory)
   declare skillCategory: SkillCategory;
 }

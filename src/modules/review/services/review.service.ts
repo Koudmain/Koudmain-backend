@@ -31,7 +31,6 @@ export class ReviewService {
         type: ReviewType.WORKER_TO_COMPANY,
         paymentOnTime: dto.paymentOnTime ?? null,
         missionMatchesListing: dto.missionMatchesListing ?? null,
-        createdAt: new Date(),
       })
       .catch((error: unknown) => {
         if (error instanceof UniqueConstraintError) {
@@ -55,7 +54,6 @@ export class ReviewService {
         companyId: mission.companyId,
         reportType: dto.reportType,
         description: dto.description?.trim() || null,
-        createdAt: new Date(),
       })
       .catch((error: unknown) => {
         if (error instanceof UniqueConstraintError) {

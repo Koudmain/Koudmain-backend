@@ -156,7 +156,7 @@ module.exports = {
       return {
         id: nextPublicationId++,
         company_id: target.company_id,
-        created_by_user_id: target.user_id,
+        created_by: target.user_id,
         address_id: target.address_id,
         title: pub.title,
         description: pub.description,

@@ -50,6 +50,9 @@ export class WorkerProfile extends Model {
   @Column({ field: 'missions_completed', type: DataType.INTEGER, defaultValue: 0 })
   declare missionsCompleted: number;
 
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
+
   @BelongsToMany(() => SkillCategory, () => WorkerJob)
   declare skillCategories: SkillCategory[];
 

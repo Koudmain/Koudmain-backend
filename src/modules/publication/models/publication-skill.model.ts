@@ -11,4 +11,7 @@ export class PublicationSkill extends Model {
   @ForeignKey(() => Skill)
   @Column({ type: DataType.INTEGER, primaryKey: true })
   declare skill_id: number;
+
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
 }

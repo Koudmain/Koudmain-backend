@@ -108,7 +108,7 @@ describe('Planning (e2e)', () => {
     const [maxPubIdRows] = await sequelize.query(`SELECT MAX(id) as max_id FROM "publication";`);
     const nextPubId = Number((maxPubIdRows[0] as { max_id: number | null }).max_id || 0) + 1;
     const [pubRows] = await sequelize.query(
-      `INSERT INTO "publication" (id, title, description, hourly_rate, starting_date, ending_date, company_id, created_by_user_id)
+      `INSERT INTO "publication" (id, title, description, hourly_rate, starting_date, ending_date, company_id, created_by)
        VALUES (${nextPubId}, 'Planning Test Job', 'Desc', 20.0, '${startingDate.toISOString()}', '${endingDate.toISOString()}', ${companyId}, ${employerUserId})
        RETURNING id`,
     );

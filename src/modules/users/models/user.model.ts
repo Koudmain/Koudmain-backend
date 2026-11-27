@@ -46,4 +46,7 @@ export class User extends Model {
 
   @Column({ field: 'created_at', type: DataType.DATE })
   declare createdAt: Date;
+
+  @Column({ field: 'created_by', type: DataType.INTEGER })
+  declare createdBy: number | null;
 }

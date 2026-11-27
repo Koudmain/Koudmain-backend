@@ -5,6 +5,12 @@ export class Address extends Model {
   @Column({ primaryKey: true, autoIncrement: true, type: DataType.INTEGER })
   declare id: number;
 
+  @Column({ field: 'created_at', type: DataType.DATE })
+  declare createdAt: Date;
+
+  @Column({ field: 'created_by', type: DataType.INTEGER })
+  declare createdBy: number | null;
+
   @Column(DataType.STRING(10))
   declare street_number: string;
 
