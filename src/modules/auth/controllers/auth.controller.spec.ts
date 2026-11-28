@@ -13,6 +13,9 @@ const mockAuthService = {
   logoutAll: jest.fn(),
   generateTokensForUser: jest.fn(),
   getUserForVerification: jest.fn(),
+  getGoogleAuthUrl: jest.fn(),
+  handleGoogleCallback: jest.fn(),
+  signInWithGoogle: jest.fn(),
 };
 
 const mockEmailVerificationService = {
@@ -141,6 +144,50 @@ describe('AuthController', () => {
       const result = controller.getProfile(mockReq);
 
       expect(result).toEqual(mockPayload);
+    });
+  });
+
+  describe('Google sign-in', () => {
+    it('should return the Google consent URL and the verifier', async () => {
+      const start = { url: 'https://accounts.google.com/consent', verifier: 'verifier' };
+      mockAuthService.getGoogleAuthUrl.mockResolvedValue(start);
+
+      const result = await controller.googleStart({
+        redirect: 'exp://host/--/auth/google-callback',
+      });
+
+      expect(mockAuthService.getGoogleAuthUrl).toHaveBeenCalledWith(
+        'exp://host/--/auth/google-callback',
+      );
+      expect(result).toEqual(start);
+    });
+
+    it('should redirect back to the app from the Google callback', async () => {
+      mockAuthService.handleGoogleCallback.mockResolvedValue('exp://host?idToken=abc');
+
+      const result = await controller.googleCallback('state', 'code', undefined);
+
+      expect(mockAuthService.handleGoogleCallback).toHaveBeenCalledWith('state', 'code', undefined);
+      expect(result).toEqual({ url: 'exp://host?idToken=abc' });
+    });
+
+    it('should pass the ID token, verifier, role and registration to authService.signInWithGoogle', async () => {
+      const mockTokens = { accessToken: 'acc_token', refreshToken: 'ref_token' };
+      mockAuthService.signInWithGoogle.mockResolvedValue(mockTokens);
+
+      const result = await controller.signInWithGoogle({
+        idToken: 'google_id_token',
+        verifier: 'verifier',
+        role: UserRole.WORKER,
+      });
+
+      expect(mockAuthService.signInWithGoogle).toHaveBeenCalledWith(
+        'google_id_token',
+        'verifier',
+        UserRole.WORKER,
+        undefined,
+      );
+      expect(result).toEqual(mockTokens);
     });
   });
 });
