@@ -8,6 +8,14 @@ module.exports = {
     const BELLECOUR_LNG = 4.8321;
     const TOTAL_A_PRENDRE = 20;
 
+    const [[existingLyonCount]] = await queryInterface.sequelize.query(
+      `SELECT COUNT(*) AS count FROM address WHERE city = 'Lyon';`,
+    );
+    if (Number(existingLyonCount?.count || 0) >= TOTAL_A_PRENDRE) {
+      console.log('Adresses de Lyon déjà présentes en base, seed ignoré.');
+      return;
+    }
+
     try {
       const response = await axios.get('https://api-adresse.data.gouv.fr/search/', {
         params: {

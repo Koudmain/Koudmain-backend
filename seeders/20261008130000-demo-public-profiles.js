@@ -193,6 +193,14 @@ module.exports = {
       return;
     }
 
+    const [[existingMissions]] = await queryInterface.sequelize.query(
+      `SELECT COUNT(*) AS count FROM mission WHERE company_id = ${companyId};`,
+    );
+    if (Number(existingMissions?.count || 0) > 0) {
+      console.log('Profils publics et missions déjà présents en base, seed ignoré.');
+      return;
+    }
+
     const now = new Date();
 
     await queryInterface.bulkUpdate(

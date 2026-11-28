@@ -105,9 +105,21 @@ module.exports = {
     }
     const workerIdByEmail = new Map(workerRows.map((w) => [w.email, w.id]));
 
+    const existingApplicationsQuery = await queryInterface.sequelize.query(
+      `SELECT publication_id, worker_id FROM application WHERE publication_id IN (${publicationRows.map((p) => p.id).join(', ')});`,
+    );
+    const existingPairs = new Set(
+      existingApplicationsQuery[0].map((a) => `${a.publication_id}:${a.worker_id}`),
+    );
+
     const now = new Date();
     const applicationsToInsert = APPLICATIONS_DATA.filter(
-      (a) => publicationIdByTitle.has(a.publicationTitle) && workerIdByEmail.has(a.workerEmail),
+      (a) =>
+        publicationIdByTitle.has(a.publicationTitle) &&
+        workerIdByEmail.has(a.workerEmail) &&
+        !existingPairs.has(
+          `${publicationIdByTitle.get(a.publicationTitle)}:${workerIdByEmail.get(a.workerEmail)}`,
+        ),
     ).map((a) => ({
       publication_id: publicationIdByTitle.get(a.publicationTitle),
       worker_id: workerIdByEmail.get(a.workerEmail),

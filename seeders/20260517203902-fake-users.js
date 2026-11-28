@@ -17,9 +17,25 @@ module.exports = {
       { name: 'Réceptionniste' },
       { name: 'Plongeur' },
     ];
-    await queryInterface.bulkInsert('skill_category', skillCategories, {});
+    const [existingCategories] = await queryInterface.sequelize.query(
+      `SELECT name FROM skill_category;`,
+    );
+    const existingCategoryNames = new Set(existingCategories.map((c) => c.name));
+    const categoriesToInsert = skillCategories.filter((c) => !existingCategoryNames.has(c.name));
+    if (categoriesToInsert.length > 0) {
+      await queryInterface.bulkInsert('skill_category', categoriesToInsert, {});
+    }
     const skills = await queryInterface.sequelize.query(`SELECT id, name FROM skill_category;`);
     const skillRows = skills[0];
+
+    // Skip if demo users already exist in DB
+    const [existingUsers] = await queryInterface.sequelize.query(
+      `SELECT id FROM "user" WHERE email = 'worker1@koudmain.fr' LIMIT 1;`,
+    );
+    if (existingUsers.length > 0) {
+      console.log('Les utilisateurs de démonstration existent déjà, seed ignoré.');
+      return;
+    }
 
     // 2. Generate Addresses
     const addresses = [];
